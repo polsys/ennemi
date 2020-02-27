@@ -61,6 +61,27 @@ class TestEstimateMi(unittest.TestCase):
                 expected = -0.5 * math.log(1 - rho**2)
                 self.assertAlmostEqual(actual, expected, delta=delta)
 
+    def test_independent_uniform(self):
+        # We have to use independent random numbers instead of linspace,
+        # because the algorithm has trouble with evenly spaced values
+        np.random.seed(1)
+        x = np.random.uniform(0.0, 1.0, 1024)
+        y = np.random.uniform(0.0, 1.0, 1024)
+
+        actual = estimate_mi(x, y, k=8)
+        actual2 = estimate_mi(y, x, k=8)
+        self.assertAlmostEqual(actual, 0, delta=0.02)
+        self.assertAlmostEqual(actual, actual2, delta=0.00001)
+
+    def test_independent_transformed_uniform(self):
+        # Very non-uniform density, but should have equal MI as the uniform test
+        np.random.seed(1)
+        x = np.random.uniform(0.0, 10.0, 1024)
+        y = np.random.uniform(0.0, 10.0, 1024)
+
+        actual = estimate_mi(x, y, k=8)
+        self.assertAlmostEqual(actual, 0, delta=0.02)
+
 
 # Also test the helper method because binary search is easy to get wrong
 from ennemi.entropy_estimators import _count_within
