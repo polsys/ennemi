@@ -1,40 +1,40 @@
-"""Tests for ennemi.estimate_mi()."""
+"""Tests for ennemi.estimate_single_mi() and friends."""
 
 import math
 import numpy as np
 import unittest
-from ennemi import estimate_mi
+from ennemi import estimate_single_mi
 
-class TestEstimateMi(unittest.TestCase):
+class TestEstimateSingleMi(unittest.TestCase):
 
     def test_inputs_of_different_length(self):
         x = np.zeros(10)
         y = np.zeros(20)
 
         with self.assertRaises(ValueError):
-            estimate_mi(x, y)
+            estimate_single_mi(x, y)
 
     def test_inputs_shorter_than_k(self):
         x = np.zeros(3)
         y = np.zeros(3)
 
         with self.assertRaises(ValueError):
-            estimate_mi(x, y, k=5)
-            estimate_mi(x, y)
+            estimate_single_mi(x, y, k=5)
+            estimate_single_mi(x, y)
 
     def test_k_must_be_positive(self):
         x = np.zeros(30)
         y = np.zeros(30)
 
         with self.assertRaises(ValueError):
-            estimate_mi(x, y, k=-2)
+            estimate_single_mi(x, y, k=-2)
 
     def test_k_must_be_integer(self):
         x = np.zeros(30)
         y = np.zeros(30)
 
         with self.assertRaises(TypeError):
-            estimate_mi(x, y, k=2.71828)
+            estimate_single_mi(x, y, k=2.71828)
 
     def test_bivariate_gaussian(self):
         cases = [ (0, 20, 3, 0.1),
@@ -57,7 +57,7 @@ class TestEstimateMi(unittest.TestCase):
                 x = data[:,0]
                 y = data[:,1]
 
-                actual = estimate_mi(x, y, k=k)
+                actual = estimate_single_mi(x, y, k=k)
                 expected = -0.5 * math.log(1 - rho**2)
                 self.assertAlmostEqual(actual, expected, delta=delta)
 
@@ -68,8 +68,8 @@ class TestEstimateMi(unittest.TestCase):
         x = np.random.uniform(0.0, 1.0, 1024)
         y = np.random.uniform(0.0, 1.0, 1024)
 
-        actual = estimate_mi(x, y, k=8)
-        actual2 = estimate_mi(y, x, k=8)
+        actual = estimate_single_mi(x, y, k=8)
+        actual2 = estimate_single_mi(y, x, k=8)
         self.assertAlmostEqual(actual, 0, delta=0.02)
         self.assertAlmostEqual(actual, actual2, delta=0.00001)
 
@@ -79,7 +79,7 @@ class TestEstimateMi(unittest.TestCase):
         x = np.random.uniform(0.0, 10.0, 1024)
         y = np.random.uniform(0.0, 10.0, 1024)
 
-        actual = estimate_mi(x, y, k=8)
+        actual = estimate_single_mi(x, y, k=8)
         self.assertAlmostEqual(actual, 0, delta=0.02)
 
 

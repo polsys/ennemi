@@ -1,10 +1,13 @@
-"""The estimator methods."""
+"""The estimator methods.
+
+Do not import this module directly, but rather import the main ennemi module.
+"""
 
 import bisect
 import numpy as np
 from scipy.special import psi
 
-def estimate_mi(x : np.ndarray, y : np.ndarray, k : int = 3):
+def estimate_single_mi(x : np.ndarray, y : np.ndarray, k : int = 3):
     """Estimate the mutual information between two continuous variables.
 
     Returns the estimated mutual information (in nats).
