@@ -22,6 +22,10 @@ def estimate_mi(x : np.ndarray, y : np.ndarray, k : int = 3):
     k : int
         The number of neighbors to consider. Default 3.
         Must be smaller than the number of observations.
+
+    The algorithm used assumes a continuous distribution. If the data set
+    contains many identical observations, this method may return -inf. In that
+    case, add low-amplitude noise to the data and try again.
     """
 
     N = len(x)
@@ -55,7 +59,7 @@ def estimate_mi(x : np.ndarray, y : np.ndarray, k : int = 3):
         # Find the coordinates of the k'th neighbor in the joint distribution
         # Do this by first searching to the left in x direction and then to
         # the right in x direction until the x values become too large to
-        # qualify for inclusion in k smallest distances
+        # qualify for inclusion in k smallest distances.
         eps = float("inf")
         distances = np.full(k, eps)
         for j in range(i-1, -1, -1):
