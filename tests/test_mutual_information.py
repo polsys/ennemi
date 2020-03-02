@@ -1,7 +1,8 @@
 """Tests for ennemi.estimate_single_mi() and friends."""
 
-import math
+from math import log
 import numpy as np
+from scipy.special import psi
 import unittest
 from ennemi import estimate_single_mi
 
@@ -50,37 +51,53 @@ class TestEstimateSingleMi(unittest.TestCase):
                   (-0.9, 2000, 5, 0.02), ]
         for (rho, n, k, delta) in cases:
             with self.subTest(rho=rho, n=n, k=k):
-                np.random.seed(0)
+                rng = np.random.default_rng(0)
                 cov = np.array([[1, rho], [rho, 1]])
 
-                data = np.random.multivariate_normal([0, 0], cov, size=n)
+                data = rng.multivariate_normal([0, 0], cov, size=n)
                 x = data[:,0]
                 y = data[:,1]
 
                 actual = estimate_single_mi(x, y, k=k)
-                expected = -0.5 * math.log(1 - rho**2)
+                expected = -0.5 * log(1 - rho**2)
                 self.assertAlmostEqual(actual, expected, delta=delta)
+
+    def test_sum_of_exponentials(self):
+        # We define X ~ Exp(1), W ~ Exp(2) and Y = X + W.
+        # Now by arXiv:1609.02911, Y has known, closed-form entropy.
+        cases = [ (1, 2), (0.2, 0.3), (3, 3.1) ]
+        for (a, b) in cases:
+            with self.subTest(a=a, b=b):
+                rng = np.random.default_rng(20200302)
+                x = rng.exponential(1/a, 1000)
+                w = rng.exponential(1/b, 1000)
+                y = x + w
+
+                actual = estimate_single_mi(x, y, k=5)
+                expected = np.euler_gamma + log((b-a)/a) + psi(b/(b-a))
+
+                self.assertAlmostEqual(actual, expected, delta=0.025)
 
     def test_independent_uniform(self):
         # We have to use independent random numbers instead of linspace,
         # because the algorithm has trouble with evenly spaced values
-        np.random.seed(1)
-        x = np.random.uniform(0.0, 1.0, 1024)
-        y = np.random.uniform(0.0, 1.0, 1024)
+        rng = np.random.default_rng(1)
+        x = rng.uniform(0.0, 1.0, 1024)
+        y = rng.uniform(0.0, 1.0, 1024)
 
         actual = estimate_single_mi(x, y, k=8)
         actual2 = estimate_single_mi(y, x, k=8)
-        self.assertAlmostEqual(actual, 0, delta=0.02)
+        self.assertAlmostEqual(actual, 0, delta=0.04)
         self.assertAlmostEqual(actual, actual2, delta=0.00001)
 
     def test_independent_transformed_uniform(self):
         # Very non-uniform density, but should have equal MI as the uniform test
-        np.random.seed(1)
-        x = np.random.uniform(0.0, 10.0, 1024)
-        y = np.random.uniform(0.0, 10.0, 1024)
+        rng = np.random.default_rng(1)
+        x = rng.uniform(0.0, 10.0, 1024)
+        y = rng.uniform(0.0, 10.0, 1024)
 
         actual = estimate_single_mi(x, y, k=8)
-        self.assertAlmostEqual(actual, 0, delta=0.02)
+        self.assertAlmostEqual(actual, 0, delta=0.04)
 
 
 # Also test the helper method because binary search is easy to get wrong
