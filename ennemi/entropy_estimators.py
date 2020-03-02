@@ -1,6 +1,7 @@
 """The estimator methods.
 
 Do not import this module directly, but rather import the main ennemi module.
+The `estimate_single_mi` method is available through that module.
 """
 
 import bisect
@@ -19,9 +20,6 @@ def estimate_single_mi(x : np.ndarray, y : np.ndarray, k : int = 3):
     x, y : ndarray
         The observed values.
         The two arrays must have the same length.
-    
-    Keyword parameters:
-    ---
     k : int
         The number of neighbors to consider. Default 3.
         Must be smaller than the number of observations.
