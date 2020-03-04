@@ -4,7 +4,11 @@ from math import log
 import numpy as np
 from scipy.special import psi
 import unittest
-from ennemi import estimate_single_mi
+from ennemi import estimate_single_mi, estimate_conditional_mi
+
+X_Y_DIFFERENT_LENGTH_MSG = "x and y must have same length"
+X_COND_DIFFERENT_LENGTH_MSG = "x and cond must have same length"
+K_TOO_LARGE_MSG = "k must be smaller than number of observations"
 
 class TestEstimateSingleMi(unittest.TestCase):
 
@@ -12,16 +16,17 @@ class TestEstimateSingleMi(unittest.TestCase):
         x = np.zeros(10)
         y = np.zeros(20)
 
-        with self.assertRaises(ValueError):
+        with self.assertRaises(ValueError) as cm:
             estimate_single_mi(x, y)
+        self.assertEqual(str(cm.exception), X_Y_DIFFERENT_LENGTH_MSG)
 
     def test_inputs_shorter_than_k(self):
         x = np.zeros(3)
         y = np.zeros(3)
 
-        with self.assertRaises(ValueError):
+        with self.assertRaises(ValueError) as cm:
             estimate_single_mi(x, y, k=5)
-            estimate_single_mi(x, y)
+        self.assertEqual(str(cm.exception), K_TOO_LARGE_MSG)
 
     def test_k_must_be_positive(self):
         x = np.zeros(30)
@@ -98,6 +103,71 @@ class TestEstimateSingleMi(unittest.TestCase):
 
         actual = estimate_single_mi(x, y, k=8)
         self.assertAlmostEqual(actual, 0, delta=0.04)
+
+
+class TestEstimateConditionalMi(unittest.TestCase):
+
+    def test_x_and_y_different_length(self):
+        x = np.zeros(10)
+        y = np.zeros(20)
+
+        with self.assertRaises(ValueError) as cm:
+            estimate_conditional_mi(x, y, y)
+        self.assertEqual(str(cm.exception), X_Y_DIFFERENT_LENGTH_MSG)
+
+    def test_x_and_cond_different_length(self):
+        x = np.zeros(10)
+        y = np.zeros(20)
+
+        with self.assertRaises(ValueError) as cm:
+            estimate_conditional_mi(x, x, y)
+        self.assertEqual(str(cm.exception), X_COND_DIFFERENT_LENGTH_MSG)
+
+    def test_gaussian_with_independent_condition(self):
+        # In this case, the results should be same as in ordinary MI
+        cases = [ (0.5, 200, 3, 0.03),
+                  (0.75, 400, 3, 0.01),
+                  (-0.9, 4000, 5, 0.03), ]
+        for (rho, n, k, delta) in cases:
+            with self.subTest(rho=rho, n=n, k=k):
+                rng = np.random.default_rng(0)
+                cov = np.array([[1, rho], [rho, 1]])
+
+                data = rng.multivariate_normal([0, 0], cov, size=n)
+                x = data[:,0]
+                y = data[:,1]
+                cond = rng.uniform(0, 1, size=n)
+
+                actual = estimate_conditional_mi(x, y, cond, k=k)
+                expected = -0.5 * log(1 - rho**2)
+                self.assertAlmostEqual(actual, expected, delta=delta)
+
+    def test_gaussian_with_condition_equal_to_y(self):
+        # MI(X;Y | Y) should be equal to 0
+        rng = np.random.default_rng(4)
+        cov = np.array([[1, 0.6], [0.6, 1]])
+
+        data = rng.multivariate_normal([0, 0], cov, size=314)
+        x = data[:,0]
+        y = data[:,1]
+
+        actual = estimate_conditional_mi(x, y, y, k=4)
+        self.assertAlmostEqual(actual, 0.0, delta=0.001)
+
+    def test_three_gaussians(self):
+        # First example in doi:10.1103/PhysRevLett.99.204101,
+        # we know the analytic expression for conditional MI of a three-
+        # dimensional Gaussian random variable. Here, the covariance matrix
+        # is not particularly interesting. The expected CMI expression
+        # contains determinants of submatrices.
+        rng = np.random.default_rng(5)
+        cov = np.array([[1, 1, 1], [1, 4, 1], [1, 1, 9]])
+
+        data = rng.multivariate_normal([0, 0, 0], cov, size=1000)
+
+        actual = estimate_conditional_mi(data[:,0], data[:,1], data[:,2])
+        expected = 0.5 * (log(8) + log(35) - log(9) - log(24))
+        self.assertAlmostEqual(actual, expected, delta=0.015)
 
 
 # Also test the helper method because binary search is easy to get wrong
