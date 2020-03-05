@@ -7,6 +7,10 @@ With one method call, you can estimate several variable pairs and time lags at o
 The package uses the nearest neighbor method as described by Kraskov et al. in
 _Estimating Mutual Information_, Physical Review E **69**:6 (2004),
 [doi:10.1103/PhysRevE.69.066138](https://dx.doi.org/10.1103/PhysRevE.69.066138).
+The variant for conditional mutual information is described in Frenzel & Pompe,
+_Partial Mutual Information for Coupling Analysis of Multivariate Time Series_,
+Physical Review Letters **99**:20 (2007),
+[doi:10.1103/PhysRevLett.99.204101](https://dx.doi.org/10.1103/PhysRevLett.99.204101).
 
 **NOTE:** This package is **alpha** quality. Likelihood of breaking changes to the API is high!
 

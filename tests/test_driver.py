@@ -35,6 +35,14 @@ class TestEstimateMi(unittest.TestCase):
             estimate_mi(x, y, time_lag=[2, -2])
         self.assertEqual(str(cm.exception), TOO_LARGE_LAG_MSG)
 
+    def test_cond_lag_leaves_no_y_observations(self):
+        x = [1, 2, 3, 4]
+        y = [5, 6, 7, 8]
+
+        with self.assertRaises(ValueError) as cm:
+            estimate_mi(x, y, time_lag=1, cond=y, cond_lag=3)
+        self.assertEqual(str(cm.exception), TOO_LARGE_LAG_MSG)
+
     def test_lag_not_integer(self):
         x = [1, 2, 3, 4]
         y = [5, 6, 7, 8]
@@ -138,3 +146,25 @@ class TestEstimateMi(unittest.TestCase):
         self.assertAlmostEqual(actual[2,0], 0.0, delta=0.07)
         self.assertAlmostEqual(actual[2,1], 0.0, delta=0.05)
         self.assertGreater(actual[2,2], 0.15)
+
+    def test_conditional_mi_with_several_lags(self):
+        # X(t) ~ Normal(0, 1), Y(t) = X(t-1) + noise and Z(t) = Y(t-1) + noise.
+        # Now MI(Y,lag=1; Z) is greater than zero but MI(Y,lag=1; Z | X,lag=+1)
+        # should be equal to zero. On the other hand, MI(Y;Z) = MI(Y;Z|X) = 0
+        # when there is no lag at all.
+        rng = np.random.default_rng(20200305)
+        x = rng.normal(0, 1, size=802)
+        y = x[1:801] + rng.normal(0, 0.001, size=800)
+        z = x[0:800] + rng.normal(0, 0.001, size=800)
+        x = x[2:802]
+
+        # As a sanity check, test the non-conditional MI
+        noncond = estimate_mi(y, z, k=5, time_lag=1)
+        self.assertGreater(noncond, 1)
+
+        # Then the conditional MI
+        actual = estimate_mi(y, z, time_lag=[0,1], k=5, cond=x, cond_lag=1)
+
+        self.assertEqual(actual.shape, (1, 2))
+        self.assertAlmostEqual(actual[0,0], 0.0, delta=0.05)
+        self.assertAlmostEqual(actual[0,1], 0.0, delta=0.01)
