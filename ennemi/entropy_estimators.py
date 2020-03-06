@@ -103,9 +103,9 @@ def estimate_conditional_mi(x : np.ndarray, y : np.ndarray, cond : np.ndarray,
         nz[i] = _count_within(zs, cur_z - eps, cur_z + eps)
 
         # The other two terms are 2D projections and there is no well-ordering
-        # for 2D vectors. We'd need a better data structure, but in waiting for
-        # that let's at least vectorize the thing properly.
-        # TODO: Performance
+        # for 2D vectors. However, using vectorized NumPy operations is faster
+        # in benchmarks than applying the BoxGrid data structure. The grid is
+        # good for k'th-neighbor search but inefficient for counting.
         nxz[i] = np.sum(np.maximum(np.abs(x - cur_x), np.abs(cond - cur_z)) < eps)
         nyz[i] = np.sum(np.maximum(np.abs(y - cur_y), np.abs(cond - cur_z)) < eps)
 
