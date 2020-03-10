@@ -3,11 +3,14 @@
 Do not import this module directly, but rather import the main ennemi module.
 """
 
+import concurrent.futures
+import itertools
 import numpy as np
 from .entropy_estimators import estimate_single_mi, estimate_conditional_mi
 
 def estimate_mi(x : np.ndarray, y : np.ndarray, time_lag = 0, 
-                k : int = 3, cond : np.ndarray = None, cond_lag : int = 0):
+                k : int = 3, cond : np.ndarray = None, cond_lag : int = 0,
+                parallel : str = None):
     """Estimate the mutual information between y and each x variable.
 
     Returns the estimated mutual information (in nats) for continuous
@@ -50,6 +53,12 @@ def estimate_mi(x : np.ndarray, y : np.ndarray, time_lag = 0,
         Must have as many observations as y.
     cond_lag : int
         Additional lag applied to the cond array. Default 0.
+    parallel : str or None
+        Whether to run the estimation in multiple processes. If None (the default),
+        a heuristic will be used for the decision. If "always", each
+        variable / time lag combination will be run in a separate subprocess,
+        with as many concurrent processes as there are processors.
+        If "disable", the combinations are estimated sequentially in the current process.
     """
 
     # The code below assumes that time_lag is an array
@@ -68,21 +77,53 @@ def estimate_mi(x : np.ndarray, y : np.ndarray, time_lag = 0,
     # Validate that the lag is not too large
     if max_lag - min_lag >= y.size or max_lag >= y.size or min_lag <= -y.size:
         raise ValueError("lag is too large, no observations left")
-
+    
     if x.ndim == 1:
-        # If there is just one variable, the loop in the 'else' block would not work
-        result = np.asarray([_lagged_mi(x, y, lag, min_lag, max_lag, k, cond, cond_lag) for lag in time_lag])
-
-        # Force the result to be a 2D array
-        result.shape = (1, len(result))
-        return result
+        nvar = 1
     else:
-        # Go through each variable and time lag combination
-        result = np.empty((len(x), len(time_lag)))
-        for i in range(len(x)):
-            result[i] = [_lagged_mi(x[i], y, lag, min_lag, max_lag, k, cond, cond_lag) for lag in time_lag]
+        nvar = len(x)
 
-        return result
+    # Create a list of all variable, time lag combinations
+    # The params map contains tuples for simpler passing into subprocess
+    indices = list(itertools.product(range(nvar), range(len(time_lag))))
+    if x.ndim == 1:
+        params = map(lambda lag: (x, y, lag, max_lag, min_lag, k, cond, cond_lag), time_lag)
+    else:
+        params = map(lambda i: (x[i[0],:], y, time_lag[i[1]], max_lag, min_lag, k, cond, cond_lag), indices)
+
+    # If there is benefit in doing so, and the user has not overridden the
+    # heuristic, execute the estimation in multiple parallel processes
+    # TODO: In a many variables/lags, small N case, it may make sense to
+    #       use multiple processes, but batch the tasks
+    if parallel == "always":
+        use_parallel = True
+    elif parallel == "disable":
+        use_parallel = False
+    elif parallel is not None:
+        raise ValueError("unrecognized value for parallel argument")
+    else:
+        # As parallel is None, use a heuristic
+        use_parallel = len(indices) > 1 and len(y) > 200
+
+    if use_parallel:
+        with concurrent.futures.ProcessPoolExecutor() as executor:
+            conc_result = executor.map(_do_estimate, params)
+    else:
+        conc_result = map(_do_estimate, params)
+    
+    # Collect the results to a 2D array
+    result = np.empty((nvar, len(time_lag)))
+    for index, res in zip(indices, conc_result):
+        result[index] = res
+        
+    return result
+
+
+def _do_estimate(param_tuple):
+    # A helper for unpacking the param tuple (maybe unnecessary?)
+    x, y, lag, max_lag, min_lag, k, cond, cond_lag = param_tuple
+    return _lagged_mi(x, y, lag, min_lag, max_lag, k, cond, cond_lag)
+
 
 def _lagged_mi(x : np.ndarray, y : np.ndarray, lag : int,
                min_lag : int, max_lag : int, k : int,

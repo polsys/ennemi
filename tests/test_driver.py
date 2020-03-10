@@ -50,6 +50,13 @@ class TestEstimateMi(unittest.TestCase):
         with self.assertRaises(TypeError):
             estimate_mi(x, y, time_lag=1.2)
 
+    def test_unknown_parallel_parameter(self):
+        x = [1, 2, 3, 4]
+        y = [5, 6, 7, 8]
+
+        with self.assertRaises(ValueError):
+            estimate_mi(x, y, parallel="whatever")
+
     def test_two_covariates_without_lag(self):
         rng = np.random.default_rng(0)
         x1 = rng.uniform(0, 1, 100)
@@ -131,21 +138,24 @@ class TestEstimateMi(unittest.TestCase):
         data_path = os.path.join(script_path, "example_data.csv")
         data = np.loadtxt(data_path, delimiter=",", skiprows=1, unpack=True)
 
-        actual = estimate_mi(data[1:4], data[0], time_lag=[0, 1, 3])
+        parallel_modes = [ None, "always", "disable" ]
+        for parallel in parallel_modes:
+            with self.subTest(parallel=parallel):
+                actual = estimate_mi(data[1:4], data[0], time_lag=[0, 1, 3])
 
-        # y(t) depends on x1(t+1)
-        self.assertAlmostEqual(actual[0,0], 0.0, delta=0.05)
-        self.assertGreater(actual[0,1], 0.5)
-        self.assertAlmostEqual(actual[0,2], 0.0, delta=0.05)
+                # y(t) depends on x1(t+1)
+                self.assertAlmostEqual(actual[0,0], 0.0, delta=0.05)
+                self.assertGreater(actual[0,1], 0.5)
+                self.assertAlmostEqual(actual[0,2], 0.0, delta=0.05)
 
-        # y(t) is completely independent of x2
-        for i in range(3):
-            self.assertAlmostEqual(actual[1,i], 0.0, delta=0.05)
-        
-        # y(t) depends on abs(x3(t+3))
-        self.assertAlmostEqual(actual[2,0], 0.0, delta=0.07)
-        self.assertAlmostEqual(actual[2,1], 0.0, delta=0.05)
-        self.assertGreater(actual[2,2], 0.15)
+                # y(t) is completely independent of x2
+                for i in range(3):
+                    self.assertAlmostEqual(actual[1,i], 0.0, delta=0.05)
+                
+                # y(t) depends on abs(x3(t+3))
+                self.assertAlmostEqual(actual[2,0], 0.0, delta=0.07)
+                self.assertAlmostEqual(actual[2,1], 0.0, delta=0.05)
+                self.assertGreater(actual[2,2], 0.15)
 
     def test_conditional_mi_with_several_lags(self):
         # X(t) ~ Normal(0, 1), Y(t) = X(t-1) + noise and Z(t) = Y(t-1) + noise.
