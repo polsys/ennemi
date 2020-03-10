@@ -6,7 +6,7 @@ Do not import this module directly, but rather import the main ennemi module.
 import concurrent.futures
 import itertools
 import numpy as np
-from .entropy_estimators import estimate_single_mi, estimate_conditional_mi
+from ._entropy_estimators import _estimate_single_mi, _estimate_conditional_mi
 
 def estimate_mi(x : np.ndarray, y : np.ndarray, time_lag = 0, 
                 k : int = 3, cond : np.ndarray = None, cond_lag : int = 0,
@@ -134,9 +134,9 @@ def _lagged_mi(x : np.ndarray, y : np.ndarray, lag : int,
     ys = y[max_lag : len(y)+min(min_lag, 0)]
 
     if cond is None:
-        return estimate_single_mi(xs, ys, k)
+        return _estimate_single_mi(xs, ys, k)
     else:
         # The cond observations have their additional lag term
         zs = cond[max_lag-(lag+cond_lag) : len(cond)-(lag+cond_lag)+min(min_lag, 0)]
-        return estimate_conditional_mi(xs, ys, zs, k)
+        return _estimate_conditional_mi(xs, ys, zs, k)
 

@@ -1,10 +1,10 @@
-"""Tests for ennemi.estimate_single_mi() and friends."""
+"""Tests for ennemi._estimate_single_mi() and friends."""
 
 from math import log
 import numpy as np
 from scipy.special import psi
 import unittest
-from ennemi import estimate_single_mi, estimate_conditional_mi
+from ennemi._entropy_estimators import _estimate_single_mi, _estimate_conditional_mi
 
 X_Y_DIFFERENT_LENGTH_MSG = "x and y must have same length"
 X_COND_DIFFERENT_LENGTH_MSG = "x and cond must have same length"
@@ -17,7 +17,7 @@ class TestEstimateSingleMi(unittest.TestCase):
         y = np.zeros(20)
 
         with self.assertRaises(ValueError) as cm:
-            estimate_single_mi(x, y)
+            _estimate_single_mi(x, y)
         self.assertEqual(str(cm.exception), X_Y_DIFFERENT_LENGTH_MSG)
 
     def test_inputs_shorter_than_k(self):
@@ -25,7 +25,7 @@ class TestEstimateSingleMi(unittest.TestCase):
         y = np.zeros(3)
 
         with self.assertRaises(ValueError) as cm:
-            estimate_single_mi(x, y, k=5)
+            _estimate_single_mi(x, y, k=5)
         self.assertEqual(str(cm.exception), K_TOO_LARGE_MSG)
 
     def test_k_must_be_positive(self):
@@ -33,14 +33,14 @@ class TestEstimateSingleMi(unittest.TestCase):
         y = np.zeros(30)
 
         with self.assertRaises(ValueError):
-            estimate_single_mi(x, y, k=-2)
+            _estimate_single_mi(x, y, k=-2)
 
     def test_k_must_be_integer(self):
         x = np.zeros(30)
         y = np.zeros(30)
 
         with self.assertRaises(TypeError):
-            estimate_single_mi(x, y, k=2.71828)
+            _estimate_single_mi(x, y, k=2.71828)
 
     def test_bivariate_gaussian(self):
         cases = [ (0, 40, 3, 0.1),
@@ -63,7 +63,7 @@ class TestEstimateSingleMi(unittest.TestCase):
                 x = data[:,0]
                 y = data[:,1]
 
-                actual = estimate_single_mi(x, y, k=k)
+                actual = _estimate_single_mi(x, y, k=k)
                 expected = -0.5 * log(1 - rho**2)
                 self.assertAlmostEqual(actual, expected, delta=delta)
 
@@ -78,7 +78,7 @@ class TestEstimateSingleMi(unittest.TestCase):
                 w = rng.exponential(1/b, 1000)
                 y = x + w
 
-                actual = estimate_single_mi(x, y, k=5)
+                actual = _estimate_single_mi(x, y, k=5)
                 expected = np.euler_gamma + log((b-a)/a) + psi(b/(b-a))
 
                 self.assertAlmostEqual(actual, expected, delta=0.025)
@@ -90,8 +90,8 @@ class TestEstimateSingleMi(unittest.TestCase):
         x = rng.uniform(0.0, 1.0, 1024)
         y = rng.uniform(0.0, 1.0, 1024)
 
-        actual = estimate_single_mi(x, y, k=8)
-        actual2 = estimate_single_mi(y, x, k=8)
+        actual = _estimate_single_mi(x, y, k=8)
+        actual2 = _estimate_single_mi(y, x, k=8)
         self.assertAlmostEqual(actual, 0, delta=0.04)
         self.assertAlmostEqual(actual, actual2, delta=0.00001)
 
@@ -101,7 +101,7 @@ class TestEstimateSingleMi(unittest.TestCase):
         x = rng.uniform(0.0, 10.0, 1024)
         y = rng.uniform(0.0, 10.0, 1024)
 
-        actual = estimate_single_mi(x, y, k=8)
+        actual = _estimate_single_mi(x, y, k=8)
         self.assertAlmostEqual(actual, 0, delta=0.04)
 
 
@@ -112,7 +112,7 @@ class TestEstimateConditionalMi(unittest.TestCase):
         y = np.zeros(20)
 
         with self.assertRaises(ValueError) as cm:
-            estimate_conditional_mi(x, y, y)
+            _estimate_conditional_mi(x, y, y)
         self.assertEqual(str(cm.exception), X_Y_DIFFERENT_LENGTH_MSG)
 
     def test_x_and_cond_different_length(self):
@@ -120,7 +120,7 @@ class TestEstimateConditionalMi(unittest.TestCase):
         y = np.zeros(20)
 
         with self.assertRaises(ValueError) as cm:
-            estimate_conditional_mi(x, x, y)
+            _estimate_conditional_mi(x, x, y)
         self.assertEqual(str(cm.exception), X_COND_DIFFERENT_LENGTH_MSG)
 
     def test_gaussian_with_independent_condition(self):
@@ -138,7 +138,7 @@ class TestEstimateConditionalMi(unittest.TestCase):
                 y = data[:,1]
                 cond = rng.uniform(0, 1, size=n)
 
-                actual = estimate_conditional_mi(x, y, cond, k=k)
+                actual = _estimate_conditional_mi(x, y, cond, k=k)
                 expected = -0.5 * log(1 - rho**2)
                 self.assertAlmostEqual(actual, expected, delta=delta)
 
@@ -151,7 +151,7 @@ class TestEstimateConditionalMi(unittest.TestCase):
         x = data[:,0]
         y = data[:,1]
 
-        actual = estimate_conditional_mi(x, y, y, k=4)
+        actual = _estimate_conditional_mi(x, y, y, k=4)
         self.assertAlmostEqual(actual, 0.0, delta=0.001)
 
     def test_three_gaussians(self):
@@ -165,13 +165,13 @@ class TestEstimateConditionalMi(unittest.TestCase):
 
         data = rng.multivariate_normal([0, 0, 0], cov, size=1000)
 
-        actual = estimate_conditional_mi(data[:,0], data[:,1], data[:,2])
+        actual = _estimate_conditional_mi(data[:,0], data[:,1], data[:,2])
         expected = 0.5 * (log(8) + log(35) - log(9) - log(24))
         self.assertAlmostEqual(actual, expected, delta=0.015)
 
 
 # Also test the helper method because binary search is easy to get wrong
-from ennemi.entropy_estimators import _count_within
+from ennemi._entropy_estimators import _count_within
 
 class TestCountWithin(unittest.TestCase):
 

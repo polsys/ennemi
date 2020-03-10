@@ -1,9 +1,7 @@
 """The estimator methods.
 
-Do not import this module directly, but rather import the main ennemi module.
-The `estimate_single_mi` and `estimate_conditional_mi` methods are available
-through that module. Prefer using the `estimate_mi` method that combines
-the two and provides additional functionality.
+Do not import this module directly.
+Use the `estimate_mi` method in the main ennemi module instead.
 """
 
 import bisect
@@ -11,7 +9,7 @@ import math
 import numpy as np
 from scipy.special import psi
 
-def estimate_single_mi(x : np.ndarray, y : np.ndarray, k : int = 3):
+def _estimate_single_mi(x : np.ndarray, y : np.ndarray, k : int = 3):
     """Estimate the mutual information between two continuous variables.
 
     Returns the estimated mutual information (in nats).
@@ -68,7 +66,7 @@ def estimate_single_mi(x : np.ndarray, y : np.ndarray, k : int = 3):
     return psi(N) + psi(k) - np.mean(psi(nx) + psi(ny))
 
 
-def estimate_conditional_mi(x : np.ndarray, y : np.ndarray, cond : np.ndarray,
+def _estimate_conditional_mi(x : np.ndarray, y : np.ndarray, cond : np.ndarray,
                             k : int = 3):
     """Estimate conditional mutual information between two continuous variables.
 
