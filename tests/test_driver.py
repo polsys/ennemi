@@ -16,7 +16,7 @@ class TestEstimateMi(unittest.TestCase):
         y = [5, 6, 7, 8]
 
         with self.assertRaises(ValueError) as cm:
-            estimate_mi(x, y, time_lag=4)
+            estimate_mi(y, x, time_lag=4)
         self.assertEqual(str(cm.exception), TOO_LARGE_LAG_MSG)
 
     def test_lag_too_small(self):
@@ -24,7 +24,7 @@ class TestEstimateMi(unittest.TestCase):
         y = [5, 6, 7, 8]
 
         with self.assertRaises(ValueError) as cm:
-            estimate_mi(x, y, time_lag=-4)
+            estimate_mi(y, x, time_lag=-4)
         self.assertEqual(str(cm.exception), TOO_LARGE_LAG_MSG)
 
     def test_lag_leaves_no_y_observations(self):
@@ -32,7 +32,7 @@ class TestEstimateMi(unittest.TestCase):
         y = [5, 6, 7, 8]
 
         with self.assertRaises(ValueError) as cm:
-            estimate_mi(x, y, time_lag=[2, -2])
+            estimate_mi(y, x, time_lag=[2, -2])
         self.assertEqual(str(cm.exception), TOO_LARGE_LAG_MSG)
 
     def test_cond_lag_leaves_no_y_observations(self):
@@ -40,7 +40,7 @@ class TestEstimateMi(unittest.TestCase):
         y = [5, 6, 7, 8]
 
         with self.assertRaises(ValueError) as cm:
-            estimate_mi(x, y, time_lag=1, cond=y, cond_lag=3)
+            estimate_mi(y, x, time_lag=1, cond=y, cond_lag=3)
         self.assertEqual(str(cm.exception), TOO_LARGE_LAG_MSG)
 
     def test_lag_not_integer(self):
@@ -48,14 +48,14 @@ class TestEstimateMi(unittest.TestCase):
         y = [5, 6, 7, 8]
 
         with self.assertRaises(TypeError):
-            estimate_mi(x, y, time_lag=1.2)
+            estimate_mi(y, x, time_lag=1.2)
 
     def test_unknown_parallel_parameter(self):
         x = [1, 2, 3, 4]
         y = [5, 6, 7, 8]
 
         with self.assertRaises(ValueError):
-            estimate_mi(x, y, parallel="whatever")
+            estimate_mi(y, x, parallel="whatever")
 
     def test_two_covariates_without_lag(self):
         rng = np.random.default_rng(0)
@@ -63,7 +63,7 @@ class TestEstimateMi(unittest.TestCase):
         x2 = rng.uniform(0, 1, 100)
         y = x1 + rng.normal(0, 0.01, 100)
 
-        actual = estimate_mi(np.array([x1, x2]), y)
+        actual = estimate_mi(y, np.array([x1, x2]))
 
         self.assertEqual(actual.shape, (2, 1))
         # The first x component is almost equal to y and has entropy ~ exp(1),
@@ -89,7 +89,7 @@ class TestEstimateMi(unittest.TestCase):
         y = np.zeros(40)
         y[1:] = x[:-1]
 
-        actual = estimate_mi(x, y, time_lag=[0, 1, -1])
+        actual = estimate_mi(y, x, time_lag=[0, 1, -1])
 
         self.assertEqual(actual.shape, (1, 3))
         self.assertAlmostEqual(actual[0,0], 0, delta=0.1)
@@ -102,7 +102,7 @@ class TestEstimateMi(unittest.TestCase):
         y = np.zeros(40)
         y[:-1] = x[1:]
 
-        actual = estimate_mi(x, y, time_lag=[0, 1, -1])
+        actual = estimate_mi(y, x, time_lag=[0, 1, -1])
 
         self.assertEqual(actual.shape, (1, 3))
         self.assertAlmostEqual(actual[0,0], 0, delta=0.1)
@@ -115,7 +115,7 @@ class TestEstimateMi(unittest.TestCase):
         x = [rng.uniform(0, 1) for i in range(100)]
         y = [rng.uniform(0, 1) for i in range(100)]
 
-        actual = estimate_mi(x, y)
+        actual = estimate_mi(y, x)
 
         self.assertAlmostEqual(actual[0,0], 0, delta=0.05)
 
@@ -126,7 +126,7 @@ class TestEstimateMi(unittest.TestCase):
         x2 = [rng.uniform(0, 1) for i in range(201)]
         y = [rng.uniform(0, 1) for i in range(201)]
 
-        actual = estimate_mi([x1, x2], y)
+        actual = estimate_mi(y, [x1, x2])
 
         self.assertEqual(actual.shape, (2, 1))
         self.assertAlmostEqual(actual[0,0], 0, delta=0.05)
@@ -141,7 +141,7 @@ class TestEstimateMi(unittest.TestCase):
         parallel_modes = [ None, "always", "disable" ]
         for parallel in parallel_modes:
             with self.subTest(parallel=parallel):
-                actual = estimate_mi(data[1:4], data[0], time_lag=[0, 1, 3])
+                actual = estimate_mi(data[0], data[1:4], time_lag=[0, 1, 3])
 
                 # y(t) depends on x1(t+1)
                 self.assertAlmostEqual(actual[0,0], 0.0, delta=0.05)
@@ -169,11 +169,11 @@ class TestEstimateMi(unittest.TestCase):
         x = x[2:802]
 
         # As a sanity check, test the non-conditional MI
-        noncond = estimate_mi(y, z, k=5, time_lag=1)
+        noncond = estimate_mi(z, y, k=5, time_lag=1)
         self.assertGreater(noncond, 1)
 
         # Then the conditional MI
-        actual = estimate_mi(y, z, time_lag=[0,1], k=5, cond=x, cond_lag=1)
+        actual = estimate_mi(z, y, time_lag=[0,1], k=5, cond=x, cond_lag=1)
 
         self.assertEqual(actual.shape, (1, 2))
         self.assertAlmostEqual(actual[0,0], 0.0, delta=0.05)

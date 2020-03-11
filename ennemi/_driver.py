@@ -8,7 +8,7 @@ import itertools
 import numpy as np
 from ._entropy_estimators import _estimate_single_mi, _estimate_conditional_mi
 
-def estimate_mi(x : np.ndarray, y : np.ndarray, time_lag = 0, 
+def estimate_mi(y : np.ndarray, x : np.ndarray, time_lag = 0, 
                 k : int = 3, cond : np.ndarray = None, cond_lag : int = 0,
                 parallel : str = None):
     """Estimate the mutual information between y and each x variable.
@@ -33,11 +33,11 @@ def estimate_mi(x : np.ndarray, y : np.ndarray, time_lag = 0,
 
     Required parameters:
     ---
+    y : array_like
+        A 1D array of observations.
     x : array_like
         A 1D or 2D array where the rows are one or more variables and the
         columns are observations. The number of columns must be the same as in y.
-    y : array_like
-        A 1D array of observations.
     time_lag : int or array_like
         A time lag or 1D array of time lags to apply to x. Default 0.
         The values may be any integers with magnitude
