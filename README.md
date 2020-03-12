@@ -31,7 +31,8 @@ Documentation will be extended later: for now, see the `tests` directory for usa
 ## Building
 
 This package requires Python 3.6 or higher.
-It depends on NumPy and SciPy (the latter dependency could, and maybe should, be broken).
+The only dependency is NumPy.
+The tests also depend on SciPy.
 
 
 ## Citing

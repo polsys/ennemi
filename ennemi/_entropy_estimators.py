@@ -7,7 +7,6 @@ Use the `estimate_mi` method in the main ennemi module instead.
 import bisect
 import math
 import numpy as np
-from scipy.special import psi
 
 def _estimate_single_mi(x : np.ndarray, y : np.ndarray, k : int = 3):
     """Estimate the mutual information between two continuous variables.
@@ -62,8 +61,7 @@ def _estimate_single_mi(x : np.ndarray, y : np.ndarray, k : int = 3):
         ny[i] = _count_within(ys, cur_y - eps, cur_y + eps)
 
     # Calculate the estimate
-    # TODO: Rounding errors?
-    return psi(N) + psi(k) - np.mean(psi(nx) + psi(ny))
+    return _psi(N) + _psi(k) - np.mean(_psi(nx) + _psi(ny))
 
 
 def _estimate_conditional_mi(x : np.ndarray, y : np.ndarray, cond : np.ndarray,
@@ -107,7 +105,7 @@ def _estimate_conditional_mi(x : np.ndarray, y : np.ndarray, cond : np.ndarray,
         nxz[i] = np.sum(np.maximum(np.abs(x - cur_x), np.abs(cond - cur_z)) < eps)
         nyz[i] = np.sum(np.maximum(np.abs(y - cur_y), np.abs(cond - cur_z)) < eps)
 
-    return psi(k) - np.mean(psi(nxz) + psi(nyz) - psi(nz))
+    return _psi(k) - np.mean(_psi(nxz) + _psi(nyz) - _psi(nz))
 
 
 def _find_kth_neighbor(k, grid, cur_x, cur_y, cur_z):
@@ -302,3 +300,31 @@ class _BoxGrid:
         box_y = bisect.bisect(self.y_splits, y) - 1
         box_z = bisect.bisect(self.z_splits, z) - 1
         return (box_x, box_y, box_z)
+
+
+def _psi(x : np.ndarray):
+    """A replacement for scipy.special.psi, for non-negative integers only.
+    
+    This is up to a few times slower than the SciPy version, but it's not fun
+    to depend on full SciPy just for this method (even though SciPy is often
+    installed with NumPy). This method is not the bottleneck anyways, so the
+    difference vanishes in the measurement noise.
+    """
+    
+    x = np.asarray(x)
+
+    # psi(0) = inf for SciPy compatibility
+    result = np.full(x.shape, np.inf)
+    mask = (x != 0)
+
+    # Use the SciPy value for psi(1), because the expansion is not good enough
+    one_mask = (x == 1)
+    result[one_mask] = -0.5772156649015331
+    mask = np.logical_and(mask, np.logical_not(one_mask))
+
+    # For the rest, a good enough expansion is given by
+    # https://www.uv.es/~bernardo/1976AppStatist.pdf
+    y = np.asarray(x[mask], dtype=np.float64)
+    result[mask] = np.log(y) - np.power(y, -6) * (np.power(y, 2) * (np.power(y, 2) * (y/2 + 1/12) - 1/120) + 1/252)
+
+    return result

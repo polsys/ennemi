@@ -7,5 +7,5 @@ setup(
     # TODO: long_description, urls, author, classifiers, keywords, ...
     packages = [ "ennemi" ],
     python_requires = "~=3.6",
-    install_requires = [ "numpy~=1.13", "scipy~=0.19" ]
+    install_requires = [ "numpy~=1.13" ]
 )

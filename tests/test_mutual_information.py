@@ -170,6 +170,26 @@ class TestEstimateConditionalMi(unittest.TestCase):
         self.assertAlmostEqual(actual, expected, delta=0.015)
 
 
+# Test our custom implementation of the digamma function
+from ennemi._entropy_estimators import _psi
+
+class TestPsi(unittest.TestCase):
+
+    def test_comparison_with_scipy(self):
+        # Zero
+        self.assertEqual(_psi(0), psi(0))
+
+        # Small values
+        for x in range(1, 20):
+            with self.subTest(x=x):
+                self.assertAlmostEqual(_psi(x), psi(x), delta=0.0001)
+
+        # Large values
+        for x in range(2, 1000):
+            with self.subTest(x=10*x):
+                self.assertAlmostEqual(_psi(x*10), psi(x*10), delta=0.0001)
+
+
 # Also test the helper method because binary search is easy to get wrong
 from ennemi._entropy_estimators import _count_within
 
