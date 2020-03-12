@@ -132,7 +132,7 @@ def _find_kth_neighbor(k, grid, cur_x, cur_y, cur_z):
     # where x is (cur_x, cur_y). Of course, the search would stop as soon
     # as extending further would provide no more benefit.
 
-    eps = float("inf")
+    eps = np.inf
     distances = np.full(k, eps)
 
     # First go through the points in the current box
