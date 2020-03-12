@@ -225,7 +225,7 @@ import numpy as np
 data = np.loadtxt("mi_example.csv", delimiter=",", skiprows=1, unpack=True)
 time_lags = np.arange(-3, 6)
 
-mi = estimate_mi(data[(1, 3),:], data[0], time_lag=time_lags,
+mi = estimate_mi(data[0], data[(1, 3),:], time_lag=time_lags,
                  cond=data[2], cond_lag=2)
 
 plt.plot(time_lags, mi[0,:], label="$x_1$")
