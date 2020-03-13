@@ -17,22 +17,26 @@ Physical Review Letters **99**:20 (2007),
 
 ## Getting started
 
-The package will be published on PyPI.
-To install the package in development mode, execute
-```sh
-pip install -e .
-```
-in the repository root folder.
+This package requires Python 3.6 or higher.
+The only dependency is NumPy.
+
+In the future, the package will be published on PyPI.
+For now, see the building instructions.
+
 (If your machine has multiple Python installations, you may need to run e.g. `pip3`.)
 
-Documentation will be extended later: for now, see the `tests` directory for usage examples.
+For documentation, please see https://polsys.github.io/ennemi.
 
 
 ## Building
 
-This package requires Python 3.6 or higher.
-The only dependency is NumPy.
-The tests also depend on SciPy.
+The tests depend on SciPy, so you need that installed in addition to NumPy.
+
+To install the package in development mode, clone this repository and execute
+```sh
+pip install -e .
+```
+in the repository root folder.
 
 
 ## Citing
