@@ -12,6 +12,7 @@ and built-in support for time lags.
 `ennemi` is currently developed by Petri Laarne ([@polsys](https://github.com/polsys)) at
 [Institute for Atmospheric and Earth System Research (INAR)](https://www.helsinki.fi/en/inar-institute-for-atmospheric-and-earth-system-research),
 University of Helsinki.
+The package is published under the MIT License.
 
 
 # Installation
