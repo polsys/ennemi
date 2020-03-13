@@ -10,9 +10,9 @@ from ._entropy_estimators import _estimate_single_mi, _estimate_conditional_mi
 
 def estimate_mi(y : np.ndarray, x : np.ndarray, time_lag = 0, 
                 k : int = 3, cond : np.ndarray = None, cond_lag : int = 0,
-                parallel : str = None):
+                mask : np.ndarray = None, parallel : str = None):
     """Estimate the mutual information between y and each x variable.
-
+ 
     Returns the estimated mutual information (in nats) for continuous
     variables. The result is a 2D array where the first index represents `x`
     rows and the second index represents the `time_lags` values.
@@ -23,6 +23,9 @@ def estimate_mi(y : np.ndarray, x : np.ndarray, time_lag = 0,
 
     If the `cond` parameter is set, conditional mutual information is estimated.
     The `cond_lag` parameter is added to the lag for the `cond` array.
+
+    If the `mask` parameter is set, only those `y` observations with the
+    matching mask element set to `True` are used for estimation.
     
     If the data set contains discrete variables or many identical
     observations, this method may return incorrect results or `-inf`.
@@ -53,6 +56,12 @@ def estimate_mi(y : np.ndarray, x : np.ndarray, time_lag = 0,
         Must have as many observations as y.
     cond_lag : int
         Additional lag applied to the cond array. Default 0.
+    mask : array_like or None
+        If specified, an array of booleans that gives the y elements to use for
+        estimation. Use this to exclude some observations from consideration
+        while preserving the time series structure of the data. Elements of
+        `x` and `cond` are masked with the lags applied. The length of this
+        array must match the length `y`.
     parallel : str or None
         Whether to run the estimation in multiple processes. If None (the default),
         a heuristic will be used for the decision. If "always", each
@@ -69,6 +78,14 @@ def estimate_mi(y : np.ndarray, x : np.ndarray, time_lag = 0,
     # If x or y is a Python list, convert it to an ndarray
     x = np.asarray(x)
     y = np.asarray(y)
+
+    # Validate the mask
+    if not mask is None:
+        mask = np.asarray(mask)
+        if len(mask) != len(y):
+            raise ValueError("mask length does not match y length")
+        if mask.dtype != np.bool:
+            raise TypeError("mask must contain only booleans")
 
     # These are used for determining the y range to use
     min_lag = min(np.min(time_lag), np.min(time_lag+cond_lag))
@@ -87,9 +104,9 @@ def estimate_mi(y : np.ndarray, x : np.ndarray, time_lag = 0,
     # The params map contains tuples for simpler passing into subprocess
     indices = list(itertools.product(range(nvar), range(len(time_lag))))
     if x.ndim == 1:
-        params = map(lambda lag: (x, y, lag, max_lag, min_lag, k, cond, cond_lag), time_lag)
+        params = map(lambda lag: (x, y, lag, max_lag, min_lag, k, mask, cond, cond_lag), time_lag)
     else:
-        params = map(lambda i: (x[i[0],:], y, time_lag[i[1]], max_lag, min_lag, k, cond, cond_lag), indices)
+        params = map(lambda i: (x[i[0],:], y, time_lag[i[1]], max_lag, min_lag, k, mask, cond, cond_lag), indices)
 
     # If there is benefit in doing so, and the user has not overridden the
     # heuristic, execute the estimation in multiple parallel processes
@@ -121,22 +138,32 @@ def estimate_mi(y : np.ndarray, x : np.ndarray, time_lag = 0,
 
 def _do_estimate(param_tuple):
     # A helper for unpacking the param tuple (maybe unnecessary?)
-    x, y, lag, max_lag, min_lag, k, cond, cond_lag = param_tuple
-    return _lagged_mi(x, y, lag, min_lag, max_lag, k, cond, cond_lag)
+    x, y, lag, max_lag, min_lag, k, mask, cond, cond_lag = param_tuple
+    return _lagged_mi(x, y, lag, min_lag, max_lag, k, mask, cond, cond_lag)
 
 
 def _lagged_mi(x : np.ndarray, y : np.ndarray, lag : int,
                min_lag : int, max_lag : int, k : int,
+               mask : np.ndarray,
                cond : np.ndarray, cond_lag : int):
     # The x observations start from max_lag - lag
     xs = x[max_lag-lag : len(x)-lag+min(min_lag, 0)]
     # The y observations always start from max_lag
     ys = y[max_lag : len(y)+min(min_lag, 0)]
 
+    # Mask the observations if necessary
+    if not mask is None:
+        mask_subset = mask[max_lag : len(y)+min(min_lag, 0)]
+        xs = xs[mask_subset]
+        ys = ys[mask_subset]
+    
     if cond is None:
         return _estimate_single_mi(xs, ys, k)
     else:
         # The cond observations have their additional lag term
         zs = cond[max_lag-(lag+cond_lag) : len(cond)-(lag+cond_lag)+min(min_lag, 0)]
+        if not mask is None:
+            zs = zs[mask_subset]
+
         return _estimate_conditional_mi(xs, ys, zs, k)
 

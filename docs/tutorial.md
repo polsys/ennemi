@@ -255,3 +255,54 @@ X_3(t) &= Y(t) - X_2(t-3).
 $$
 The reason for our result is that $X_3$ contains the full difference between
 $Y$ and $X_2$ whereas there is still some random variation between $X_1$ and $Y$.
+
+
+
+# Masking observations
+
+Sometimes, you want to use only a subset of the observations.
+This is easy to do with some array slicing unless some variables are time lagged.
+The time lags are easy to get the wrong way around, and
+if the subset consists of several separate parts,
+the resulting array is no longer evenly spaced in time.
+
+To make subsetting with time lags easier, `estimate_mi()` accepts a `mask` parameter.
+The mask is an array (or list) of boolean values.
+A observation is only used if the corresponding `mask` element is `True`.
+Time lags are applied as usual to `x` and `cond` arrays.
+
+Consider a model of two variables.
+The first variable has a daily cycle.
+The second variable follows the first with a time lag, but gets meaningful
+values only in the daytime.
+
+![A cosine curve, and another cosine curve truncated to be positive.](example_mask_plot.png)
+
+To analyze the full data set, you would execute:
+```python
+from ennemi import estimate_mi
+import matplotlib.pyplot as plt
+import numpy as np
+
+# One observation every 30 minutes
+t = np.arange(4*48) / 2
+rng = np.random.default_rng(1234)
+x = -0.3 * np.cos(2 * np.pi * t / 24) + rng.normal(0, 0.001, len(t))
+y = np.sqrt(np.maximum(0, -np.cos(2 * np.pi * (t-3) / 24))) + rng.normal(0, 0.001, len(t))
+
+print(estimate_mi(y, x, time_lag=[0, 1, 2, 3]))
+```
+The result is:
+```
+[[1.36065339 1.38213486 1.45658645 1.46549623]]
+```
+
+To constrain to daytime observations of $Y$ only, replace the last line with
+```python
+mask = np.logical_and(t % 24 > 6, t % 24 < 18)
+print(estimate_mi(y, x, time_lag=[0, 1, 2, 3], mask=mask))
+```
+This produces slightly larger MI values:
+```
+[[1.6303343  1.72073981 1.81418762 1.88527594]]
+```
