@@ -177,7 +177,7 @@ class TestPsi(unittest.TestCase):
 
     def test_comparison_with_scipy(self):
         # Zero
-        self.assertEqual(_psi(0), psi(0))
+        self.assertEqual(_psi(0), np.inf)
 
         # Small values
         for x in range(1, 20):

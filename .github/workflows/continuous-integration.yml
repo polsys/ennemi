@@ -1,0 +1,69 @@
+name: Continuous Integration
+
+on:
+  push:
+    branches: [ master ]
+    paths-ignore:
+      - 'docs/**'
+      - '**.md'
+  pull_request:
+    branches: [ master ]
+    paths-ignore:
+      - 'docs/**'
+      - '**.md'
+
+jobs:
+  build:
+
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest, macos-latest ]
+        python-version: [ 3.6, 3.7, 3.8 ]
+        # Save a bit of resources by running only some combinations:
+        # Ubuntu 3.6, Ubuntu 3.8 and macOS 3.7
+        # TODO: Windows tests crash without explanation
+        exclude:
+          - os: macos-latest
+            python-version: 3.6
+          - os: macos-latest
+            python-version: 3.8
+          - os: ubuntu-latest
+            python-version: 3.7
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v1
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies and pytest
+        run: |
+          pip install -e .
+          pip install scipy
+          pip install pytest
+          pip install pytest-cov
+      
+      - name: Run unit tests (with coverage)
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.8'
+        # We have to rename the path in coverage.xml since Sonar is run in Docker
+        # and has a different view of the file system
+        run: |
+          python3 -m pytest tests/ --cov=ennemi --cov-report=xml --junit-xml=test-results.xml
+          sed 's/\/home\/runner\/work\/ennemi\/ennemi/\/github\/workspace/g' coverage.xml > coverage-mod.xml
+      
+      - name: Run unit tests (no coverage)
+        if: matrix.os != 'ubuntu-latest' || matrix.python-version != '3.8'
+        run: |
+          python3 -m pytest tests/ -v --junit-xml=test-results.xml
+      
+      - name: Run Sonar code analysis
+        if: matrix.os == 'ubuntu-latest'
+        uses: sonarsource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
