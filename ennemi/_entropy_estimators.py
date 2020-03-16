@@ -243,7 +243,7 @@ def _count_within(array, lower, upper):
 def _check_parameters(k, x, y, cond=None):
     if (len(x) != len(y)):
         raise ValueError("x and y must have same length")
-    if (not cond is None) and (len(x) != len(cond)):
+    if (cond is not None) and (len(x) != len(cond)):
         raise ValueError("x and cond must have same length")
     if (len(x) <= k):
         raise ValueError("k must be smaller than number of observations")
@@ -277,7 +277,7 @@ class _BoxGrid:
         # Now the real initialization: first find the split points
         self.x_splits = np.sort(x)[0:len(x):split_size]
         self.y_splits = np.sort(y)[0:len(x):split_size]
-        if not z is None:
+        if z is not None:
             self.z_splits = np.sort(z)[0:len(x):split_size]
         else:
             self.z_splits = np.full(1, -np.inf)

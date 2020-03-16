@@ -80,7 +80,7 @@ def estimate_mi(y : np.ndarray, x : np.ndarray, time_lag = 0,
     y = np.asarray(y)
 
     # Validate the mask
-    if not mask is None:
+    if mask is not None:
         mask = np.asarray(mask)
         if len(mask) != len(y):
             raise ValueError("mask length does not match y length")
@@ -152,7 +152,7 @@ def _lagged_mi(x : np.ndarray, y : np.ndarray, lag : int,
     ys = y[max_lag : len(y)+min(min_lag, 0)]
 
     # Mask the observations if necessary
-    if not mask is None:
+    if mask is not None:
         mask_subset = mask[max_lag : len(y)+min(min_lag, 0)]
         xs = xs[mask_subset]
         ys = ys[mask_subset]
@@ -162,7 +162,7 @@ def _lagged_mi(x : np.ndarray, y : np.ndarray, lag : int,
     else:
         # The cond observations have their additional lag term
         zs = cond[max_lag-(lag+cond_lag) : len(cond)-(lag+cond_lag)+min(min_lag, 0)]
-        if not mask is None:
+        if mask is not None:
             zs = zs[mask_subset]
 
         return _estimate_conditional_mi(xs, ys, zs, k)
