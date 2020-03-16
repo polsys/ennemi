@@ -23,8 +23,6 @@ The only dependency is NumPy.
 In the future, the package will be published on PyPI.
 For now, see the building instructions.
 
-(If your machine has multiple Python installations, you may need to run e.g. `pip3`.)
-
 For documentation, please see https://polsys.github.io/ennemi.
 
 
@@ -37,6 +35,7 @@ To install the package in development mode, clone this repository and execute
 pip install -e .
 ```
 in the repository root folder.
+(If your machine has multiple Python installations, you may need to run e.g. `pip3`.)
 
 
 ## Citing
