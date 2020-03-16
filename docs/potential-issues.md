@@ -7,7 +7,7 @@ In case you encounter an issue not mentioned here, please get in touch!
 
 
 
-# Discrete/duplicate observations
+## Discrete/duplicate observations
 If `estimate_mi()` returns a negative number near zero (like -0.03),
 there is no issue.
 Mathematically, mutual information is always non-negative,
@@ -68,7 +68,7 @@ a better approximation of the true value.
 
 
 
-# Skewed or high-variance distributions
+## Skewed or high-variance distributions
 Mutual information is invariant under monotonic transformations.
 Such transformations include
 - For all variables: addition with a constant,
@@ -113,7 +113,7 @@ the estimation.
 
 
 
-# Improving performance
+## Improving performance
 Even though `ennemi` uses good algorithms (in terms of asymptotic performance),
 it is not designed for high-performance computing.
 The library is implemented in Python (for easy portability)
@@ -125,7 +125,7 @@ That being said, `ennemi` is fairly fast for reasonable problem sizes,
 and here are some tips to get the most out of your resources.
 
 
-## Basics
+### Basics
 - Close other apps if possible.
 - Desktop computers are usually faster than laptops,
   especially in parallel tasks (see below).
@@ -134,7 +134,7 @@ and here are some tips to get the most out of your resources.
 - The golden rule of performance optimization: always measure how fast it is!
 
 
-## Parallelize the calculation
+### Parallelize the calculation
 If you call `estimate_mi()` with several variables and/or time lags,
 the calculation will be split into as many concurrent tasks
 as you have processor cores.

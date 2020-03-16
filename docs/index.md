@@ -2,7 +2,7 @@
 title: Documentation
 ---
 
-# In brief
+## In brief
 
 `ennemi` is a Python 3 package for estimating Mutual Information and other
 information-theoretic measures of continuous variables.
@@ -15,14 +15,14 @@ University of Helsinki.
 The package is published under the MIT License.
 
 
-# Installation
+## Installation
 
 This package is **alpha** quality and not yet ready for public use.
 Breaking changes may still occur.
 Once more mature, this package will be published on PyPI (The Python Package Index).
 
 
-# Documentation topics
+## Documentation topics
 
 - **[What is entropy?](what-is-entropy.md)**
   A quick overview of the theory and terminology.

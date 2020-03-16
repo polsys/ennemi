@@ -13,7 +13,7 @@ The use cases only differ in the input parameters.
 
 
 
-# Bivariate normal distribution
+## Bivariate normal distribution
 
 We begin by considering a two-variable normal distribution:
 $$
@@ -60,7 +60,7 @@ This will be discussed more below.
 
 
 
-# More variables
+## More variables
 
 Let's extend the above example by adding another variable.
 As you remember, the mutual information between independent variables is 0.
@@ -111,7 +111,7 @@ In a later example we will use a two-dimensional NumPy array instead.
 
 
 
-# Time lag
+## Time lag
 
 In many systems, variables are coupled with a time lag.
 There may be a clear dependence between $Y(t)$ and $X(t-\Delta)$,
@@ -128,9 +128,11 @@ For example, if there are observations $Y(0), \ldots, Y(N-1)$
 and the lags are $-1$, $0$ and $1$,
 the array $Y(1), \ldots, Y(N-2)$ is compared with
 $$
+\begin{cases}
 X(2), \ldots, X(N-1),\\
 X(1), \ldots, X(N-2),\\
 X(0), \ldots, X(N-3),
+\end{cases}
 $$
 each in turn.
 
@@ -158,7 +160,7 @@ between $Y(t)$ and $X(t)$ or $X(t+1)$.
 
 
 
-# Combining the above
+## Combining the above
 
 In this example, we import the data set from a file using a NumPy method
 and pass the imported data straight to `estimate_mi()`.
@@ -203,7 +205,7 @@ the peaks will not be nearly as sharp.
 
 
 
-# Conditional mutual information
+## Conditional mutual information
 
 Suppose that in our previous example, we know that there is a connection
 between $X_1$ and $X_2$.
@@ -258,7 +260,7 @@ $Y$ and $X_2$ whereas there is still some random variation between $X_1$ and $Y$
 
 
 
-# Masking observations
+## Masking observations
 
 Sometimes, you want to use only a subset of the observations.
 This is easy to do with some array slicing unless some variables are time lagged.

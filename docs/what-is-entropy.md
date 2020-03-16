@@ -9,7 +9,7 @@ Instead, we only build/revise enough intuition necessary for using `ennemi`.
 
 
 
-# A discrete example
+## A discrete example
 You are probably familiar with _bits_, the 0s and 1s computers speak in.
 There are several derivative units, like _byte_, equal to 8 bits.
 With one byte, you can express $2^8 = 256$ different values.
@@ -19,10 +19,10 @@ the average number of bits needed to express its value.
 If the random variable has 256 equally likely values, its entropy is 8 bits.
 But if the random variable is
 $$
-\begin{cases*}
-0, &\text{ with probability } \frac 1 2,\\
+\begin{cases}
+0, &\text{with probability } \frac 1 2,\\
 1, \ldots, 255, &\text{with probability} \frac{1}{510},
-\end{cases*}
+\end{cases}
 $$
 the entropy is 5 bits.
 This is because in half of the cases, the variable can be expressed with
@@ -53,7 +53,7 @@ $$
 
 
 
-# Going continuous
+## Going continuous
 If $X$ is a continuous random variable, the natural way to define its entropy is
 $$
 H(X) = \mathbb E \log p(x) = \int_\Omega p(x) \log p(x) \,dx.
@@ -80,7 +80,7 @@ than $\mathrm{Uniform(0, 1)}$, but both are "at an infinite offset" to zero entr
 
 
 
-# Mutual information
+## Mutual information
 Mutual information (MI) answers the question,
 > If I know the value of $X$, how much is my uncertainty on $Y$ reduced?
 
@@ -144,7 +144,7 @@ If the conditional MI is zero, the correlation is fully explained by temperature
 
 
 
-# The ways of estimation
+## The ways of estimation
 The most accurate way of estimating entropy or mutual information
 is to use the definition.
 This gives the exact value.
@@ -173,7 +173,7 @@ The idea is to, for each point:
 2. Find the number of neighbors within this distance along each axis.
 3. Compute $\psi(n_x) + \psi(n_y)$, where $\psi$ is the digamma function.
 
-Averaging over all the points, denoted $\langle\,\cdots\rangle$,
+Averaging over all the points, denoted $\langle\cdots\rangle$,
 the estimated MI is then
 $$
 \mathrm{MI}(X; Y)
