@@ -1,6 +1,9 @@
 # ennemi
 _Easy-to-use Nearest Neighbor Estimation of Mutual Information._
 
+![Continuous Integration](https://github.com/polsys/ennemi/workflows/Continuous%20Integration/badge.svg)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=polsys_ennemi&metric=coverage)](https://sonarcloud.io/dashboard?id=polsys_ennemi)
+
 This Python 3 package provides simple methods for estimating mutual information of continuous variables.
 With one method call, you can estimate several variable pairs and time lags at once.
 
