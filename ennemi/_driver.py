@@ -8,7 +8,7 @@ import itertools
 import numpy as np
 from ._entropy_estimators import _estimate_single_mi, _estimate_conditional_mi
 
-def estimate_mi(y : np.ndarray, x : np.ndarray, lag = 0, 
+def estimate_mi(y : np.ndarray, x : np.ndarray, lag = 0, *,
                 k : int = 3, cond : np.ndarray = None, cond_lag : int = 0,
                 mask : np.ndarray = None, parallel : str = None):
     """Estimate the mutual information between y and each x variable.
@@ -35,7 +35,7 @@ def estimate_mi(y : np.ndarray, x : np.ndarray, lag = 0,
     The calculation is based on Kraskov et al. (2004): Estimating mutual
     information. Physical Review E 69. doi:10.1103/PhysRevE.69.066138
 
-    Required parameters:
+    Positional or keyword parameters:
     ---
     y : array_like
         A 1D array of observations.
@@ -47,7 +47,7 @@ def estimate_mi(y : np.ndarray, x : np.ndarray, lag = 0,
         The values may be any integers with magnitude
         less than the number of observations.
 
-    Optional parameters:
+    Optional keyword parameters:
     ---
     k : int
         The number of neighbors to consider. Default 3.
