@@ -17,8 +17,8 @@ d = rng.gamma(1.0, 1.0, size=N)
 e = b + 2.0*c
 """
 
-mi_bench = "estimate_mi(d, [a, b, c], time_lag=[-1, 0, 1, 2], k=3)"
-cmi_bench = "estimate_mi(d, [a, b, c], time_lag=[-1, 0, 1, 2], k=3, cond=e)"
+mi_bench = "estimate_mi(d, [a, b, c], lag=[-1, 0, 1, 2], k=3)"
+cmi_bench = "estimate_mi(d, [a, b, c], lag=[-1, 0, 1, 2], k=3, cond=e)"
 
 for (name, bench) in [ ("MI", mi_bench), ("CMI", cmi_bench) ]:
     for n in [ 100, 400, 1600 ]:
