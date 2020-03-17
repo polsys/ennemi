@@ -171,7 +171,7 @@ class TestEstimateMi(unittest.TestCase):
         parallel_modes = [ None, "always", "disable" ]
         for parallel in parallel_modes:
             with self.subTest(parallel=parallel):
-                actual = estimate_mi(data[0], data[1:4], lag=[0, 1, 3])
+                actual = estimate_mi(data[0], data[1:4], lag=[0, 1, 3], parallel=parallel)
 
                 # y(t) depends on x1(t+1)
                 self.assertAlmostEqual(actual[0,0], 0.0, delta=0.05)
