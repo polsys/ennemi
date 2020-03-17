@@ -111,23 +111,11 @@ def estimate_mi(y : np.ndarray, x : np.ndarray, lag = 0, *,
 
     # If there is benefit in doing so, and the user has not overridden the
     # heuristic, execute the estimation in multiple parallel processes
-    # TODO: In a many variables/lags, small N case, it may make sense to
-    #       use multiple processes, but batch the tasks
-    if parallel == "always":
-        use_parallel = True
-    elif parallel == "disable":
-        use_parallel = False
-    elif parallel is not None:
-        raise ValueError("unrecognized value for parallel argument")
-    else:
-        # As parallel is None, use a heuristic
-        use_parallel = len(indices) > 1 and len(y) > 200
-
-    if use_parallel:
+    if _should_be_parallel(parallel, indices, y):
         with concurrent.futures.ProcessPoolExecutor() as executor:
-            conc_result = executor.map(_do_estimate, params)
+            conc_result = executor.map(_lagged_mi, params)
     else:
-        conc_result = map(_do_estimate, params)
+        conc_result = map(_lagged_mi, params)
     
     # Collect the results to a 2D array
     result = np.empty((nvar, len(lag)))
@@ -137,16 +125,25 @@ def estimate_mi(y : np.ndarray, x : np.ndarray, lag = 0, *,
     return result
 
 
-def _do_estimate(param_tuple):
-    # A helper for unpacking the param tuple (maybe unnecessary?)
+def _should_be_parallel(parallel : str, indices : list, y : np.ndarray):
+    # Check whether the user has forced a certain parallel mode
+    if parallel == "always":
+        return True
+    elif parallel == "disable":
+        return False
+    elif parallel is not None:
+        raise ValueError("unrecognized value for parallel argument")
+    else:
+        # As the user has not overridden the choice, use a heuristic
+        # TODO: In a many variables/lags, small N case, it may make sense to
+        #       use multiple processes, but batch the tasks
+        return len(indices) > 1 and len(y) > 200
+
+
+def _lagged_mi(param_tuple):
+    # Unpack the param tuple used for possible cross-process transfer
     x, y, lag, max_lag, min_lag, k, mask, cond, cond_lag = param_tuple
-    return _lagged_mi(x, y, lag, min_lag, max_lag, k, mask, cond, cond_lag)
 
-
-def _lagged_mi(x : np.ndarray, y : np.ndarray, lag : int,
-               min_lag : int, max_lag : int, k : int,
-               mask : np.ndarray,
-               cond : np.ndarray, cond_lag : int):
     # The x observations start from max_lag - lag
     xs = x[max_lag-lag : len(x)-lag+min(min_lag, 0)]
     # The y observations always start from max_lag
