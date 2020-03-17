@@ -118,7 +118,7 @@ There may be a clear dependence between $Y(t)$ and $X(t-\Delta)$,
 whereas the apparent link between $Y(t)$ and $X(t)$ may be weaker or nonexistent.
 
 The time lag is specified by passing an integer or a list/array of integers as
-the `time_lag` parameter to `estimate_mi()`.
+the `lag` parameter to `estimate_mi()`.
 The lags are applied to the $X_i$ variables and may be positive or negative
 (in which case information flows from $Y$ to $X$ instead).
 
@@ -148,7 +148,7 @@ y = np.zeros(400)
 y[1:] = x[0:-1]
 y += rng.normal(0, 0.01, size=400)
 
-print(estimate_mi(y, x, time_lag=[1, 0, -1]))
+print(estimate_mi(y, x, lag=[1, 0, -1]))
 ```
 
 The code prints:
@@ -178,7 +178,7 @@ import numpy as np
 data = np.loadtxt("mi_example.csv", delimiter=",", skiprows=1, unpack=True)
 time_lags = np.arange(-3, 6)
 
-mi = estimate_mi(data[0], data[1:4], time_lag=time_lags)
+mi = estimate_mi(data[0], data[1:4], lag=time_lags)
 
 plt.plot(time_lags, mi[0,:], label="$x_1$")
 plt.plot(time_lags, mi[1,:], label="$x_2$")
@@ -211,7 +211,7 @@ Suppose that in our previous example, we know that there is a connection
 between $X_1$ and $X_2$.
 We may know this from theory, or maybe by running
 ```python
-estimate_mi(data[2], data[1], time_lag=2)
+estimate_mi(data[2], data[1], lag=2)
 ```
 recognizing the high value, and then plotting the two variables.
 
@@ -227,7 +227,7 @@ import numpy as np
 data = np.loadtxt("mi_example.csv", delimiter=",", skiprows=1, unpack=True)
 time_lags = np.arange(-3, 6)
 
-mi = estimate_mi(data[0], data[(1, 3),:], time_lag=time_lags,
+mi = estimate_mi(data[0], data[(1, 3),:], lag=time_lags,
                  cond=data[2], cond_lag=2)
 
 plt.plot(time_lags, mi[0,:], label="$x_1$")
@@ -292,7 +292,7 @@ rng = np.random.default_rng(1234)
 x = -0.3 * np.cos(2 * np.pi * t / 24) + rng.normal(0, 0.001, len(t))
 y = np.sqrt(np.maximum(0, -np.cos(2 * np.pi * (t-3) / 24))) + rng.normal(0, 0.001, len(t))
 
-print(estimate_mi(y, x, time_lag=[0, 1, 2, 3]))
+print(estimate_mi(y, x, lag=[0, 1, 2, 3]))
 ```
 The result is:
 ```
@@ -302,7 +302,7 @@ The result is:
 To constrain to daytime observations of $Y$ only, replace the last line with
 ```python
 mask = np.logical_and(t % 24 > 6, t % 24 < 18)
-print(estimate_mi(y, x, time_lag=[0, 1, 2, 3], mask=mask))
+print(estimate_mi(y, x, lag=[0, 1, 2, 3], mask=mask))
 ```
 This produces slightly larger MI values:
 ```

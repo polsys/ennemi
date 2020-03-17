@@ -8,15 +8,16 @@ import itertools
 import numpy as np
 from ._entropy_estimators import _estimate_single_mi, _estimate_conditional_mi
 
-def estimate_mi(y : np.ndarray, x : np.ndarray, time_lag = 0, 
+def estimate_mi(y : np.ndarray, x : np.ndarray, lag = 0, 
                 k : int = 3, cond : np.ndarray = None, cond_lag : int = 0,
                 mask : np.ndarray = None, parallel : str = None):
     """Estimate the mutual information between y and each x variable.
  
     Returns the estimated mutual information (in nats) for continuous
     variables. The result is a 2D array where the first index represents `x`
-    rows and the second index represents the `time_lags` values.
+    rows and the second index represents the `lag` values.
 
+    The time lag is interpreted as `y(t + lag) ~ x(t)`.
     The time lags are applied to the `x` and `cond` arrays such that the `y`
     array stays the same every time.
     This means that `y` is cropped to `y[max_lag:N+min(min_lag, 0)]`.
@@ -41,7 +42,7 @@ def estimate_mi(y : np.ndarray, x : np.ndarray, time_lag = 0,
     x : array_like
         A 1D or 2D array where the rows are one or more variables and the
         columns are observations. The number of columns must be the same as in y.
-    time_lag : int or array_like
+    lag : int or array_like
         A time lag or 1D array of time lags to apply to x. Default 0.
         The values may be any integers with magnitude
         less than the number of observations.
@@ -70,10 +71,10 @@ def estimate_mi(y : np.ndarray, x : np.ndarray, time_lag = 0,
         If "disable", the combinations are estimated sequentially in the current process.
     """
 
-    # The code below assumes that time_lag is an array
-    if (isinstance(time_lag, int)):
-        time_lag = [time_lag]
-    time_lag = np.asarray(time_lag)
+    # The code below assumes that lag is an array
+    if (isinstance(lag, int)):
+        lag = [lag]
+    lag = np.asarray(lag)
 
     # If x or y is a Python list, convert it to an ndarray
     x = np.asarray(x)
@@ -88,8 +89,8 @@ def estimate_mi(y : np.ndarray, x : np.ndarray, time_lag = 0,
             raise TypeError("mask must contain only booleans")
 
     # These are used for determining the y range to use
-    min_lag = min(np.min(time_lag), np.min(time_lag+cond_lag))
-    max_lag = max(np.max(time_lag), np.max(time_lag+cond_lag))
+    min_lag = min(np.min(lag), np.min(lag+cond_lag))
+    max_lag = max(np.max(lag), np.max(lag+cond_lag))
 
     # Validate that the lag is not too large
     if max_lag - min_lag >= y.size or max_lag >= y.size or min_lag <= -y.size:
@@ -102,11 +103,11 @@ def estimate_mi(y : np.ndarray, x : np.ndarray, time_lag = 0,
 
     # Create a list of all variable, time lag combinations
     # The params map contains tuples for simpler passing into subprocess
-    indices = list(itertools.product(range(nvar), range(len(time_lag))))
+    indices = list(itertools.product(range(nvar), range(len(lag))))
     if x.ndim == 1:
-        params = map(lambda lag: (x, y, lag, max_lag, min_lag, k, mask, cond, cond_lag), time_lag)
+        params = map(lambda lag: (x, y, lag, max_lag, min_lag, k, mask, cond, cond_lag), lag)
     else:
-        params = map(lambda i: (x[i[0],:], y, time_lag[i[1]], max_lag, min_lag, k, mask, cond, cond_lag), indices)
+        params = map(lambda i: (x[i[0],:], y, lag[i[1]], max_lag, min_lag, k, mask, cond, cond_lag), indices)
 
     # If there is benefit in doing so, and the user has not overridden the
     # heuristic, execute the estimation in multiple parallel processes
@@ -129,7 +130,7 @@ def estimate_mi(y : np.ndarray, x : np.ndarray, time_lag = 0,
         conc_result = map(_do_estimate, params)
     
     # Collect the results to a 2D array
-    result = np.empty((nvar, len(time_lag)))
+    result = np.empty((nvar, len(lag)))
     for index, res in zip(indices, conc_result):
         result[index] = res
         
