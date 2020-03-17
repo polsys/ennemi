@@ -62,7 +62,7 @@ jobs:
           python3 -m pytest tests/ -v --junit-xml=test-results.xml
       
       - name: Run Sonar code analysis
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.8'
         uses: sonarsource/sonarcloud-github-action@master
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
