@@ -255,20 +255,24 @@ class TestEstimateMi(unittest.TestCase):
 
     def test_conditional_mi_with_mask_and_lags(self):
         # This is TestEstimateConditionalMi.test_three_gaussians(),
-        # but with Z lagged by 2 and half of the observations deleted.
+        # but with Z lagged by 2 and most of the observations deleted.
         rng = np.random.default_rng(12)
         cov = np.array([[1, 1, 1], [1, 4, 1], [1, 1, 9]])
 
         data = rng.multivariate_normal([0, 0, 0], cov, size=2002)
-        mask = np.arange(2000) % 2 == 0
-        x = data[2:,0][mask]
-        y = data[2:,1][mask]
-        z = data[:2000,2][mask]
+        mask = np.arange(2000) % 5 == 0
+
+        x = np.zeros(2000)
+        y = np.zeros(2000)
+        z = np.zeros(2000)
+        x[mask] = data[2:,0][mask]
+        y[mask] = data[2:,1][mask]
+        z[mask] = data[:2000,2][mask]
 
         lags = [ 0, -1 ]
 
-        actual = estimate_mi(y, x, lag=lags, cond=z, cond_lag=2)
+        actual = estimate_mi(y, x, lag=lags, cond=z, cond_lag=2, mask=mask)
         expected = 0.5 * (math.log(8) + math.log(35) - math.log(9) - math.log(24))
 
-        self.assertAlmostEqual(actual[0,0], expected, delta=0.03)
+        self.assertAlmostEqual(actual[0,0], expected, delta=0.01)
         self.assertAlmostEqual(actual[0,1], 0.0, delta=0.01)
