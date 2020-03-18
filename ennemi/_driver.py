@@ -6,6 +6,7 @@ Do not import this module directly, but rather import the main ennemi module.
 import concurrent.futures
 import itertools
 import numpy as np
+import sys
 from ._entropy_estimators import _estimate_single_mi, _estimate_conditional_mi
 
 def estimate_mi(y : np.ndarray, x : np.ndarray, lag = 0, *,
@@ -77,8 +78,12 @@ def estimate_mi(y : np.ndarray, x : np.ndarray, lag = 0, *,
     lag = np.asarray(lag)
 
     # If x or y is a Python list, convert it to an ndarray
+    # Keep the original x parameter around for the Pandas data frame check
+    original_x = x
     x = np.asarray(x)
     y = np.asarray(y)
+    if cond is not None:
+        cond = np.asarray(cond)
 
     # Validate the mask
     if mask is not None:
@@ -99,15 +104,15 @@ def estimate_mi(y : np.ndarray, x : np.ndarray, lag = 0, *,
     if x.ndim == 1:
         nvar = 1
     else:
-        nvar = len(x)
+        _, nvar = x.shape
 
     # Create a list of all variable, time lag combinations
     # The params map contains tuples for simpler passing into subprocess
-    indices = list(itertools.product(range(nvar), range(len(lag))))
+    indices = list(itertools.product(range(len(lag)), range(nvar)))
     if x.ndim == 1:
         params = map(lambda lag: (x, y, lag, max_lag, min_lag, k, mask, cond, cond_lag), lag)
     else:
-        params = map(lambda i: (x[i[0],:], y, lag[i[1]], max_lag, min_lag, k, mask, cond, cond_lag), indices)
+        params = map(lambda i: (x[:,i[1]], y, lag[i[0]], max_lag, min_lag, k, mask, cond, cond_lag), indices)
 
     # If there is benefit in doing so, and the user has not overridden the
     # heuristic, execute the estimation in multiple parallel processes
@@ -118,9 +123,17 @@ def estimate_mi(y : np.ndarray, x : np.ndarray, lag = 0, *,
         conc_result = map(_lagged_mi, params)
     
     # Collect the results to a 2D array
-    result = np.empty((nvar, len(lag)))
+    result = np.empty((len(lag), nvar))
     for index, res in zip(indices, conc_result):
         result[index] = res
+
+    # If the input was a pandas data frame, set the column names
+    if "pandas" in sys.modules:
+        import pandas
+        if isinstance(original_x, pandas.DataFrame):
+            result = pandas.DataFrame(result, index=lag, columns=original_x.columns)
+        elif isinstance(original_x, pandas.Series):
+            result = pandas.DataFrame(result, index=lag, columns=[original_x.name])
         
     return result
 
@@ -164,4 +177,3 @@ def _lagged_mi(param_tuple):
             zs = zs[mask_subset]
 
         return _estimate_conditional_mi(xs, ys, zs, k)
-
