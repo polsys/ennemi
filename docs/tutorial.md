@@ -65,8 +65,8 @@ This will be discussed more below.
 Let's extend the above example by adding another variable.
 As you remember, the mutual information between independent variables is 0.
 
-The `estimate_mi()` method accepts a 2D array, or a list of arrays, for the `x` parameter.
-In that case, it splits the array into variables $X_1$ to $X_m$,
+The `estimate_mi()` method accepts a 2D array for the `x` parameter.
+In that case, it splits the array into columns $X_1$ to $X_m$,
 and calculates $\mathrm{MI}(X_i, Y)$ for each $i = 1, \ldots, m$.
 
 This interface is a shorter way of calculating the MI between several
@@ -91,23 +91,28 @@ x = data[:,0]
 y = data[:,1]
 z = rng.normal(0, 1, size=800)
 
-print(estimate_mi(y, [x, z]))
+# Transpose: rows are observations and columns are variables
+data = np.asarray([x, z]).T
+
+print(estimate_mi(y, data))
 ```
 
 The code prints
 ```
-[[ 0.51039762]
- [-0.02167661]]
+[[ 0.51039762 -0.02167661]]
 ```
-The first row gives $\mathrm{MI}(X, Y)$ and the second row $\mathrm{MI}(Z, Y)$.
+The first column gives $\mathrm{MI}(X, Y)$ and the second column $\mathrm{MI}(Z, Y)$.
 As expected, the latter is very close to $0$.
 Due to random uncertainty and properties of the estimation algorithm,
 the result will not be exactly 0, and may even be negative.
 (Negative values far from zero, including $-\infty$, are discussed in the chapter
 on potential issues.)
 
-Above, we used a list of arrays `[x, z]` as the parameter to `estimate_mi()`.
-In a later example we will use a two-dimensional NumPy array instead.
+Above, we had to transpose the array so that the rows and columns were in
+correct order.
+The `x` parameter is interpreted as `x[observation, variable]`.
+This matches the order used by NumPy and Pandas libraries.
+See below for an example of using Pandas for data import.
 
 
 
@@ -153,7 +158,9 @@ print(estimate_mi(y, x, lag=[1, 0, -1]))
 
 The code prints:
 ```
-[[ 3.8158148  -0.04623529 -0.00942073]]
+[[ 3.8158148 ]
+ [-0.04623529]
+ [-0.00942073]]
 ```
 which means that there is a link between $Y(t)$ and $X(t-1)$, but not
 between $Y(t)$ and $X(t)$ or $X(t+1)$.
@@ -162,7 +169,7 @@ between $Y(t)$ and $X(t)$ or $X(t+1)$.
 
 ## Combining the above
 
-In this example, we import the data set from a file using a NumPy method
+In this example, we import the data set from a file using Pandas
 and pass the imported data straight to `estimate_mi()`.
 We calculate the MI for several time lags and plot the results with Matplotlib.
 
@@ -172,17 +179,16 @@ To try this example, download the [mi_example.csv](mi_example.csv) file.
 from ennemi import estimate_mi
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 
-# The unpack=True parameter is necessary for the data to have the shape
-# expected by estimate_mi().
-data = np.loadtxt("mi_example.csv", delimiter=",", skiprows=1, unpack=True)
+data = pd.read_csv("mi_example.csv")
 time_lags = np.arange(-3, 6)
 
-mi = estimate_mi(data[0], data[1:4], lag=time_lags)
+mi = estimate_mi(data["y"], data[["x1", "x2", "x3"]], lag=time_lags)
 
-plt.plot(time_lags, mi[0,:], label="$x_1$")
-plt.plot(time_lags, mi[1,:], label="$x_2$")
-plt.plot(time_lags, mi[2,:], label="$x_3$")
+plt.plot(time_lags, mi["x1"], label="$x_1$")
+plt.plot(time_lags, mi["x2"], label="$x_2$")
+plt.plot(time_lags, mi["x3"], label="$x_3$")
 plt.legend()
 plt.xlabel("Time lag (steps)")
 plt.ylabel("Mutual information (nats)")
@@ -190,15 +196,26 @@ plt.title("Mutual information between $y$ and...")
 plt.show() # or plt.savefig(...)
 ```
 
+The returned array is also a Pandas data frame, with
+column names matching variable names and indices matching lag values:
+```
+          x1        x2        x3
+-3 -0.018175 -0.001715  0.026281
+-2 -0.038831  0.104613  0.060727
+-1 -0.039366  0.000975 -0.049848
+ 0  0.041131 -0.057329  1.223317
+ 1  3.017365 -0.021007  0.073804
+ 2 -0.003052 -0.020242 -0.006757
+ 3  0.010387  2.201044  0.047242
+ 4 -0.040087  0.067558 -0.063396
+ 5 -0.005595 -0.063550  0.025323
+```
 ![The mutual information for x1 peaks at lag 1, for x2 at lag 3 and for x3 stays near zero.](example_mi_plot.png)
 
 From this plot we can deduce that:
 - there is a connection between $Y$ and $X_1$, but only with lag 1,
 - and a slightly weaker connection between $Y$ and $X_2$, but only with lag 3,
 - and a connection between $Y$ and $X_3$ without any lag.
-
-Finally, the two-dimensionality of the returned `mi` is useful.
-The array is indexed as `mi[variable_index, lag_index]`.
 
 A word of warning: in a real time series, where the data is often autocorrelated,
 the peaks will not be nearly as sharp.
@@ -223,16 +240,18 @@ We get this by calculating the conditional mutual information.
 from ennemi import estimate_mi
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 
-data = np.loadtxt("mi_example.csv", delimiter=",", skiprows=1, unpack=True)
+data = pd.read_csv("mi_example.csv")
 time_lags = np.arange(-3, 6)
 
-mi = estimate_mi(data[0], data[(1, 3),:], lag=time_lags,
-                 cond=data[2], cond_lag=2)
+mi = estimate_mi(data["y"], data[["x1", "x3"]], lag=time_lags,
+                 cond=data["x2"], cond_lag=2)
+print(mi)
 
-plt.plot(time_lags, mi[0,:], label="$x_1$")
+plt.plot(time_lags, mi["x1"], label="$x_1$")
 plt.plot([], []) # Keep the colors comparable
-plt.plot(time_lags, mi[1,:], label="$x_3$")
+plt.plot(time_lags, mi["x3"], label="$x_3$")
 plt.legend()
 plt.xlabel("Time lag (steps)")
 plt.ylabel("Mutual information (nats)")
@@ -240,6 +259,18 @@ plt.title("Conditional mutual information between $y$ and...")
 plt.show()
 ```
 
+```
+          x1        x3
+-3 -0.012983 -0.034058
+-2 -0.047933 -0.003288
+-1 -0.020685 -0.006188
+ 0 -0.048229  0.615541
+ 1  0.493758 -0.014698
+ 2 -0.043362 -0.017642
+ 3 -0.032567 -0.010353
+ 4 -0.022203 -0.021783
+ 5 -0.027794 -0.036999
+```
 ![The conditional MI for x1 peaks at lag 1, but x3 has even larger peak at lag 0.](example_cmi_plot.png)
 
 Now we can see that $X_3$ is actually more significant in determining $Y$ than $X_1$!
@@ -296,7 +327,10 @@ print(estimate_mi(y, x, lag=[0, 1, 2, 3]))
 ```
 The result is:
 ```
-[[1.36065339 1.38213486 1.45658645 1.46549623]]
+[[1.36065339]
+ [1.38213486]
+ [1.45658645]
+ [1.46549623]]
 ```
 
 To constrain to daytime observations of $Y$ only, replace the last line with
@@ -306,5 +340,8 @@ print(estimate_mi(y, x, lag=[0, 1, 2, 3], mask=mask))
 ```
 This produces slightly larger MI values:
 ```
-[[1.6303343  1.72073981 1.81418762 1.88527594]]
+[[1.6303343 ]
+ [1.72073981]
+ [1.81418762]
+ [1.88527594]]
 ```

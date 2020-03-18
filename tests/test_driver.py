@@ -3,6 +3,7 @@
 import math
 import numpy as np
 import os.path
+import pandas as pd
 import random
 import unittest
 from ennemi import estimate_mi
@@ -93,13 +94,13 @@ class TestEstimateMi(unittest.TestCase):
         x2 = rng.uniform(0, 1, 100)
         y = x1 + rng.normal(0, 0.01, 100)
 
-        actual = estimate_mi(y, np.array([x1, x2]))
+        actual = estimate_mi(y, np.array([x1, x2]).T)
 
-        self.assertEqual(actual.shape, (2, 1))
+        self.assertEqual(actual.shape, (1, 2))
         # The first x component is almost equal to y and has entropy ~ exp(1),
         # while the second x component is independent
         self.assertAlmostEqual(actual[0,0], math.exp(1), delta=0.1)
-        self.assertAlmostEqual(actual[1,0], 0, delta=0.02)
+        self.assertAlmostEqual(actual[0,1], 0, delta=0.02)
 
     def test_one_variable_with_no_lag(self):
         rng = np.random.default_rng(1)
@@ -107,11 +108,11 @@ class TestEstimateMi(unittest.TestCase):
 
         actual = estimate_mi(xy, xy, lag=[0, 1, -1])
 
-        self.assertEqual(actual.shape, (1, 3))
+        self.assertEqual(actual.shape, (3, 1))
         # As above, entropy of xy is exp(1), and values are independent.
         self.assertAlmostEqual(actual[0,0], math.exp(1), delta=0.02)
-        self.assertAlmostEqual(actual[0,1], 0, delta=0.1)
-        self.assertAlmostEqual(actual[0,2], 0, delta=0.1)
+        self.assertAlmostEqual(actual[1,0], 0, delta=0.1)
+        self.assertAlmostEqual(actual[2,0], 0, delta=0.1)
 
     def test_one_variable_with_lag(self):
         rng = np.random.default_rng(1)
@@ -121,10 +122,10 @@ class TestEstimateMi(unittest.TestCase):
 
         actual = estimate_mi(y, x, lag=[0, 1, -1])
 
-        self.assertEqual(actual.shape, (1, 3))
+        self.assertEqual(actual.shape, (3, 1))
         self.assertAlmostEqual(actual[0,0], 0, delta=0.1)
-        self.assertAlmostEqual(actual[0,1], math.exp(1), delta=0.02)
-        self.assertAlmostEqual(actual[0,2], 0, delta=0.1)
+        self.assertAlmostEqual(actual[1,0], math.exp(1), delta=0.02)
+        self.assertAlmostEqual(actual[2,0], 0, delta=0.1)
 
     def test_one_variable_with_lead(self):
         rng = np.random.default_rng(1)
@@ -134,10 +135,10 @@ class TestEstimateMi(unittest.TestCase):
 
         actual = estimate_mi(y, x, lag=[0, 1, -1])
 
-        self.assertEqual(actual.shape, (1, 3))
+        self.assertEqual(actual.shape, (3, 1))
         self.assertAlmostEqual(actual[0,0], 0, delta=0.1)
-        self.assertAlmostEqual(actual[0,1], 0, delta=0.1)
-        self.assertAlmostEqual(actual[0,2], math.exp(1), delta=0.02)
+        self.assertAlmostEqual(actual[1,0], 0, delta=0.1)
+        self.assertAlmostEqual(actual[2,0], math.exp(1), delta=0.02)
 
     def test_one_variable_with_lists(self):
         # The parameters are plain Python lists
@@ -150,42 +151,70 @@ class TestEstimateMi(unittest.TestCase):
         self.assertAlmostEqual(actual[0,0], 0, delta=0.05)
 
     def test_two_variables_with_lists(self):
-        # Plain Python lists
+        # Plain Python lists, merged into a list of tuples
         rng = random.Random(1)
         x1 = [rng.uniform(0, 1) for i in range(201)]
         x2 = [rng.uniform(0, 1) for i in range(201)]
         y = [rng.uniform(0, 1) for i in range(201)]
 
-        actual = estimate_mi(y, [x1, x2])
+        actual = estimate_mi(y, list(zip(x1, x2)))
 
-        self.assertEqual(actual.shape, (2, 1))
+        self.assertEqual(actual.shape, (1, 2))
         self.assertAlmostEqual(actual[0,0], 0, delta=0.05)
-        self.assertAlmostEqual(actual[1,0], 0, delta=0.05)
+        self.assertAlmostEqual(actual[0,1], 0, delta=0.05)
 
     def test_array_from_file(self):
         # A realistic use case
         script_path = os.path.dirname(os.path.abspath(__file__))
         data_path = os.path.join(script_path, "example_data.csv")
-        data = np.loadtxt(data_path, delimiter=",", skiprows=1, unpack=True)
+        data = np.loadtxt(data_path, delimiter=",", skiprows=1)
 
         parallel_modes = [ None, "always", "disable" ]
         for parallel in parallel_modes:
             with self.subTest(parallel=parallel):
-                actual = estimate_mi(data[0], data[1:4], lag=[0, 1, 3], parallel=parallel)
+                actual = estimate_mi(data[:,0], data[:,1:4], lag=[0, 1, 3], parallel=parallel)
+
+                # The returned object is a plain ndarray
+                self.assertIsInstance(actual, np.ndarray)
 
                 # y(t) depends on x1(t+1)
                 self.assertAlmostEqual(actual[0,0], 0.0, delta=0.05)
-                self.assertGreater(actual[0,1], 0.5)
-                self.assertAlmostEqual(actual[0,2], 0.0, delta=0.05)
+                self.assertGreater(actual[1,0], 0.5)
+                self.assertAlmostEqual(actual[2,0], 0.0, delta=0.05)
 
                 # y(t) is completely independent of x2
                 for i in range(3):
-                    self.assertAlmostEqual(actual[1,i], 0.0, delta=0.05)
+                    self.assertAlmostEqual(actual[i,1], 0.0, delta=0.05)
                 
                 # y(t) depends on abs(x3(t+3))
-                self.assertAlmostEqual(actual[2,0], 0.0, delta=0.07)
-                self.assertAlmostEqual(actual[2,1], 0.0, delta=0.05)
+                self.assertAlmostEqual(actual[0,2], 0.0, delta=0.07)
+                self.assertAlmostEqual(actual[1,2], 0.0, delta=0.05)
                 self.assertGreater(actual[2,2], 0.15)
+
+    def test_pandas_data_frame(self):
+        # Same data as in test_array_from_file()
+        script_path = os.path.dirname(os.path.abspath(__file__))
+        data_path = os.path.join(script_path, "example_data.csv")
+        data = pd.read_csv(data_path)
+
+        actual = estimate_mi(data["y"], data[["x1", "x2", "x3"]], lag=[0, 1, 3])
+
+        # The returned object is a Pandas data frame, with row and column names!
+        self.assertIsInstance(actual, pd.DataFrame)
+
+        # y(t) depends on x1(t+1)
+        self.assertAlmostEqual(actual.loc[0,"x1"], 0.0, delta=0.05)
+        self.assertGreater(actual.loc[1,"x1"], 0.5)
+        self.assertAlmostEqual(actual.loc[3,"x1"], 0.0, delta=0.05)
+
+        # y(t) is completely independent of x2
+        for i in [0, 1, 3]:
+            self.assertAlmostEqual(actual.loc[i,"x2"], 0.0, delta=0.05)
+        
+        # y(t) depends on abs(x3(t+3))
+        self.assertAlmostEqual(actual.loc[0,"x3"], 0.0, delta=0.07)
+        self.assertAlmostEqual(actual.loc[1,"x3"], 0.0, delta=0.05)
+        self.assertGreater(actual.loc[3,"x3"], 0.15)
 
     def test_mask_without_lag(self):
         rng = np.random.default_rng(10)
@@ -249,9 +278,9 @@ class TestEstimateMi(unittest.TestCase):
         # Then the conditional MI
         actual = estimate_mi(z, y, lag=[0,1], k=5, cond=x, cond_lag=1)
 
-        self.assertEqual(actual.shape, (1, 2))
+        self.assertEqual(actual.shape, (2, 1))
         self.assertAlmostEqual(actual[0,0], 0.0, delta=0.05)
-        self.assertAlmostEqual(actual[0,1], 0.0, delta=0.01)
+        self.assertAlmostEqual(actual[1,0], 0.0, delta=0.01)
 
     def test_conditional_mi_with_mask_and_lags(self):
         # This is TestEstimateConditionalMi.test_three_gaussians(),
@@ -275,4 +304,16 @@ class TestEstimateMi(unittest.TestCase):
         expected = 0.5 * (math.log(8) + math.log(35) - math.log(9) - math.log(24))
 
         self.assertAlmostEqual(actual[0,0], expected, delta=0.01)
-        self.assertAlmostEqual(actual[0,1], 0.0, delta=0.01)
+        self.assertAlmostEqual(actual[1,0], 0.0, delta=0.01)
+
+    def test_conditional_mi_with_pandas(self):
+        script_path = os.path.dirname(os.path.abspath(__file__))
+        data_path = os.path.join(script_path, "example_data.csv")
+        data = pd.read_csv(data_path)
+
+        actual = estimate_mi(data["y"], data["x1"], lag=-1,
+                             cond=data["x2"], cond_lag=1)
+
+        self.assertIsInstance(actual, pd.DataFrame)
+        self.assertEqual(actual.shape, (1, 1))
+        self.assertAlmostEqual(actual.loc[-1,"x1"], 0.0, delta=0.03)
