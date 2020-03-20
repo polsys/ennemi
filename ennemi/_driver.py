@@ -85,13 +85,7 @@ def estimate_mi(y : np.ndarray, x : np.ndarray, lag = 0, *,
     if cond is not None:
         cond = np.asarray(cond)
 
-    # Validate the mask
-    if mask is not None:
-        mask = np.asarray(mask)
-        if len(mask) != len(y):
-            raise ValueError("mask length does not match y length")
-        if mask.dtype != np.bool:
-            raise TypeError("mask must contain only booleans")
+    _check_parameters(x, y, k, cond, mask)
 
     # These are used for determining the y range to use
     min_lag = min(np.min(lag), np.min(lag+cond_lag))
@@ -136,6 +130,26 @@ def estimate_mi(y : np.ndarray, x : np.ndarray, lag = 0, *,
             result = pandas.DataFrame(result, index=lag, columns=[original_x.name])
         
     return result
+
+
+def _check_parameters(x, y, k, cond, mask):
+    # TODO: Validate that y and cond and mask are one-dimensional
+
+    # Validate the array lengths
+    if (x.shape[0] != len(y)):
+        raise ValueError("x and y must have same length")
+    if (cond is not None) and (x.shape[0] != len(cond)):
+        raise ValueError("x and cond must have same length")
+    if (x.shape[0] <= k):
+        raise ValueError("k must be smaller than number of observations")
+
+    # Validate the mask
+    if mask is not None:
+        mask = np.asarray(mask)
+        if len(mask) != len(y):
+            raise ValueError("mask length does not match y length")
+        if mask.dtype != np.bool:
+            raise TypeError("mask must contain only booleans")
 
 
 def _should_be_parallel(parallel : str, indices : list, y : np.ndarray):

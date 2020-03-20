@@ -8,11 +8,44 @@ import random
 import unittest
 from ennemi import estimate_mi
 
+X_Y_DIFFERENT_LENGTH_MSG = "x and y must have same length"
+X_COND_DIFFERENT_LENGTH_MSG = "x and cond must have same length"
+K_TOO_LARGE_MSG = "k must be smaller than number of observations"
 TOO_LARGE_LAG_MSG = "lag is too large, no observations left"
 INVALID_MASK_LENGTH_MSG = "mask length does not match y length"
 INVALID_MASK_TYPE_MSG = "mask must contain only booleans"
 
 class TestEstimateMi(unittest.TestCase):
+    
+    def test_inputs_of_different_length(self):
+        x = np.zeros(10)
+        y = np.zeros(20)
+
+        with self.assertRaises(ValueError) as cm:
+            estimate_mi(x, y)
+        self.assertEqual(str(cm.exception), X_Y_DIFFERENT_LENGTH_MSG)
+
+    def test_inputs_shorter_than_k(self):
+        x = np.zeros(3)
+        y = np.zeros(3)
+
+        with self.assertRaises(ValueError) as cm:
+            estimate_mi(x, y, k=5)
+        self.assertEqual(str(cm.exception), K_TOO_LARGE_MSG)
+
+    def test_k_must_be_positive(self):
+        x = np.zeros(30)
+        y = np.zeros(30)
+
+        with self.assertRaises(ValueError):
+            estimate_mi(x, y, k=-2)
+
+    def test_k_must_be_integer(self):
+        x = np.zeros(30)
+        y = np.zeros(30)
+
+        with self.assertRaises(TypeError):
+            estimate_mi(x, y, k=2.71828)
 
     def test_lag_too_large(self):
         x = [1, 2, 3, 4]
@@ -52,6 +85,14 @@ class TestEstimateMi(unittest.TestCase):
 
         with self.assertRaises(TypeError):
             estimate_mi(y, x, lag=1.2)
+
+    def test_x_and_cond_different_length(self):
+        x = np.zeros(10)
+        y = np.zeros(20)
+
+        with self.assertRaises(ValueError) as cm:
+            estimate_mi(x, x, cond=y)
+        self.assertEqual(str(cm.exception), X_COND_DIFFERENT_LENGTH_MSG)
 
     def test_mask_with_wrong_length(self):
         x = [1, 2, 3, 4]
