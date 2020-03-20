@@ -6,41 +6,7 @@ from scipy.special import psi
 import unittest
 from ennemi._entropy_estimators import _estimate_single_mi, _estimate_conditional_mi
 
-X_Y_DIFFERENT_LENGTH_MSG = "x and y must have same length"
-X_COND_DIFFERENT_LENGTH_MSG = "x and cond must have same length"
-K_TOO_LARGE_MSG = "k must be smaller than number of observations"
-
 class TestEstimateSingleMi(unittest.TestCase):
-
-    def test_inputs_of_different_length(self):
-        x = np.zeros(10)
-        y = np.zeros(20)
-
-        with self.assertRaises(ValueError) as cm:
-            _estimate_single_mi(x, y)
-        self.assertEqual(str(cm.exception), X_Y_DIFFERENT_LENGTH_MSG)
-
-    def test_inputs_shorter_than_k(self):
-        x = np.zeros(3)
-        y = np.zeros(3)
-
-        with self.assertRaises(ValueError) as cm:
-            _estimate_single_mi(x, y, k=5)
-        self.assertEqual(str(cm.exception), K_TOO_LARGE_MSG)
-
-    def test_k_must_be_positive(self):
-        x = np.zeros(30)
-        y = np.zeros(30)
-
-        with self.assertRaises(ValueError):
-            _estimate_single_mi(x, y, k=-2)
-
-    def test_k_must_be_integer(self):
-        x = np.zeros(30)
-        y = np.zeros(30)
-
-        with self.assertRaises(TypeError):
-            _estimate_single_mi(x, y, k=2.71828)
 
     def test_bivariate_gaussian(self):
         cases = [ (0, 40, 3, 0.1),
@@ -106,22 +72,6 @@ class TestEstimateSingleMi(unittest.TestCase):
 
 
 class TestEstimateConditionalMi(unittest.TestCase):
-
-    def test_x_and_y_different_length(self):
-        x = np.zeros(10)
-        y = np.zeros(20)
-
-        with self.assertRaises(ValueError) as cm:
-            _estimate_conditional_mi(x, y, y)
-        self.assertEqual(str(cm.exception), X_Y_DIFFERENT_LENGTH_MSG)
-
-    def test_x_and_cond_different_length(self):
-        x = np.zeros(10)
-        y = np.zeros(20)
-
-        with self.assertRaises(ValueError) as cm:
-            _estimate_conditional_mi(x, x, y)
-        self.assertEqual(str(cm.exception), X_COND_DIFFERENT_LENGTH_MSG)
 
     def test_gaussian_with_independent_condition(self):
         # In this case, the results should be same as in ordinary MI

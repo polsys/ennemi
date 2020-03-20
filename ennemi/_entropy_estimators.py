@@ -29,7 +29,6 @@ def _estimate_single_mi(x : np.ndarray, y : np.ndarray, k : int = 3):
     case, add low-amplitude noise to the data and try again.
     """
 
-    _check_parameters(k, x, y)
     N = len(x)
 
     # We use the fastest O(N*sqrt(k)) time algorithm, based on boxes
@@ -77,7 +76,6 @@ def _estimate_conditional_mi(x : np.ndarray, y : np.ndarray, cond : np.ndarray,
     Physical Review Letters 99. doi:10.1103/PhysRevLett.99.204101
     """
 
-    _check_parameters(k, x, y, cond)
     N = len(x)
 
     # This is a straightforward extension of estimate_single_mi,
@@ -238,15 +236,6 @@ def _count_within(array, lower, upper):
     # The interval is strictly between left and right
     # In case of duplicate entries it is possible that right < left
     return max(right - left, 0)
-
-
-def _check_parameters(k, x, y, cond=None):
-    if (len(x) != len(y)):
-        raise ValueError("x and y must have same length")
-    if (cond is not None) and (len(x) != len(cond)):
-        raise ValueError("x and cond must have same length")
-    if (len(x) <= k):
-        raise ValueError("k must be smaller than number of observations")
 
 
 class _BoxGrid:
