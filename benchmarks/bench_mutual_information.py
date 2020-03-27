@@ -16,7 +16,7 @@ c = rng.normal(2, 5, size=N)
 d = rng.gamma(1.0, 1.0, size=N)
 e = b + 2.0*c
 
-data = np.asarray([a, b, c])
+data = np.asarray([a, b, c]).T
 """
 
 mi_bench = "estimate_mi(d, data, lag=[-1, 0, 1, 2], k=3)"
