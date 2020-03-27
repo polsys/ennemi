@@ -10,7 +10,11 @@ from ennemi import estimate_mi
 
 X_Y_DIFFERENT_LENGTH_MSG = "x and y must have same length"
 X_COND_DIFFERENT_LENGTH_MSG = "x and cond must have same length"
+X_WRONG_DIMENSION_MSG = "x must be one- or two-dimensional"
+Y_WRONG_DIMENSION_MSG = "y must be one-dimensional"
+MASK_WRONG_DIMENSION_MSG = "mask must be one-dimensional"
 K_TOO_LARGE_MSG = "k must be smaller than number of observations"
+K_NEGATIVE_MSG = "k must be greater than zero"
 TOO_LARGE_LAG_MSG = "lag is too large, no observations left"
 INVALID_MASK_LENGTH_MSG = "mask length does not match y length"
 INVALID_MASK_TYPE_MSG = "mask must contain only booleans"
@@ -37,8 +41,11 @@ class TestEstimateMi(unittest.TestCase):
         x = np.zeros(30)
         y = np.zeros(30)
 
-        with self.assertRaises(ValueError):
-            estimate_mi(x, y, k=-2)
+        for k in [-2, 0]:
+            with self.subTest(k=k):
+                with self.assertRaises(ValueError) as cm:
+                    estimate_mi(x, y, k=k)
+                self.assertEqual(str(cm.exception), K_NEGATIVE_MSG)
 
     def test_k_must_be_integer(self):
         x = np.zeros(30)
@@ -94,6 +101,31 @@ class TestEstimateMi(unittest.TestCase):
             estimate_mi(x, x, cond=y)
         self.assertEqual(str(cm.exception), X_COND_DIFFERENT_LENGTH_MSG)
 
+    def test_x_with_wrong_dimension(self):
+        x = np.zeros((10, 2, 3))
+        y = np.zeros(10)
+
+        with self.assertRaises(ValueError) as cm:
+            estimate_mi(y, x)
+        self.assertEqual(str(cm.exception), X_WRONG_DIMENSION_MSG)
+
+    def test_y_with_wrong_dimension(self):
+        x = np.zeros(10)
+        y = np.zeros((10, 2))
+
+        with self.assertRaises(ValueError) as cm:
+            estimate_mi(y, x)
+        self.assertEqual(str(cm.exception), Y_WRONG_DIMENSION_MSG)
+
+    def test_mask_with_wrong_dimension(self):
+        x = np.zeros(10)
+        y = np.zeros(10)
+        mask = np.zeros((10, 2), dtype=np.bool)
+
+        with self.assertRaises(ValueError) as cm:
+            estimate_mi(y, x, mask=mask)
+        self.assertEqual(str(cm.exception), MASK_WRONG_DIMENSION_MSG)
+
     def test_mask_with_wrong_length(self):
         x = [1, 2, 3, 4]
         y = [5, 6, 7, 8]
@@ -103,7 +135,7 @@ class TestEstimateMi(unittest.TestCase):
         self.assertEqual(str(cm.exception), INVALID_MASK_LENGTH_MSG)
 
     def test_mask_with_integer_elements(self):
-        # Integer mask lead to difficult to understand subsetting behavior
+        # Integer mask leads to difficult to understand subsetting behavior
         x = [1, 2, 3, 4]
         y = [5, 6, 7, 8]
         mask = [ 3, 2, 1, 0 ]
@@ -256,6 +288,24 @@ class TestEstimateMi(unittest.TestCase):
         self.assertAlmostEqual(actual.loc[0,"x3"], 0.0, delta=0.07)
         self.assertAlmostEqual(actual.loc[1,"x3"], 0.0, delta=0.05)
         self.assertGreater(actual.loc[3,"x3"], 0.15)
+
+    def test_pandas_data_and_mask_with_custom_indices(self):
+        rng = np.random.default_rng(20)
+        cov = np.array([[1, 0.8], [0.8, 1]])
+
+        data = rng.multivariate_normal([0, 0], cov, size=1000)
+        x = data[:,0]
+        y = data[:,1]
+        y[150:450] = math.nan
+        mask = np.full(1000, True)
+        mask[150:450] = False
+
+        df = pd.DataFrame({"x": x, "y": y, "mask": mask},
+                          index=range(2000, 3000))
+
+        expected = -0.5 * math.log(1 - 0.8**2)
+        masked = estimate_mi(df["y"], df["x"], mask=df["mask"])
+        self.assertAlmostEqual(masked.loc[0,"x"], expected, delta=0.03)
 
     def test_mask_without_lag(self):
         rng = np.random.default_rng(10)
