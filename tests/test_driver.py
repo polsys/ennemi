@@ -18,6 +18,7 @@ K_NEGATIVE_MSG = "k must be greater than zero"
 TOO_LARGE_LAG_MSG = "lag is too large, no observations left"
 INVALID_MASK_LENGTH_MSG = "mask length does not match y length"
 INVALID_MASK_TYPE_MSG = "mask must contain only booleans"
+NANS_LEFT_MSG = "input contains NaNs (after applying the mask)"
 
 class TestEstimateMi(unittest.TestCase):
     
@@ -296,7 +297,7 @@ class TestEstimateMi(unittest.TestCase):
         data = rng.multivariate_normal([0, 0], cov, size=1000)
         x = data[:,0]
         y = data[:,1]
-        y[150:450] = math.nan
+        y[150:450] = np.nan
         mask = np.full(1000, True)
         mask[150:450] = False
 
@@ -408,3 +409,26 @@ class TestEstimateMi(unittest.TestCase):
         self.assertIsInstance(actual, pd.DataFrame)
         self.assertEqual(actual.shape, (1, 1))
         self.assertAlmostEqual(actual.loc[-1,"x1"], 0.0, delta=0.03)
+
+    def test_unmasked_nans_are_rejected(self):
+        for (xnan, ynan, condnan) in [(True, False, None),
+                                      (False, True, None),
+                                      (True, False, False),
+                                      (False, True, False),
+                                      (False, False, True)]:
+            with self.subTest(xnan=xnan, ynan=ynan, condnan=condnan):
+                x = np.zeros(100)
+                if xnan: x[17] = np.nan
+
+                y = np.zeros(100)
+                if ynan: y[25] = np.nan
+
+                if condnan is not None:
+                    cond = np.zeros(100)
+                    if condnan: cond[37] = np.nan
+                else:
+                    cond = None
+
+                with self.assertRaises(ValueError) as cm:
+                    estimate_mi(y, x, cond=cond)
+                self.assertEqual(str(cm.exception), NANS_LEFT_MSG)
