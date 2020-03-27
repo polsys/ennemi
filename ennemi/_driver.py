@@ -84,6 +84,8 @@ def estimate_mi(y : np.ndarray, x : np.ndarray, lag = 0, *,
     y = np.asarray(y)
     if cond is not None:
         cond = np.asarray(cond)
+    if mask is not None:
+        mask = np.asarray(mask)
 
     _check_parameters(x, y, k, cond, mask)
 
@@ -133,9 +135,15 @@ def estimate_mi(y : np.ndarray, x : np.ndarray, lag = 0, *,
 
 
 def _check_parameters(x, y, k, cond, mask):
-    # TODO: Validate that y and cond and mask are one-dimensional
+    if k <= 0:
+        raise ValueError("k must be greater than zero")
 
-    # Validate the array lengths
+    # Validate the array shapes and lengths
+    if len(x.shape) > 2:
+        raise ValueError("x must be one- or two-dimensional")
+    if len(y.shape) > 1:
+        raise ValueError("y must be one-dimensional")
+
     if (x.shape[0] != len(y)):
         raise ValueError("x and y must have same length")
     if (cond is not None) and (x.shape[0] != len(cond)):
@@ -145,7 +153,8 @@ def _check_parameters(x, y, k, cond, mask):
 
     # Validate the mask
     if mask is not None:
-        mask = np.asarray(mask)
+        if len(mask.shape) > 1:
+            raise ValueError("mask must be one-dimensional")
         if len(mask) != len(y):
             raise ValueError("mask length does not match y length")
         if mask.dtype != np.bool:
