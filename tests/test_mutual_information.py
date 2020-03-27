@@ -119,6 +119,30 @@ class TestEstimateConditionalMi(unittest.TestCase):
         expected = 0.5 * (log(8) + log(35) - log(9) - log(24))
         self.assertAlmostEqual(actual, expected, delta=0.015)
 
+    def test_four_gaussians(self):
+        # As above, but now the condition is two-dimensional.
+        # The covariance matrix is defined by transforming a standard normal
+        # distribution (u1, u2, u3, u4) as follows:
+        #   x  = u1,
+        #   y  = u2 + u3 + 2*u4,
+        #   z1 = 2*u1 + u3,
+        #   z2 = u1 + u4.
+        # Unconditionally, x and y are independent, but conditionally they aren't.
+        rng = np.random.default_rng(25)
+        cov = np.array([[1, 0, 2, 1],
+                        [0, 6, 1, 2],
+                        [2, 1, 5, 2],
+                        [1, 2, 2, 2]])
+
+        # The data needs to be normalized for estimation accuracy,
+        # and the sample size must be quite large
+        data = rng.multivariate_normal([0, 0, 0, 0], cov, size=8000)
+        data = data / np.sqrt(np.var(data, axis=0))
+
+        actual = _estimate_conditional_mi(data[:,0], data[:,1], data[:,2:])
+        expected = 0.64964
+        self.assertAlmostEqual(actual, expected, delta=0.04)
+
 
 # Test our custom implementation of the digamma function
 from ennemi._entropy_estimators import _psi
@@ -138,59 +162,3 @@ class TestPsi(unittest.TestCase):
         for x in range(2, 1000):
             with self.subTest(x=10*x):
                 self.assertAlmostEqual(_psi(x*10), psi(x*10), delta=0.0001)
-
-
-# Also test the helper method because binary search is easy to get wrong
-from ennemi._entropy_estimators import _count_within
-
-class TestCountWithin(unittest.TestCase):
-
-    def test_power_of_two_array(self):
-        array = [ 0, 1, 2, 3, 4, 5, 6, 7 ]
-        actual = _count_within(array, 2, 5)
-        self.assertEqual(actual, 2)
-
-    def test_full_array_within(self):
-        array = [ 0, 1, 2, 3, 4, 5 ]
-        actual = _count_within(array, -3, 70)
-        self.assertEqual(actual, 6)
-
-    def test_left_side(self):
-        array = [ 0, 1, 2, 3, 4, 5, 6 ]
-        actual = _count_within(array, -1, 2)
-        self.assertEqual(actual, 2)
-
-    def test_right_side(self):
-        array = [ 0, 1, 2, 3, 4, 5, 6 ]
-        actual = _count_within(array, 4, 7)
-        self.assertEqual(actual, 2)
-
-    def test_none_matching_at_initial_pos(self):
-        array = [ 1, 2, 3, 4 ]
-        actual = _count_within(array, 2, 2)
-        self.assertEqual(actual, 0)
-
-    def test_none_matching_on_left_side(self):
-        array = [ 0.1, 1.2, 2.3, 3.4, 4.5 ]
-        actual = _count_within(array, 0.7, 1.1)
-        self.assertEqual(actual, 0)
-
-    def test_none_matching_on_right_side(self):
-        array = [ 0.1, 1.2, 2.3, 3.4, 4.5 ]
-        actual = _count_within(array, 3.4, 4.5)
-        self.assertEqual(actual, 0)
-
-    def test_none_matching_in_duplicate_array(self):
-        array = [ 1, 1, 1, 1, 1, 1, 1, 1, 1 ]
-        actual = _count_within(array, 2, 3)
-        self.assertEqual(actual, 0)
-
-    def test_none_matching_in_duplicate_array_and_exact_bounds(self):
-        array = [ 1, 1, 1, 1, 1, 1, 1, 1, 1 ]
-        actual = _count_within(array, 1, 1)
-        self.assertEqual(actual, 0)
-
-    def test_repeated_values(self):
-        array = [ 0, 0, 0, 1, 1, 2, 2, 2, 3, 3 ]
-        actual = _count_within(array, 0, 3)
-        self.assertEqual(actual, 5)

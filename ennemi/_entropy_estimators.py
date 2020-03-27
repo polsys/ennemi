@@ -5,6 +5,7 @@ Use the `estimate_mi` method in the main ennemi module instead.
 """
 
 import bisect
+import itertools
 import math
 import numpy as np
 
@@ -54,8 +55,8 @@ def _estimate_single_mi(x : np.ndarray, y : np.ndarray, k : int = 3):
         # Find the number of x and y neighbors within that distance
         # This also includes the element itself but that cancels out in the
         # formula of Kraskov et al.
-        nx[i] = _count_within(xs, cur_x - eps, cur_x + eps)
-        ny[i] = _count_within(ys, cur_y - eps, cur_y + eps)
+        nx[i] = _count_within_1d(xs, cur_x - eps, cur_x + eps)
+        ny[i] = _count_within_1d(ys, cur_y - eps, cur_y + eps)
 
     # Calculate the estimate
     return _psi(N) + _psi(k) - np.mean(_psi(nx) + _psi(ny))
@@ -77,9 +78,11 @@ def _estimate_conditional_mi(x : np.ndarray, y : np.ndarray, cond : np.ndarray,
     N = len(x)
 
     # This is a straightforward extension of estimate_single_mi,
-    # except that we cannot use _count_within for 2D projections.
-    grid = _BoxGridND(x, y, k, cond)
-    zs = np.sort(cond)
+    # except that we use N-dimensional grids everywhere.
+    full_grid = _BoxGridND(np.column_stack((x, y, cond)), k)
+    z_grid = _BoxGridND(np.column_stack((cond,)), k)
+    xz_grid = _BoxGridND(np.column_stack((x, cond)), k)
+    yz_grid = _BoxGridND(np.column_stack((y, cond)), k)
 
     nxz = np.empty(N, np.int32)
     nyz = np.empty(N, np.int32)
@@ -89,17 +92,14 @@ def _estimate_conditional_mi(x : np.ndarray, y : np.ndarray, cond : np.ndarray,
         cur_y = y[i]
         cur_z = cond[i]
 
-        eps = _find_kth_neighbor_nd(k, grid, cur_x, cur_y, cur_z)
+        eps = _find_kth_neighbor_nd(k, full_grid, cur_x, cur_y, cur_z)
 
-        # We can use _count_within only in one case
-        nz[i] = _count_within(zs, cur_z - eps, cur_z + eps)
-
-        # The other two terms are 2D projections and there is no well-ordering
-        # for 2D vectors. However, using vectorized NumPy operations is faster
-        # in benchmarks than applying the BoxGrid data structure. The grid is
-        # good for k'th-neighbor search but inefficient for counting.
-        nxz[i] = np.sum(np.maximum(np.abs(x - cur_x), np.abs(cond - cur_z)) < eps)
-        nyz[i] = np.sum(np.maximum(np.abs(y - cur_y), np.abs(cond - cur_z)) < eps)
+        # Count the number of marginal neighbors using the projected grids
+        nz[i] = _count_within_nd(z_grid, cur_z, eps)
+        xz_proj = np.concatenate(([cur_x], np.atleast_1d(cur_z)))
+        nxz[i] = _count_within_nd(xz_grid, xz_proj, eps)
+        yz_proj = np.concatenate(([cur_y], np.atleast_1d(cur_z)))
+        nyz[i] = _count_within_nd(yz_grid, yz_proj, eps)
 
     return _psi(k) - np.mean(_psi(nxz) + _psi(nyz) - _psi(nz))
 
@@ -149,7 +149,7 @@ def _find_kth_neighbor_2d(k, grid, cur_x, cur_y):
         if down > 0: edge_dist[2] = cur_y - grid.y_splits[down]
         if up < M: edge_dist[3] = grid.y_splits[up+1] - cur_y
 
-        direction = np.argmin(edge_dist)
+        direction = edge_dist.argmin()
 
         # If all the points in that direction are further away
         # than the points found so far, we are done
@@ -197,99 +197,7 @@ def _update_epsilon_2d(distances, eps, cur_x, cur_y, box):
     return eps
 
 
-def _find_kth_neighbor_nd(k, grid, cur_x, cur_y, cur_z):
-    # The same principle as in the 2D case, but with more dimensions.
-
-    eps = np.inf
-    distances = np.full(k, eps)
-
-    # First go through the points in the current box
-    box_x, box_y, box_z = grid.find_box(cur_x, cur_y, cur_z)
-    eps = _update_epsilon_nd(distances, eps, cur_x, cur_y, cur_z, grid.boxes[box_x, box_y, box_z])
-
-    # Then extend to the most promising direction as long as necessary    
-    left = right = box_x
-    down = up = box_y
-    back = front = box_z
-    M = grid.xy_boxes - 1
-    Z = grid.z_boxes - 1
-
-    while not (left == 0 and right == M and down == 0 and up == M):
-
-        # Find the direction where the edge is the closest
-        edge_dist = np.full(6, np.inf)
-        if left > 0: edge_dist[0] = cur_x - grid.x_splits[left]
-        if right < M: edge_dist[1] = grid.x_splits[right+1] - cur_x
-        if down > 0: edge_dist[2] = cur_y - grid.y_splits[down]
-        if up < M: edge_dist[3] = grid.y_splits[up+1] - cur_y
-        if back > 0: edge_dist[4] = cur_z - grid.z_splits[back]
-        if front < Z: edge_dist[5] = grid.z_splits[front+1] - cur_z
-
-        direction = np.argmin(edge_dist)
-
-        # If all the points in that direction are further away
-        # than the points found so far, we are done
-        if eps <= edge_dist[direction]:
-            return eps
-
-        # Otherwise, extend the rectangle to that direction and go through
-        # all the boxes that form the added edge
-        if direction == 0:
-            # Go left
-            left -= 1
-            for j in range(down, up+1):
-                for k in range(back, front+1):
-                    eps = _update_epsilon_nd(distances, eps, cur_x, cur_y, cur_z, grid.boxes[left, j, k])
-        elif direction == 1:
-            # Go right
-            right += 1
-            for j in range(down, up+1):
-                for k in range(back, front+1):
-                    eps = _update_epsilon_nd(distances, eps, cur_x, cur_y, cur_z, grid.boxes[right, j, k])
-        elif direction == 2:
-            # Go down
-            down -= 1
-            for i in range(left, right+1):
-                for k in range(back, front+1):
-                    eps = _update_epsilon_nd(distances, eps, cur_x, cur_y, cur_z, grid.boxes[i, down, k])
-        elif direction == 3:
-            # Go up
-            up += 1
-            for i in range(left, right+1):
-                for k in range(back, front+1):
-                    eps = _update_epsilon_nd(distances, eps, cur_x, cur_y, cur_z, grid.boxes[i, up, k])
-        elif direction == 4:
-            # Go back
-            back -= 1
-            for i in range(left, right+1):
-                for j in range(down, up+1):
-                    eps = _update_epsilon_nd(distances, eps, cur_x, cur_y, cur_z, grid.boxes[i, j, back])
-        elif direction == 5:
-            # Go forward
-            front += 1
-            for i in range(left, right+1):
-                for j in range(down, up+1):
-                    eps = _update_epsilon_nd(distances, eps, cur_x, cur_y, cur_z, grid.boxes[i, j, front])
-
-    # This is reachable if the space contains just one box
-    return eps
-
-
-def _update_epsilon_nd(distances, eps, cur_x, cur_y, cur_z, box):
-    for (x, y, z) in box:
-        dist = max(abs(cur_x - x), abs(cur_y - y), abs(cur_z - z))
-
-        # Do not count the point itself
-        if 0 < dist < eps:
-            # Replace the largest distance in the array, then re-sort
-            distances[len(distances)-1] = dist
-            distances.sort()
-            eps = distances.max()
-    
-    return eps
-
-
-def _count_within(array, lower, upper):
+def _count_within_1d(array, lower, upper):
     """Returns the number of elements between lower and upper (exclusive).
 
     The array must be sorted as a binary search will be used.
@@ -306,6 +214,101 @@ def _count_within(array, lower, upper):
     # The interval is strictly between left and right
     # In case of duplicate entries it is possible that right < left
     return max(right - left, 0)
+
+
+def _find_kth_neighbor_nd(k, grid, cur_x, cur_y, cur_z):
+    # The same principle as in the 2D case, but with more dimensions.
+    # Because the number of dimensions is arbitrary, the code is more generic.
+    # The searched box is stored as [min_x, max_x, min_y, max_y, ...] so
+    # that even indices are minimum (left, down, ...) and odd maximum coordinates.
+
+    eps = np.inf
+    distances = np.full(k, eps)
+
+    # First go through the points in the current box
+    cur_point = np.concatenate(([cur_x], [cur_y], np.atleast_1d(cur_z)))
+    box_coords = grid.find_box(cur_point)
+    eps = _update_epsilon_nd(distances, eps, cur_point, grid.boxes[box_coords])
+
+    # Then extend to the most promising direction as long as necessary
+    bounds = np.repeat(box_coords, 2)
+    M = grid.xyz_boxes - 1
+    full_space = np.tile((0, M), grid.ndim)
+
+    while not np.array_equal(bounds, full_space):
+
+        # Find the direction where the edge is the closest
+        edge_dist = np.full(2 * grid.ndim, np.inf)
+        for i in range(grid.ndim):
+            left = bounds[2*i]
+            right = bounds[2*i + 1]
+            if left > 0: edge_dist[2*i] = cur_point[i] - grid.splits[left,i]
+            if right < M: edge_dist[2*i+1] = grid.splits[right+1,i] - cur_point[i]
+
+        direction = edge_dist.argmin()
+
+        # If all the points in that direction are further away
+        # than the points found so far, we are done
+        if eps <= edge_dist[direction]:
+            return eps
+
+        # Otherwise, extend the rectangle to that direction and go through
+        # all the boxes that form the added edge
+        if direction % 2 == 0:
+            # Even: move "left"
+            fixed_point = bounds[direction] - 1
+        else:
+            # Odd: move "right"
+            fixed_point = bounds[direction] + 1
+        bounds[direction] = fixed_point
+
+        # Loop through all the boxes on the new face.
+        # To do this, we keep the changed coordinate fixed and loop through
+        # all others. To do so, we need to build a list of iterators
+        # for itertools.product() first.
+        iters = []
+        for i in range(grid.ndim):
+            if i == direction // 2:
+                iters.append([fixed_point])
+            else:
+                iters.append(range(bounds[i*2], bounds[i*2+1] + 1))
+        for coord in itertools.product(*iters):
+            eps = _update_epsilon_nd(distances, eps, cur_point, grid.boxes[coord])
+
+    # This is reachable if the space contains just one box
+    return eps
+
+
+def _update_epsilon_nd(distances, eps, cur_point, box):
+    for point in box:
+        dist = max(abs(cur_point - point))
+
+        # Do not count the point itself
+        if 0 < dist < eps:
+            # Replace the largest distance in the array, then re-sort
+            distances[len(distances)-1] = dist
+            distances.sort()
+            eps = distances.max()
+    
+    return eps
+
+
+def _count_within_nd(grid, center, eps):
+    # Go through all the boxes that may contain neighbors
+    min_coord = grid.find_box(center - eps)
+    max_coord = grid.find_box(center + eps)
+
+    # Create a list of iterators for itertools.product()
+    iters = [range(max(min_coord[i], 0), min(max_coord[i]+1, grid.xyz_boxes)) for i in range(grid.ndim)]
+
+    # Count the close enough points in every box
+    # TODO: This should be vectorized if possible
+    result = 0
+    for box_coord in itertools.product(*iters):
+        for point in grid.boxes[box_coord]:
+            if np.max(np.abs(point - center)) < eps:
+                result += 1
+    return result
 
 
 class _BoxGrid2D:
@@ -347,54 +350,42 @@ class _BoxGrid2D:
 class _BoxGridND:
     """A helper for accessing an N-dimensional space in smaller blocks."""
 
-    def __init__(self, x : np.ndarray, y : np.ndarray, k : int, z : np.ndarray = None):
-        if z is None:
-            # Each box contains k points on average
-            # (Benchmarked to be better than 2*k or 4*k)
-            split_size = int(math.sqrt(k * len(x)))
-            xy_boxes = math.ceil(len(x) / split_size)
-            z_boxes = 1
-        else:
-            # The same rule but in three dimensions
-            split_size = int(math.pow(k * len(x) * len(x), 1/3))
-            xy_boxes = math.ceil(len(x) / split_size)
-            z_boxes = xy_boxes
+    def __init__(self, points : np.ndarray, k : int):
+        nobs, ndim = points.shape
+        self.ndim = ndim
+
+        # For each box to contain k points on average, the marginal
+        # splits must contain N/k points on average
+        split_size = int(math.pow(nobs, (ndim-1)/ndim) * math.pow(k, 1/ndim))
+        xyz_boxes = math.ceil(nobs / split_size)
 
         # Store the boxes in a dictionary keyed by block coordinates
-        self.xy_boxes = xy_boxes
-        self.z_boxes = z_boxes
+        self.xyz_boxes = xyz_boxes
         self.boxes = {}
-        for i in range(xy_boxes):
-            for j in range(xy_boxes):
-                for k in range(z_boxes):
-                    self.boxes[(i,j,k)] = []
+        for coord in itertools.product(range(xyz_boxes), repeat=ndim):
+            self.boxes[coord] = []
 
         # Now the real initialization: first find the split points
-        self.x_splits = np.sort(x)[0:len(x):split_size]
-        self.y_splits = np.sort(y)[0:len(x):split_size]
-        if z is not None:
-            self.z_splits = np.sort(z)[0:len(x):split_size]
-        else:
-            self.z_splits = np.full(1, -np.inf)
+        self.splits = np.empty((xyz_boxes, ndim))
+        for i in range(ndim):
+            self.splits[:,i] = np.sort(points[:,i])[0:nobs:split_size]
         
         # Then assign points to boxes based on those
-        for i in range(len(x)):
-            if z is None: zi = 0
-            else: zi = z[i]
-
-            box_x, box_y, box_z = self.find_box(x[i], y[i], zi)
-            self.boxes[(box_x, box_y, box_z)].append((x[i], y[i], zi))
+        for i in range(nobs):
+            coord = self.find_box(points[i])
+            self.boxes[coord].append(points[i])
 
 
-    def find_box(self, x : float, y : float, z : float):
+    def find_box(self, point : np.ndarray):
         # The box index to use is the index of the largest split point
         # smaller than the coordinate. This is easy to get with bisect,
         # we just need to offset by one.
         # This algorithm is O(log n).
-        box_x = bisect.bisect(self.x_splits, x) - 1
-        box_y = bisect.bisect(self.y_splits, y) - 1
-        box_z = bisect.bisect(self.z_splits, z) - 1
-        return (box_x, box_y, box_z)
+        coord = []
+        point = np.atleast_1d(point)
+        for i in range(self.ndim):
+            coord.append(bisect.bisect(self.splits[:,i], point[i]) - 1)
+        return tuple(coord)
 
 
 def _psi(x : np.ndarray):
@@ -415,7 +406,7 @@ def _psi(x : np.ndarray):
     # Use the SciPy value for psi(1), because the expansion is not good enough
     one_mask = (x == 1)
     result[one_mask] = -0.5772156649015331
-    mask = np.logical_and(mask, np.logical_not(one_mask))
+    mask = mask & ~one_mask
 
     # For the rest, a good enough expansion is given by
     # https://www.uv.es/~bernardo/1976AppStatist.pdf
