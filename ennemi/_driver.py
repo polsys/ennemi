@@ -190,6 +190,10 @@ def _lagged_mi(param_tuple):
         mask_subset = mask[max_lag : len(y)+min(min_lag, 0)]
         xs = xs[mask_subset]
         ys = ys[mask_subset]
+
+    # Check that there are no NaNs
+    if np.isnan(xs).any() or np.isnan(ys).any():
+        raise ValueError("input contains NaNs (after applying the mask)")
     
     if cond is None:
         return _estimate_single_mi(xs, ys, k)
@@ -198,5 +202,8 @@ def _lagged_mi(param_tuple):
         zs = cond[max_lag-(lag+cond_lag) : len(cond)-(lag+cond_lag)+min(min_lag, 0)]
         if mask is not None:
             zs = zs[mask_subset]
+
+        if np.isnan(zs).any():
+            raise ValueError("input contains NaNs (after applying the mask)")
 
         return _estimate_conditional_mi(xs, ys, zs, k)
