@@ -79,14 +79,21 @@ def _estimate_conditional_mi(x : np.ndarray, y : np.ndarray, cond : np.ndarray,
 
     # This is a straightforward extension of estimate_single_mi,
     # except that we use N-dimensional grids everywhere.
-    full_grid = _BoxGridND(np.column_stack((x, y, cond)), k)
-    z_grid = _BoxGridND(np.column_stack((cond,)), k)
-    xz_grid = _BoxGridND(np.column_stack((x, cond)), k)
-    yz_grid = _BoxGridND(np.column_stack((y, cond)), k)
+    # The boxes are larger than in the unconditional case because of NumPy
+    # vectorization. The Z projection has a special case for 1-dimensional
+    # condition as the generic code is much slower.
+    full_grid = _BoxGridND(np.column_stack((x, y, cond)), 10*k)
+    if cond.ndim == 1:
+        z_array = np.sort(cond)
+    else:
+        z_grid = _BoxGridND(np.column_stack((cond,)), 50*k)
+    xz_grid = _BoxGridND(np.column_stack((x, cond)), 50*k)
+    yz_grid = _BoxGridND(np.column_stack((y, cond)), 50*k)
 
     nxz = np.empty(N, np.int32)
     nyz = np.empty(N, np.int32)
     nz = np.empty(N, np.int32)
+
     for i in range(0, N):
         cur_x = x[i]
         cur_y = y[i]
@@ -95,7 +102,11 @@ def _estimate_conditional_mi(x : np.ndarray, y : np.ndarray, cond : np.ndarray,
         eps = _find_kth_neighbor_nd(k, full_grid, cur_x, cur_y, cur_z)
 
         # Count the number of marginal neighbors using the projected grids
-        nz[i] = _count_within_nd(z_grid, cur_z, eps)
+        if cond.ndim == 1:
+            nz[i] = _count_within_1d(z_array, cur_z - eps, cur_z + eps)
+        else:
+            nz[i] = _count_within_nd(z_grid, cur_z, eps)
+        
         xz_proj = np.concatenate(([cur_x], np.atleast_1d(cur_z)))
         nxz[i] = _count_within_nd(xz_grid, xz_proj, eps)
         yz_proj = np.concatenate(([cur_y], np.atleast_1d(cur_z)))
@@ -222,13 +233,12 @@ def _find_kth_neighbor_nd(k, grid, cur_x, cur_y, cur_z):
     # The searched box is stored as [min_x, max_x, min_y, max_y, ...] so
     # that even indices are minimum (left, down, ...) and odd maximum coordinates.
 
-    eps = np.inf
-    distances = np.full(k, eps)
+    distances = np.full(k, np.inf)
 
     # First go through the points in the current box
     cur_point = np.concatenate(([cur_x], [cur_y], np.atleast_1d(cur_z)))
     box_coords = grid.find_box(cur_point)
-    eps = _update_epsilon_nd(distances, eps, cur_point, grid.boxes[box_coords])
+    distances = _update_epsilon_nd(distances, cur_point, grid.boxes[box_coords])
 
     # Then extend to the most promising direction as long as necessary
     bounds = np.repeat(box_coords, 2)
@@ -249,8 +259,8 @@ def _find_kth_neighbor_nd(k, grid, cur_x, cur_y, cur_z):
 
         # If all the points in that direction are further away
         # than the points found so far, we are done
-        if eps <= edge_dist[direction]:
-            return eps
+        if distances[k-1] <= edge_dist[direction]:
+            return distances[k-1]
 
         # Otherwise, extend the rectangle to that direction and go through
         # all the boxes that form the added edge
@@ -273,24 +283,31 @@ def _find_kth_neighbor_nd(k, grid, cur_x, cur_y, cur_z):
             else:
                 iters.append(range(bounds[i*2], bounds[i*2+1] + 1))
         for coord in itertools.product(*iters):
-            eps = _update_epsilon_nd(distances, eps, cur_point, grid.boxes[coord])
+            distances = _update_epsilon_nd(distances, cur_point, grid.boxes[coord])
 
     # This is reachable if the space contains just one box
-    return eps
+    return distances[k-1]
 
 
-def _update_epsilon_nd(distances, eps, cur_point, box):
-    for point in box:
-        dist = max(abs(cur_point - point))
+def _update_epsilon_nd(distances, cur_point, box):
+    # The distances array is assumed to be sorted
+    point_count = len(distances)
+    eps = distances[point_count - 1]
 
-        # Do not count the point itself
-        if 0 < dist < eps:
-            # Replace the largest distance in the array, then re-sort
-            distances[len(distances)-1] = dist
-            distances.sort()
-            eps = distances.max()
+    if box.size == 0:
+        return distances
     
-    return eps
+    # This is NumPy vectorized
+    # Take the points that are closer than eps, but not the point itself
+    box_dists = np.max(np.abs(box - cur_point), axis=1)
+    box_dists = box_dists[(0 < box_dists) & (box_dists < eps)]
+
+    if box_dists.size == 0:
+        return distances
+
+    distances = np.append(distances, box_dists, axis=0)
+    distances.sort()
+    return distances[:point_count]
 
 
 def _count_within_nd(grid, center, eps):
@@ -302,12 +319,15 @@ def _count_within_nd(grid, center, eps):
     iters = [range(max(min_coord[i], 0), min(max_coord[i]+1, grid.xyz_boxes)) for i in range(grid.ndim)]
 
     # Count the close enough points in every box
-    # TODO: This should be vectorized if possible
+    # This is vectorized with NumPy and as such the boxes should be large
     result = 0
     for box_coord in itertools.product(*iters):
-        for point in grid.boxes[box_coord]:
-            if np.max(np.abs(point - center)) < eps:
-                result += 1
+        points = grid.boxes[box_coord]
+        if points.size == 0:
+            continue
+
+        dists = np.max(np.abs(points - center), axis=1)
+        result += np.sum(dists < eps)
     return result
 
 
@@ -374,6 +394,10 @@ class _BoxGridND:
         for i in range(nobs):
             coord = self.find_box(points[i])
             self.boxes[coord].append(points[i])
+
+        # Convert all the boxes to ndarrays
+        for key in self.boxes:
+            self.boxes[key] = np.asarray(self.boxes[key])
 
 
     def find_box(self, point : np.ndarray):
