@@ -1,11 +1,12 @@
 # ennemi
-_Easy-to-use Nearest Neighbor Estimation of Mutual Information._
+_Easy-to-use Nearest Neighbor Estimation of Mutual Information_
 
 ![Continuous Integration](https://github.com/polsys/ennemi/workflows/Continuous%20Integration/badge.svg)
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=polsys_ennemi&metric=coverage)](https://sonarcloud.io/dashboard?id=polsys_ennemi)
 
 This Python 3 package provides simple methods for estimating mutual information of continuous variables.
 With one method call, you can estimate several variable pairs and time lags at once.
+Both unconditional and conditional MI (including multivariate condition) are supported.
 
 The package uses the nearest neighbor method as described by Kraskov et al. in
 _Estimating Mutual Information_, Physical Review E **69**:6 (2004),
@@ -31,10 +32,12 @@ For documentation, please see https://polsys.github.io/ennemi.
 
 ## Building
 
-The tests depend on SciPy, so you need that installed in addition to NumPy.
+The tests depend on SciPy and pandas, so you need those installed in addition to NumPy.
 
 To install the package in development mode, clone this repository and execute
 ```sh
+pip install scipy
+pip install pandas
 pip install -e .
 ```
 in the repository root folder.
