@@ -289,6 +289,13 @@ $$
 The reason for our result is that $X_3$ contains the full difference between
 $Y$ and $X_2$ whereas there is still some random variation between $X_1$ and $Y$.
 
+`ennemi` also supports multidimensional condition.
+This is useful when there are several common explanative variables.
+To specify a multivariate condition, pass a two-dimensional array as the `cond`
+parameter similarly to `x`.
+Instead of comparing each variable separately as with `x`, the conditional
+variables will be evaluated together.
+
 
 
 ## Masking observations
