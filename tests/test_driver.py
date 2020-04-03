@@ -200,6 +200,19 @@ class TestEstimateMi(unittest.TestCase):
         self.assertAlmostEqual(actual[0,0], 0, delta=0.1)
         self.assertAlmostEqual(actual[1,0], math.exp(1), delta=0.02)
         self.assertAlmostEqual(actual[2,0], 0, delta=0.1)
+        self.assertAlmostEqual(actual[2,0], 0, delta=0.1)
+
+    def test_one_variable_with_single_lag_as_ndarray(self):
+        # There was a bug where ndarray(1) wouldn't be accepted
+        rng = np.random.default_rng(1)
+        x = rng.uniform(0, 1, 40)
+        y = np.zeros(40)
+        y[1:] = x[:-1]
+
+        actual = estimate_mi(y, x, lag=np.asarray(1))
+
+        self.assertEqual(actual.shape, (1, 1))
+        self.assertAlmostEqual(actual[0,0], math.exp(1), delta=0.02)
 
     def test_one_variable_with_lead(self):
         rng = np.random.default_rng(1)

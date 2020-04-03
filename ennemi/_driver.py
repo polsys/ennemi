@@ -73,9 +73,7 @@ def estimate_mi(y : np.ndarray, x : np.ndarray, lag = 0, *,
     """
 
     # The code below assumes that lag is an array
-    if (isinstance(lag, int)):
-        lag = [lag]
-    lag = np.asarray(lag)
+    lag = np.atleast_1d(lag)
 
     # If x or y is a Python list, convert it to an ndarray
     # Keep the original x parameter around for the Pandas data frame check
