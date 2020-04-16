@@ -15,22 +15,24 @@ def estimate_mi(y : np.ndarray, x : np.ndarray, lag = 0, *,
     """Estimate the mutual information between y and each x variable.
  
     Returns the estimated mutual information (in nats) for continuous
-    variables. The result is a 2D array where the first index represents `x`
-    rows and the second index represents the `lag` values.
+    variables. The result is a 2D `ndarray` where the first index represents `x`
+    rows and the second index represents the `lag` values. If `x` is a pandas
+    `DataFrame` or `Series`, the result is a `DataFrame`.
 
-    The time lag is interpreted as `y(t + lag) ~ x(t)`.
+    The time lag is interpreted as `y(t) ~ x(t - lag) | z(t - cond_lag)`.
     The time lags are applied to the `x` and `cond` arrays such that the `y`
     array stays the same every time.
     This means that `y` is cropped to `y[max_lag:N+min(min_lag, 0)]`.
 
     If the `cond` parameter is set, conditional mutual information is estimated.
-    The `cond_lag` parameter is added to the lag for the `cond` array.
+    The `cond_lag` parameter specifies the lag for the `cond` array, separately
+    from the `x` lag.
 
     If the `mask` parameter is set, only those `y` observations with the
     matching mask element set to `True` are used for estimation.
     
-    If the data set contains discrete variables or many identical
-    observations, this method may return incorrect results or `-inf`.
+    If the data set contains many identical observations,
+    this method may return incorrect results or `-inf`.
     In that case, add low-amplitude noise to the data and try again.
 
     The calculation is based on Kraskov et al. (2004): Estimating mutual
@@ -57,7 +59,8 @@ def estimate_mi(y : np.ndarray, x : np.ndarray, lag = 0, *,
         A 1D array of observations used for conditioning.
         Must have as many observations as y.
     cond_lag : int
-        Additional lag applied to the cond array. Default 0.
+        Lag applied to the cond array.
+        Must be broadcastable to the size of `lag`. Default 0.
     mask : array_like or None
         If specified, an array of booleans that gives the y elements to use for
         estimation. Use this to exclude some observations from consideration
@@ -74,6 +77,7 @@ def estimate_mi(y : np.ndarray, x : np.ndarray, lag = 0, *,
 
     # The code below assumes that lag is an array
     lag = np.atleast_1d(lag)
+    cond_lag = np.broadcast_to(cond_lag, lag.shape)
 
     # If x or y is a Python list, convert it to an ndarray
     # Keep the original x parameter around for the Pandas data frame check
@@ -88,8 +92,8 @@ def estimate_mi(y : np.ndarray, x : np.ndarray, lag = 0, *,
     _check_parameters(x, y, k, cond, mask)
 
     # These are used for determining the y range to use
-    min_lag = min(np.min(lag), np.min(lag+cond_lag))
-    max_lag = max(np.max(lag), np.max(lag+cond_lag))
+    min_lag = min(np.min(lag), np.min(cond_lag))
+    max_lag = max(np.max(lag), np.max(cond_lag))
 
     # Validate that the lag is not too large
     if max_lag - min_lag >= y.size or max_lag >= y.size or min_lag <= -y.size:
@@ -104,9 +108,9 @@ def estimate_mi(y : np.ndarray, x : np.ndarray, lag = 0, *,
     # The params map contains tuples for simpler passing into subprocess
     indices = list(itertools.product(range(len(lag)), range(nvar)))
     if x.ndim == 1:
-        params = map(lambda lag: (x, y, lag, max_lag, min_lag, k, mask, cond, cond_lag), lag)
+        params = map(lambda i: (x, y, lag[i[0]], max_lag, min_lag, k, mask, cond, cond_lag[i[0]]), indices)
     else:
-        params = map(lambda i: (x[:,i[1]], y, lag[i[0]], max_lag, min_lag, k, mask, cond, cond_lag), indices)
+        params = map(lambda i: (x[:,i[1]], y, lag[i[0]], max_lag, min_lag, k, mask, cond, cond_lag[i[0]]), indices)
 
     # If there is benefit in doing so, and the user has not overridden the
     # heuristic, execute the estimation in multiple parallel processes
@@ -196,8 +200,8 @@ def _lagged_mi(param_tuple):
     if cond is None:
         return _estimate_single_mi(xs, ys, k)
     else:
-        # The cond observations have their additional lag term
-        zs = cond[max_lag-(lag+cond_lag) : len(cond)-(lag+cond_lag)+min(min_lag, 0)]
+        # The cond observations have their own lag term
+        zs = cond[max_lag-cond_lag : len(cond)-cond_lag+min(min_lag, 0)]
         if mask is not None:
             zs = zs[mask_subset]
 

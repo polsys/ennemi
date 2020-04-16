@@ -84,7 +84,7 @@ class TestEstimateMi(unittest.TestCase):
         y = [5, 6, 7, 8]
 
         with self.assertRaises(ValueError) as cm:
-            estimate_mi(y, x, lag=1, cond=y, cond_lag=3)
+            estimate_mi(y, x, lag=1, cond=y, cond_lag=4)
         self.assertEqual(str(cm.exception), TOO_LARGE_LAG_MSG)
 
     def test_lag_not_integer(self):
@@ -381,7 +381,7 @@ class TestEstimateMi(unittest.TestCase):
         self.assertGreater(noncond, 1)
 
         # Then the conditional MI
-        actual = estimate_mi(z, y, lag=[0,1], k=5, cond=x, cond_lag=1)
+        actual = estimate_mi(z, y, lag=[0,1], k=5, cond=x, cond_lag=[1, 2])
 
         self.assertEqual(actual.shape, (2, 1))
         self.assertAlmostEqual(actual[0,0], 0.0, delta=0.05)
@@ -405,7 +405,7 @@ class TestEstimateMi(unittest.TestCase):
 
         lags = [ 0, -1 ]
 
-        actual = estimate_mi(y, x, lag=lags, cond=z, cond_lag=2, mask=mask)
+        actual = estimate_mi(y, x, lag=lags, cond=z, cond_lag=[2, 1], mask=mask)
         expected = 0.5 * (math.log(8) + math.log(35) - math.log(9) - math.log(24))
 
         self.assertAlmostEqual(actual[0,0], expected, delta=0.01)
@@ -417,7 +417,7 @@ class TestEstimateMi(unittest.TestCase):
         data = pd.read_csv(data_path)
 
         actual = estimate_mi(data["y"], data["x1"], lag=-1,
-                             cond=data["x2"], cond_lag=1)
+                             cond=data["x2"], cond_lag=0)
 
         self.assertIsInstance(actual, pd.DataFrame)
         self.assertEqual(actual.shape, (1, 1))
