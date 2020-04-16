@@ -113,6 +113,43 @@ the estimation.
 
 
 
+## Autocorrelation
+The estimation method requires that the observations are
+independent and identically distributed.
+If the samples have significant autocorrelation, the first assumption does not hold.
+In this case, the algorithm may return too high MI values.
+
+In this example, each point is present twice:
+the second occurrence has some added random noise.
+This simulates the autocorrelation between the two samples.
+```python
+from ennemi import estimate_mi
+import numpy as np
+
+rng = np.random.default_rng(1234)
+rho = 0.8
+cov = np.array([[1, rho], [rho, 1]])
+
+data = rng.multivariate_normal([0, 0], cov, size=800)
+x = np.concatenate((data[:,0], data[:,0] + rng.normal(0, 0.05, size=800)))
+y = np.concatenate((data[:,1], data[:,1] + rng.normal(0, 0.05, size=800)))
+
+print(estimate_mi(y, x))
+```
+
+Running the code outputs
+```
+[[0.64964189]]
+```
+a significantly higher value than the $\approx 0.51$ expected of
+non-autocorrelated samples.
+
+The way of fixing this depends on your data.
+Does it make sense to look at deseasonalized or differenced data?
+Can you reduce the sampling frequency so that the autocorrelation is smaller?
+
+
+
 ## Improving performance
 Even though `ennemi` uses good algorithms (in terms of asymptotic performance),
 it is not designed for high-performance computing.
