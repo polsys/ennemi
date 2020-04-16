@@ -246,7 +246,7 @@ data = pd.read_csv("mi_example.csv")
 time_lags = np.arange(-3, 6)
 
 mi = estimate_mi(data["y"], data[["x1", "x3"]], lag=time_lags,
-                 cond=data["x2"], cond_lag=2)
+                 cond=data["x2"], cond_lag=time_lags+2)
 print(mi)
 
 plt.plot(time_lags, mi["x1"], label="$x_1$")
