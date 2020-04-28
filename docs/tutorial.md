@@ -60,6 +60,42 @@ This will be discussed more below.
 
 
 
+## Interpretation
+Mutual information may have any non-negative value.
+For easier interpretation, the `normalize_mi()` method converts MI to
+match correlation coefficient.
+The returned coefficient is always non-negative, also for negative correlations,
+and approximately matches the linear correlation after suitable transformations.
+
+For example, consider the model $y = \sin(x) + \varepsilon$.
+We calculate both the linear correlation and correlation from MI:
+```python
+from ennemi import estimate_mi, normalize_mi
+import numpy as np
+
+rng = np.random.default_rng(1234)
+x = rng.normal(0.0, 3.0, size=800)
+y = np.sin(x) + rng.normal(0.0, 0.5, size=800)
+
+print("Pearson:", np.corrcoef(y, np.sin(x))[0,1])
+print("From MI:", normalize_mi(estimate_mi(y, x))[0,0])
+```
+
+The two values are very close to each other:
+```
+Pearson: 0.8119000856581351
+From MI: 0.8243674481079413
+```
+
+There are some caveats to the above.
+The two coefficients are theoretically equivalent only when the transformations
+are monotonic.
+Periodic transformations such as sine (as above) have additional requirements
+on symmetry: `x` should be distributed evenly across periods.
+Therefore, the returned coefficient **should be considered only approximate**.
+
+
+
 ## More variables
 
 Let's extend the above example by adding another variable.

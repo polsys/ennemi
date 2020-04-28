@@ -6,7 +6,7 @@ import os.path
 import pandas as pd
 import random
 import unittest
-from ennemi import estimate_mi
+from ennemi import estimate_mi, normalize_mi
 
 X_Y_DIFFERENT_LENGTH_MSG = "x and y must have same length"
 X_COND_DIFFERENT_LENGTH_MSG = "x and cond must have same length"
@@ -445,3 +445,49 @@ class TestEstimateMi(unittest.TestCase):
                 with self.assertRaises(ValueError) as cm:
                     estimate_mi(y, x, cond=cond)
                 self.assertEqual(str(cm.exception), NANS_LEFT_MSG)
+
+
+class TestNormalizeMi(unittest.TestCase):
+
+    def test_correct_values(self):
+        for rho in [0.0, 0.01, 0.2, 0.8]:
+            with self.subTest(rho=rho):
+                # MI for two correlated unit variance Gaussians
+                mi = -0.5 * np.log(1 - rho**2)
+
+                self.assertAlmostEqual(normalize_mi(mi), rho, delta=0.001)
+
+    def test_negative_values_are_passed_as_is(self):
+        for value in [-0.01, -0.1, -1, -np.inf]:
+            with self.subTest(value=value):
+                self.assertAlmostEqual(normalize_mi(value), value, delta=0.001)
+
+    def test_array_is_handled_elementwise(self):
+        mi = np.asarray([[0.1, 0.5], [0, -1]])
+        cor = normalize_mi(mi)
+
+        self.assertEqual(cor.shape, (2, 2))
+        # Large deltas because I looked these up manually - the order is what matters
+        self.assertAlmostEqual(cor[0,0], 0.4, delta=0.05)
+        self.assertAlmostEqual(cor[0,1], 0.8, delta=0.05)
+        self.assertAlmostEqual(cor[1,0], 0.0, delta=0.001)
+        self.assertAlmostEqual(cor[1,1], -1.0, delta=0.001)
+
+    def test_list_is_handled_elementwise(self):
+        mi = [-1, 0, 1]
+        cor = normalize_mi(mi)
+
+        self.assertEqual(cor.shape, (3,))
+        self.assertAlmostEqual(cor[0], -1.0, delta=0.001)
+        self.assertAlmostEqual(cor[1], 0.0, delta=0.001)
+        self.assertAlmostEqual(cor[2], 0.93, delta=0.03)
+
+    def test_pandas_structure_is_preserved(self):
+        mi = np.asarray([[0.1, 0.5], [0, -1]])
+        mi = pd.DataFrame(mi, columns=["A", "B"], index=[14, 52])
+
+        cor = normalize_mi(mi)
+        self.assertAlmostEqual(cor.loc[14,"A"], 0.4, delta=0.05)
+        self.assertAlmostEqual(cor.loc[14,"B"], 0.8, delta=0.05)
+        self.assertAlmostEqual(cor.loc[52,"A"], 0.0, delta=0.001)
+        self.assertAlmostEqual(cor.loc[52,"B"], -1.0, delta=0.001)
