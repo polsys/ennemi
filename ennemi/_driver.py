@@ -9,6 +9,40 @@ import numpy as np
 import sys
 from ._entropy_estimators import _estimate_single_mi, _estimate_conditional_mi
 
+def normalize_mi(mi : np.ndarray):
+    """Normalize mutual information values to the unit interval.
+
+    The return value matches the correlation coefficient between two Gaussian
+    random variables with unit variance. This coefficient is preserved by most
+    transformations, including scaling. The return value is positive regardless
+    of the sign of the correlation.
+
+    Negative values are kept as is. This is because mutual information is always
+    non-negative, but `estimate_mi` may produce negative values.
+
+    Parameters:
+    ---
+    mi : array_like or float
+        One or more mutual information values (in nats).
+        If this is a Pandas `DataFrame` or `Series`, the columns and indices
+        are preserved.
+    """
+
+    # If the parameter is a pandas type, preserve the columns and indices
+    if "pandas" in sys.modules:
+        import pandas
+        if isinstance(mi, (pandas.DataFrame, pandas.Series)):
+            return mi.applymap(_normalize)
+    
+    return np.vectorize(_normalize, otypes=[np.float])(mi)
+
+def _normalize(mi : np.float) -> np.float:
+    if mi <= 0.0:
+        return mi
+    else:
+        return np.sqrt(1 - np.exp(-2 * mi))
+
+
 def estimate_mi(y : np.ndarray, x : np.ndarray, lag = 0, *,
                 k : int = 3, cond : np.ndarray = None, cond_lag : int = 0,
                 mask : np.ndarray = None, parallel : str = None):
