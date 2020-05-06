@@ -62,13 +62,13 @@ class TestEstimateSingleMi(unittest.TestCase):
         self.assertAlmostEqual(actual, actual2, delta=0.00001)
 
     def test_independent_transformed_uniform(self):
-        # Very non-uniform density, but should have equal MI as the uniform test
+        # Very non-uniform density, but MI should still be zero
         rng = np.random.default_rng(1)
         x = rng.uniform(0.0, 10.0, 1024)
-        y = rng.uniform(0.0, 10.0, 1024)
+        y = np.exp(rng.uniform(0.0, 1.0, 1024))
 
         actual = _estimate_single_mi(x, y, k=8)
-        self.assertAlmostEqual(actual, 0, delta=0.04)
+        self.assertAlmostEqual(actual, 0, delta=0.02)
 
 
 class TestEstimateConditionalMi(unittest.TestCase):
