@@ -119,9 +119,9 @@ independent and identically distributed.
 If the samples have significant autocorrelation, the first assumption does not hold.
 In this case, the algorithm may return too high MI values.
 
-In this example, each point is present twice:
-the second occurrence has some added random noise.
-This simulates the autocorrelation between the two samples.
+In this example, each point is present three times:
+the additional occurrences have some added random noise.
+This simulates the autocorrelation between the samples.
 ```python
 from ennemi import estimate_mi
 import numpy as np
@@ -131,18 +131,44 @@ rho = 0.8
 cov = np.array([[1, rho], [rho, 1]])
 
 data = rng.multivariate_normal([0, 0], cov, size=800)
-x = np.concatenate((data[:,0], data[:,0] + rng.normal(0, 0.05, size=800)))
-y = np.concatenate((data[:,1], data[:,1] + rng.normal(0, 0.05, size=800)))
+x = np.concatenate((data[:,0],
+    data[:,0] + rng.normal(0, 0.01, size=800),
+    data[:,0] + rng.normal(0, 0.01, size=800)))
+y = np.concatenate((data[:,1],
+    data[:,1] + rng.normal(0, 0.01, size=800),
+    data[:,1] + rng.normal(0, 0.01, size=800)))
 
 print(estimate_mi(y, x))
 ```
 
 Running the code outputs
 ```
-[[0.64964189]]
+[[1.02612906]]
 ```
 a significantly higher value than the $\approx 0.51$ expected of
 non-autocorrelated samples.
+
+The reason for this error is that the approximated density is peakier than
+it should be.
+Each point has effectively three times the density it should have,
+while the gaps between points are unaffected.
+We can see this in a Gaussian kernel density estimate of the sample.
+For simplicity, we plot only the marginal `y` density.
+```python
+import matplotlib.pyplot as plt
+from scipy.stats import gaussian_kde
+
+baseline_kernel = gaussian_kde(data[:,1])
+autocorrelated_kernel = gaussian_kde(y)
+
+t = np.linspace(-2, 2, 100)
+plt.plot(t, baseline_kernel(t), "--", label="Baseline")
+plt.plot(t, autocorrelated_kernel(t), label="Autocorrelated")
+plt.legend()
+plt.show()
+```
+
+![The autocorrelated density has more bumps than the roughly Gaussian baseline.](autocorrelation_kde.png)
 
 The way of fixing this depends on your data.
 Does it make sense to look at deseasonalized or differenced data?

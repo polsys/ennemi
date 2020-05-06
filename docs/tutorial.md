@@ -11,6 +11,11 @@ lest you want to discover those the hard way!
 In all the examples, the method of interest is `ennemi.estimate_mi()`.
 The use cases only differ in the input parameters.
 
+**Note:**
+You may get slightly different results when running the examples.
+The processor model, operating system and Python/NumPy version
+have subtle effects on floating point calculations.
+The results should still be the same to several significant digits.
 
 
 ## Bivariate normal distribution
@@ -64,9 +69,16 @@ This will be discussed more below.
 Mutual information may have any non-negative value.
 For easier interpretation, the `normalize_mi()` method converts MI to
 match correlation coefficient.
-The returned coefficient is always non-negative, also for negative correlations,
-and approximately matches the linear correlation after suitable transformations.
+To continue the above example, we could execute
+```python
+from ennemi import normalize_mi
+print(normalize_mi(estimate_mi(y, x)))
+```
+to get the estimated correlation coefficient (`0.79980729`).
 
+The returned coefficient approximately matches the _absolute value_
+of the linear correlation coefficient after suitable transformations.
+(Note: it is positive also for anticorrelations!)
 For example, consider the model $y = \sin(x) + \varepsilon$.
 We calculate both the linear correlation and correlation from MI:
 ```python
@@ -77,14 +89,18 @@ rng = np.random.default_rng(1234)
 x = rng.normal(0.0, 3.0, size=800)
 y = np.sin(x) + rng.normal(0.0, 0.5, size=800)
 
-print("Pearson:", np.corrcoef(y, np.sin(x))[0,1])
-print("From MI:", normalize_mi(estimate_mi(y, x))[0,0])
+print(f"From MI: {normalize_mi(estimate_mi(y, x))[0,0]:.3}")
+print(f"Pearson: {np.corrcoef(y, np.sin(x))[0,1]:.3}")
+print(f"Pearson, untransformed: {np.corrcoef(y, x)[0,1]:.3}")
 ```
 
-The two values are very close to each other:
+The two values are very close to each other.
+Without the correct transformation, there is no linear correlation
+between the two variables.
 ```
-Pearson: 0.8119000856581351
-From MI: 0.8243674481079413
+From MI: 0.824
+Pearson: 0.812
+Pearson, untransformed: 0.01993
 ```
 
 There are some caveats to the above.
