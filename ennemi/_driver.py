@@ -216,14 +216,18 @@ def _lagged_mi(param_tuple):
     # Unpack the param tuple used for possible cross-process transfer
     x, y, lag, max_lag, min_lag, k, mask, cond, cond_lag = param_tuple
 
+    # Handle negative lags correctly
+    min_lag = min(min_lag, 0)
+    max_lag = max(max_lag, 0)
+
     # The x observations start from max_lag - lag
-    xs = x[max_lag-lag : len(x)-lag+min(min_lag, 0)]
+    xs = x[max_lag-lag : len(x)-lag+min_lag]
     # The y observations always start from max_lag
-    ys = y[max_lag : len(y)+min(min_lag, 0)]
+    ys = y[max_lag : len(y)+min_lag]
 
     # Mask the observations if necessary
     if mask is not None:
-        mask_subset = mask[max_lag : len(y)+min(min_lag, 0)]
+        mask_subset = mask[max_lag : len(y)+min_lag]
         xs = xs[mask_subset]
         ys = ys[mask_subset]
 
@@ -235,7 +239,7 @@ def _lagged_mi(param_tuple):
         return _estimate_single_mi(xs, ys, k)
     else:
         # The cond observations have their own lag term
-        zs = cond[max_lag-cond_lag : len(cond)-cond_lag+min(min_lag, 0)]
+        zs = cond[max_lag-cond_lag : len(cond)-cond_lag+min_lag]
         if mask is not None:
             zs = zs[mask_subset]
 
