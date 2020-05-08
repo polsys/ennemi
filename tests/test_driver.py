@@ -411,6 +411,22 @@ class TestEstimateMi(unittest.TestCase):
         self.assertAlmostEqual(actual[0,0], expected, delta=0.01)
         self.assertAlmostEqual(actual[1,0], 0.0, delta=0.01)
 
+    def test_conditional_mi_with_negative_lag(self):
+        # There was a bug where negative max_lag led to an empty array
+        # Here Y is dependent on both X and Z with lead of one time step
+        rng = np.random.default_rng(15)
+        cov = np.array([[1, 1, 1], [1, 4, 1], [1, 1, 9]])
+        data = rng.multivariate_normal([0, 0, 0], cov, size=800)
+
+        x = data[:799,0]
+        y = data[1:,1]
+        z = data[:799,2]
+
+        actual = estimate_mi(y, x, cond=z, lag=-1, cond_lag=-1)
+        expected = 0.5 * (math.log(8) + math.log(35) - math.log(9) - math.log(24))
+
+        self.assertAlmostEqual(actual[0,0], expected, delta=0.025)
+
     def test_conditional_mi_with_pandas(self):
         script_path = os.path.dirname(os.path.abspath(__file__))
         data_path = os.path.join(script_path, "example_data.csv")
