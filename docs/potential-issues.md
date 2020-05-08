@@ -33,7 +33,7 @@ has derived a suitable version of the algorithm.
 For low-resolution or censored data, the suggestion of
 [Kraskov et al. (2004)](https://link.aps.org/doi/10.1103/PhysRevE.69.066138)
 is to add some low-amplitude noise to the non-continuous variable.
-As an example, here is a truncated version of the bivariate Gaussian example:
+As an example, here is a censored version of the bivariate Gaussian example:
 ```python
 from ennemi import estimate_mi
 import numpy as np
@@ -42,34 +42,39 @@ rng = np.random.default_rng(1234)
 rho = 0.8
 cov = np.array([[1, rho], [rho, 1]])
 
-data = rng.multivariate_normal([0, 0], cov, size=800)
+data = rng.multivariate_normal([0.5, 0.5], cov, size=800)
 x = np.maximum(0, data[:,0])
 y = np.maximum(0, data[:,1])
 
-print(estimate_mi(y, x))
+print("MI:", estimate_mi(y, x))
+print("On one or both axes:", np.mean((x == 0) | (y == 0)))
+print("At origin:", np.mean((x == 0) & (y == 0)))
 ```
 This code prints
 ```
-[[-1.62876322]]
+MI: [[-0.49151162]]
+On one or both axes: 0.4025
+At origin: 0.22
 ```
-As half of the observations lie on the x or y axis, and most of those at $(0, 0)$,
+As many of the observations lie on the x or y axis, and most of those at $(0, 0)$,
 the algorithm produces a clearly incorrect result.
 The fix is to add
 ```python
-x += rng.normal(0, 0.0001, size=800)
-y += rng.normal(0, 0.0001, size=800)
+x += rng.normal(0, 1e-6, size=800)
+y += rng.normal(0, 1e-6, size=800)
 ```
 before the call to `estimate_mi()`.
 With this fix, the code now prints
 ```
-[[0.31605106]]
+MI: [[0.41807897]]
 ```
 a better approximation of the true value.
+This is still a rough approximation, as the true distribution is non-continuous.
 
 
 
 ## Skewed or high-variance distributions
-Mutual information is invariant under monotonic transformations.
+Mutual information is invariant under strictly monotonic transformations.
 Such transformations include
 - For all variables: addition with a constant,
   multiplication with a non-zero constant and exponentiation;
