@@ -1,14 +1,14 @@
 """Tests for ennemi._estimate_single_mi() and friends."""
 
 from math import log
-import numpy as np
-from scipy.special import psi
+import numpy as np # type: ignore
+from scipy.special import psi # type: ignore
 import unittest
 from ennemi._entropy_estimators import _estimate_single_mi, _estimate_conditional_mi
 
 class TestEstimateSingleMi(unittest.TestCase):
 
-    def test_bivariate_gaussian(self):
+    def test_bivariate_gaussian(self) -> None:
         cases = [ (0, 40, 3, 0.1),
                   (0, 200, 3, 0.05),
                   (0, 2000, 3, 0.005),
@@ -33,7 +33,7 @@ class TestEstimateSingleMi(unittest.TestCase):
                 expected = -0.5 * log(1 - rho**2)
                 self.assertAlmostEqual(actual, expected, delta=delta)
 
-    def test_sum_of_exponentials(self):
+    def test_sum_of_exponentials(self) -> None:
         # We define X ~ Exp(1), W ~ Exp(2) and Y = X + W.
         # Now by arXiv:1609.02911, Y has known, closed-form entropy.
         cases = [ (1, 2), (0.2, 0.3), (3, 3.1) ]
@@ -49,7 +49,7 @@ class TestEstimateSingleMi(unittest.TestCase):
 
                 self.assertAlmostEqual(actual, expected, delta=0.025)
 
-    def test_independent_uniform(self):
+    def test_independent_uniform(self) -> None:
         # We have to use independent random numbers instead of linspace,
         # because the algorithm has trouble with evenly spaced values
         rng = np.random.default_rng(1)
@@ -61,7 +61,7 @@ class TestEstimateSingleMi(unittest.TestCase):
         self.assertAlmostEqual(actual, 0, delta=0.04)
         self.assertAlmostEqual(actual, actual2, delta=0.00001)
 
-    def test_independent_transformed_uniform(self):
+    def test_independent_transformed_uniform(self) -> None:
         # Very non-uniform density, but MI should still be zero
         rng = np.random.default_rng(1)
         x = rng.uniform(0.0, 10.0, 1024)
@@ -73,7 +73,7 @@ class TestEstimateSingleMi(unittest.TestCase):
 
 class TestEstimateConditionalMi(unittest.TestCase):
 
-    def test_gaussian_with_independent_condition(self):
+    def test_gaussian_with_independent_condition(self) -> None:
         # In this case, the results should be same as in ordinary MI
         cases = [ (0.5, 200, 3, 0.03),
                   (0.75, 400, 3, 0.01),
@@ -92,7 +92,7 @@ class TestEstimateConditionalMi(unittest.TestCase):
                 expected = -0.5 * log(1 - rho**2)
                 self.assertAlmostEqual(actual, expected, delta=delta)
 
-    def test_gaussian_with_condition_equal_to_y(self):
+    def test_gaussian_with_condition_equal_to_y(self) -> None:
         # MI(X;Y | Y) should be equal to 0
         rng = np.random.default_rng(4)
         cov = np.array([[1, 0.6], [0.6, 1]])
@@ -104,7 +104,7 @@ class TestEstimateConditionalMi(unittest.TestCase):
         actual = _estimate_conditional_mi(x, y, y, k=4)
         self.assertAlmostEqual(actual, 0.0, delta=0.001)
 
-    def test_three_gaussians(self):
+    def test_three_gaussians(self) -> None:
         # First example in doi:10.1103/PhysRevLett.99.204101,
         # we know the analytic expression for conditional MI of a three-
         # dimensional Gaussian random variable. Here, the covariance matrix
@@ -119,7 +119,7 @@ class TestEstimateConditionalMi(unittest.TestCase):
         expected = 0.5 * (log(8) + log(35) - log(9) - log(24))
         self.assertAlmostEqual(actual, expected, delta=0.015)
 
-    def test_four_gaussians(self):
+    def test_four_gaussians(self) -> None:
         # As above, but now the condition is two-dimensional.
         # The covariance matrix is defined by transforming a standard normal
         # distribution (u1, u2, u3, u4) as follows:
@@ -149,7 +149,7 @@ from ennemi._entropy_estimators import _psi
 
 class TestPsi(unittest.TestCase):
 
-    def test_comparison_with_scipy(self):
+    def test_comparison_with_scipy(self) -> None:
         # Zero
         self.assertEqual(_psi(0), np.inf)
 

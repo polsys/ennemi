@@ -5,11 +5,13 @@ Use the `estimate_mi` method in the main ennemi module instead.
 """
 
 import bisect
+from typing import Dict, Iterator, List, Tuple, Union
 import itertools
 import math
-import numpy as np
+import numpy as np # type: ignore
 
-def _estimate_single_mi(x : np.ndarray, y : np.ndarray, k : int = 3):
+
+def _estimate_single_mi(x: np.ndarray, y: np.ndarray, k: int = 3) -> float:
     """Estimate the mutual information between two continuous variables.
 
     Returns the estimated mutual information (in nats).
@@ -62,8 +64,8 @@ def _estimate_single_mi(x : np.ndarray, y : np.ndarray, k : int = 3):
     return _psi(N) + _psi(k) - np.mean(_psi(nx) + _psi(ny))
 
 
-def _estimate_conditional_mi(x : np.ndarray, y : np.ndarray, cond : np.ndarray,
-                            k : int = 3):
+def _estimate_conditional_mi(x: np.ndarray, y: np.ndarray, cond: np.ndarray, 
+        k: int = 3) -> float:
     """Estimate conditional mutual information between two continuous variables.
 
     See the documentation for estimate_single_mi for usage.
@@ -115,7 +117,7 @@ def _estimate_conditional_mi(x : np.ndarray, y : np.ndarray, cond : np.ndarray,
     return _psi(k) - np.mean(_psi(nxz) + _psi(nyz) - _psi(nz))
 
 
-def _find_kth_neighbor_2d(k, grid, cur_x, cur_y):
+def _find_kth_neighbor_2d(k: int, grid: "_BoxGrid2D", cur_x: float, cur_y: float) -> float:
     # Start with the box containing the point. Then until we have found
     # enough neighbors, extend the rectangle to the most potential direction.
     # We should not go like peeling an onion because the boxes are not
@@ -194,7 +196,8 @@ def _find_kth_neighbor_2d(k, grid, cur_x, cur_y):
     return eps
 
 
-def _update_epsilon_2d(distances, eps, cur_x, cur_y, box):
+def _update_epsilon_2d(distances: np.ndarray, eps: float,
+        cur_x: float, cur_y: float, box: "_Box2D") -> float:
     for (x, y) in box:
         dist = max(abs(cur_x - x), abs(cur_y - y))
 
@@ -208,7 +211,7 @@ def _update_epsilon_2d(distances, eps, cur_x, cur_y, box):
     return eps
 
 
-def _count_within_1d(array, lower, upper):
+def _count_within_1d(array: List[float], lower: float, upper: float) -> int:
     """Returns the number of elements between lower and upper (exclusive).
 
     The array must be sorted as a binary search will be used.
@@ -227,7 +230,8 @@ def _count_within_1d(array, lower, upper):
     return max(right - left, 0)
 
 
-def _find_kth_neighbor_nd(k, grid, cur_x, cur_y, cur_z):
+def _find_kth_neighbor_nd(k: int, grid: "_BoxGridND",
+        cur_x: float, cur_y: float, cur_z: Union[float, np.ndarray]) -> float:
     # The same principle as in the 2D case, but with more dimensions.
     # Because the number of dimensions is arbitrary, the code is more generic.
     # The searched box is stored as [min_x, max_x, min_y, max_y, ...] so
@@ -276,7 +280,7 @@ def _find_kth_neighbor_nd(k, grid, cur_x, cur_y, cur_z):
         # To do this, we keep the changed coordinate fixed and loop through
         # all others. To do so, we need to build a list of iterators
         # for itertools.product() first.
-        iters = []
+        iters = [] # type: List[Union[List[int], range]]
         for i in range(grid.ndim):
             if i == direction // 2:
                 iters.append([fixed_point])
@@ -289,7 +293,8 @@ def _find_kth_neighbor_nd(k, grid, cur_x, cur_y, cur_z):
     return distances[k-1]
 
 
-def _update_epsilon_nd(distances, cur_point, box):
+def _update_epsilon_nd(distances: List[float], cur_point: np.ndarray,
+        box: np.ndarray) -> List[float]:
     # The distances array is assumed to be sorted
     point_count = len(distances)
     eps = distances[point_count - 1]
@@ -310,7 +315,7 @@ def _update_epsilon_nd(distances, cur_point, box):
     return distances[:point_count]
 
 
-def _count_within_nd(grid, center, eps):
+def _count_within_nd(grid: "_BoxGridND", center: np.ndarray, eps: float) -> int:
     # Go through all the boxes that may contain neighbors
     min_coord = grid.find_box(center - eps)
     max_coord = grid.find_box(center + eps)
@@ -331,10 +336,16 @@ def _count_within_nd(grid, center, eps):
     return result
 
 
+#
+# Grid types
+#
+
+_Box2D = List[Tuple[float, float]]
+
 class _BoxGrid2D:
     """A helper for accessing a two-dimensional space in smaller blocks."""
 
-    def __init__(self, x : np.ndarray, y : np.ndarray, k : int):
+    def __init__(self, x: np.ndarray, y: np.ndarray, k: int):
         # Each box contains k points on average
         # (Benchmarked to be better than 2*k or 4*k)
         split_size = int(math.sqrt(k * len(x)))
@@ -342,7 +353,7 @@ class _BoxGrid2D:
 
         # Store the boxes in a dictionary keyed by block coordinates
         self.xy_boxes = xy_boxes
-        self.boxes = {}
+        self.boxes = {} # type: Dict[Tuple[int, int], _Box2D]
         for i in range(xy_boxes):
             for j in range(xy_boxes):
                     self.boxes[(i,j)] = []
@@ -357,7 +368,7 @@ class _BoxGrid2D:
             self.boxes[(box_x, box_y)].append((x[i], y[i]))
 
 
-    def find_box(self, x : float, y : float):
+    def find_box(self, x: float, y: float) -> Tuple[int, int]:
         # The box index to use is the index of the largest split point
         # smaller than the coordinate. This is easy to get with bisect,
         # we just need to offset by one.
@@ -370,7 +381,7 @@ class _BoxGrid2D:
 class _BoxGridND:
     """A helper for accessing an N-dimensional space in smaller blocks."""
 
-    def __init__(self, points : np.ndarray, k : int):
+    def __init__(self, points: np.ndarray, k: int):
         nobs, ndim = points.shape
         self.ndim = ndim
 
@@ -381,7 +392,7 @@ class _BoxGridND:
 
         # Store the boxes in a dictionary keyed by block coordinates
         self.xyz_boxes = xyz_boxes
-        self.boxes = {}
+        self.boxes = {} # type: Dict[Tuple[int, ...], np.ndarray]
         for coord in itertools.product(range(xyz_boxes), repeat=ndim):
             self.boxes[coord] = []
 
@@ -400,7 +411,7 @@ class _BoxGridND:
             self.boxes[key] = np.asarray(self.boxes[key])
 
 
-    def find_box(self, point : np.ndarray):
+    def find_box(self, point: np.ndarray) -> Tuple[int, ...]:
         # The box index to use is the index of the largest split point
         # smaller than the coordinate. This is easy to get with bisect,
         # we just need to offset by one.
@@ -412,7 +423,11 @@ class _BoxGridND:
         return tuple(coord)
 
 
-def _psi(x : np.ndarray):
+#
+# Digamma
+#
+
+def _psi(x: np.ndarray) -> np.ndarray:
     """A replacement for scipy.special.psi, for non-negative integers only.
     
     This is up to a few times slower than the SciPy version, but it's not fun

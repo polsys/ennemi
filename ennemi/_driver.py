@@ -4,12 +4,16 @@ Do not import this module directly, but rather import the main ennemi module.
 """
 
 import concurrent.futures
+from typing import List, Optional, Sequence, Tuple, TypeVar, Union
 import itertools
-import numpy as np
+import numpy as np # type: ignore
 import sys
 from ._entropy_estimators import _estimate_single_mi, _estimate_conditional_mi
 
-def normalize_mi(mi : np.ndarray):
+ArrayLike = Union[List[float], List[Tuple[float, ...]], np.ndarray]
+GenArrayLike = TypeVar("GenArrayLike", List[float], List[Tuple[float, ...]], np.ndarray)
+
+def normalize_mi(mi: GenArrayLike) -> GenArrayLike:
     """Normalize mutual information values to the unit interval.
 
     The return value matches the correlation coefficient between two Gaussian
@@ -30,22 +34,26 @@ def normalize_mi(mi : np.ndarray):
 
     # If the parameter is a pandas type, preserve the columns and indices
     if "pandas" in sys.modules:
-        import pandas
+        import pandas # type: ignore
         if isinstance(mi, (pandas.DataFrame, pandas.Series)):
             return mi.applymap(_normalize)
     
     return np.vectorize(_normalize, otypes=[np.float])(mi)
 
-def _normalize(mi : np.float) -> np.float:
+def _normalize(mi: np.float) -> np.float:
     if mi <= 0.0:
         return mi
     else:
         return np.sqrt(1 - np.exp(-2 * mi))
 
 
-def estimate_mi(y : np.ndarray, x : np.ndarray, lag = 0, *,
-                k : int = 3, cond : np.ndarray = None, cond_lag : int = 0,
-                mask : np.ndarray = None, parallel : str = None):
+def estimate_mi(y: ArrayLike, x: ArrayLike,
+                lag: Union[Sequence[int], np.ndarray, int] = 0,
+                *, k: int = 3,
+                cond: Optional[np.ndarray] = None,
+                cond_lag: Union[Sequence[int], np.ndarray, int] = 0,
+                mask: Optional[np.ndarray] = None,
+                parallel: Optional[str] = None) -> np.ndarray:
     """Estimate the mutual information between y and each x variable.
  
     Returns the estimated mutual information (in nats) for continuous
@@ -109,19 +117,35 @@ def estimate_mi(y : np.ndarray, x : np.ndarray, lag = 0, *,
         If "disable", the combinations are estimated sequentially in the current process.
     """
 
-    # The code below assumes that lag is an array
-    lag = np.atleast_1d(lag)
-    cond_lag = np.broadcast_to(cond_lag, lag.shape)
-
-    # If x or y is a Python list, convert it to an ndarray
+    # Convert parameters to consistent types
+    lag_arr = np.atleast_1d(lag)
+    cond_lag_arr = np.broadcast_to(cond_lag, lag_arr.shape)
+    
     # Keep the original x parameter around for the Pandas data frame check
     original_x = x
-    x = np.asarray(x)
-    y = np.asarray(y)
-    if cond is not None:
-        cond = np.asarray(cond)
-    if mask is not None:
-        mask = np.asarray(mask)
+    x_arr = np.asarray(x)
+    y_arr = np.asarray(y)
+    if cond is not None: cond_arr = np.asarray(cond)
+    else: cond_arr = None
+    if mask is not None: mask_arr = np.asarray(mask)
+    else: mask_arr = None
+
+    # Check the parameters and run the estimation
+    result = _estimate_mi(y_arr, x_arr, lag_arr, k, cond_arr, cond_lag_arr, mask_arr, parallel)
+
+    # If the input was a pandas data frame, set the column names
+    if "pandas" in sys.modules:
+        import pandas
+        if isinstance(original_x, pandas.DataFrame):
+            return pandas.DataFrame(result, index=lag_arr, columns=original_x.columns)
+        elif isinstance(original_x, pandas.Series):
+            return pandas.DataFrame(result, index=lag_arr, columns=[original_x.name])
+    return result
+
+def _estimate_mi(y: np.ndarray, x: np.ndarray, lag: np.ndarray, k: int,
+        cond: Optional[np.ndarray], cond_lag: np.ndarray,
+        mask: Optional[np.ndarray], parallel: Optional[str]) -> np.ndarray:
+    """This method is strongly typed, estimate_mi() does necessary conversion."""
 
     _check_parameters(x, y, k, cond, mask)
 
@@ -157,20 +181,12 @@ def estimate_mi(y : np.ndarray, x : np.ndarray, lag = 0, *,
     # Collect the results to a 2D array
     result = np.empty((len(lag), nvar))
     for index, res in zip(indices, conc_result):
-        result[index] = res
-
-    # If the input was a pandas data frame, set the column names
-    if "pandas" in sys.modules:
-        import pandas
-        if isinstance(original_x, pandas.DataFrame):
-            result = pandas.DataFrame(result, index=lag, columns=original_x.columns)
-        elif isinstance(original_x, pandas.Series):
-            result = pandas.DataFrame(result, index=lag, columns=[original_x.name])
-        
+        result[index] = res  
     return result
 
 
-def _check_parameters(x, y, k, cond, mask):
+def _check_parameters(x: np.ndarray, y: np.ndarray, k: int,
+        cond: Optional[np.ndarray], mask: Optional[np.ndarray]) -> None:
     if k <= 0:
         raise ValueError("k must be greater than zero")
 
@@ -197,7 +213,7 @@ def _check_parameters(x, y, k, cond, mask):
             raise TypeError("mask must contain only booleans")
 
 
-def _should_be_parallel(parallel : str, indices : list, y : np.ndarray):
+def _should_be_parallel(parallel: Optional[str], indices: list, y: np.ndarray) -> bool:
     # Check whether the user has forced a certain parallel mode
     if parallel == "always":
         return True
@@ -212,7 +228,8 @@ def _should_be_parallel(parallel : str, indices : list, y : np.ndarray):
         return len(indices) > 1 and len(y) > 200
 
 
-def _lagged_mi(param_tuple):
+def _lagged_mi(param_tuple: Tuple[np.ndarray, np.ndarray, int, int, int, int,
+        Optional[np.ndarray], Optional[np.ndarray], int]) -> float:
     # Unpack the param tuple used for possible cross-process transfer
     x, y, lag, max_lag, min_lag, k, mask, cond, cond_lag = param_tuple
 
