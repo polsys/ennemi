@@ -66,6 +66,11 @@ jobs:
         if: matrix.os != 'ubuntu-latest' || matrix.python-version != '3.8'
         run: |
           python -m pytest tests/ -v --junit-xml=test-results.xml
+
+      - name: Run type checker
+        run: |
+          pip install mypy
+          python -m mypy --disallow-untyped-defs ennemi/ tests/
       
       - name: Run Sonar code analysis
         if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.8'
