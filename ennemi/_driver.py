@@ -196,14 +196,8 @@ def _check_parameters(x: np.ndarray, y: np.ndarray, k: int,
     if len(y.shape) > 1:
         raise ValueError("y must be one-dimensional")
 
-    if (x.shape[0] != len(y)):
-        raise ValueError("x and y must have same length")
-    if (cond is not None) and (x.shape[0] != len(cond)):
-        raise ValueError("x and cond must have same length")
-    if (x.shape[0] <= k):
-        raise ValueError("k must be smaller than number of observations")
-
     # Validate the mask
+    obs_count = y.shape[0]
     if mask is not None:
         if len(mask.shape) > 1:
             raise ValueError("mask must be one-dimensional")
@@ -211,6 +205,15 @@ def _check_parameters(x: np.ndarray, y: np.ndarray, k: int,
             raise ValueError("mask length does not match y length")
         if mask.dtype != np.bool:
             raise TypeError("mask must contain only booleans")
+
+        obs_count = np.sum(mask)
+
+    if (x.shape[0] != y.shape[0]):
+        raise ValueError("x and y must have same length")
+    if (cond is not None) and (x.shape[0] != len(cond)):
+        raise ValueError("x and cond must have same length")
+    if (obs_count <= k):
+        raise ValueError("k must be smaller than number of observations")
 
 
 def _should_be_parallel(parallel: Optional[str], indices: list, y: np.ndarray) -> bool:
