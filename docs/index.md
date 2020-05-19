@@ -25,9 +25,14 @@ The package is published under the MIT License.
 
 ## Installation
 
-This package is **alpha** quality and not yet ready for public use.
-Breaking changes may still occur.
-Once more mature, this package will be published on PyPI (The Python Package Index).
+This package is **alpha** quality.
+Breaking changes may still occur, although the algorithm is already reliable.
+
+This package is available on PyPI:
+```sh
+pip install ennemi
+```
+(If your machine has multiple Python installations, you may need to run e.g. `pip3`.)
 
 
 ## Documentation topics
