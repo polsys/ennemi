@@ -56,6 +56,15 @@ class TestEstimateMi(unittest.TestCase):
         with self.assertRaises(TypeError):
             estimate_mi(x, y, k=2.71828) # type: ignore
 
+    def test_mask_leaves_no_observations(self) -> None:
+        x = np.zeros(30)
+        y = np.zeros(30)
+        mask = np.full(30, False)
+
+        with self.assertRaises(ValueError) as cm:
+            estimate_mi(y, x, mask=mask)
+        self.assertEqual(str(cm.exception), K_TOO_LARGE_MSG)
+
     def test_lag_too_large(self) -> None:
         x = [1, 2, 3, 4]
         y = [5, 6, 7, 8]
