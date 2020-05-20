@@ -3,6 +3,7 @@ _Easy-to-use Nearest Neighbor Estimation of Mutual Information_
 
 [![Continuous Integration](https://github.com/polsys/ennemi/workflows/Continuous%20Integration/badge.svg)](https://github.com/polsys/ennemi/actions)
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=polsys_ennemi&metric=coverage)](https://sonarcloud.io/dashboard?id=polsys_ennemi)
+[![DOI](https://zenodo.org/badge/247088713.svg)](https://zenodo.org/badge/latestdoi/247088713)
 
 This Python 3 package provides simple methods for estimating mutual information of continuous variables.
 With one method call, you can estimate several variable pairs and time lags at once.
@@ -16,7 +17,10 @@ _Partial Mutual Information for Coupling Analysis of Multivariate Time Series_,
 Physical Review Letters **99**:20 (2007),
 [doi:10.1103/PhysRevLett.99.204101](https://dx.doi.org/10.1103/PhysRevLett.99.204101).
 
-**NOTE:** This package is **alpha** quality. Likelihood of breaking changes to the API is high!
+**NOTE:** This package is **alpha** quality.
+Even though the algorithm is stable, there may still be breaking changes to the API.
+You can see the roadmap of planned additions on the
+[Milestones page](https://github.com/polsys/ennemi/milestones).
 
 
 ## Getting started
@@ -52,6 +56,8 @@ To run the check yourself, execute
 python -m mypy --disallow-untyped-defs ennemi/ tests/
 ```
 
+Please see also the [contribution guidelines](CONTRIBUTING.md).
+
 
 ## Citing
 
@@ -61,8 +67,16 @@ the original copyright notice is preserved.
 This software is provided "as is", functioning to the extent of passing
 the unit tests in the `tests` directory.
 
-Once the project has matured a bit more, a DOI will be requested via Zenodo.
+This package is archived on Zenodo.
+The DOI [10.5281/zenodo.3834018](https://doi.org/10.5281/zenodo.3834018)
+always resolves to the latest version of `ennemi`.
+For reproducibility, you should cite the exact version of the package you have used.
+To do so, use the DOI given on the [Releases](https://github.com/polsys/ennemi/releases) page or on Zenodo.
+
+In the future, a journal article may become the canonical reference for this package.
+You should still also cite the package version you have used.
 
 This package is maintained by Petri Laarne at
 [Institute for Atmospheric and Earth System Research (INAR)](https://www.helsinki.fi/en/inar-institute-for-atmospheric-and-earth-system-research),
 University of Helsinki.
+Please feel free to contact me about any questions or suggestions related to this project.
