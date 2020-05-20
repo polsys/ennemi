@@ -7,7 +7,7 @@ with open(description_file, encoding="utf-8") as f:
 
 setup(
     name = "ennemi",
-    version = "1.0.0alpha1",
+    version = "1.0.0alpha2",
     description = "Easy-to-use Nearest Neighbor Estimation of Mutual Information",
     long_description = long_description,
     long_description_content_type = "text/markdown",
@@ -36,7 +36,8 @@ setup(
     project_urls = {
         "Documentation": "https://polsys.github.io/ennemi/",
         "Source": "https://github.com/polsys/ennemi/",
-        "Issues": "https://github.com/polsys/ennemi/issues"
+        "Issues": "https://github.com/polsys/ennemi/issues",
+        "Zenodo": "https://doi.org/10.5281/zenodo.3834018"
     },
 
     packages = [ "ennemi" ],
