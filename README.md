@@ -41,11 +41,12 @@ For documentation, please see https://polsys.github.io/ennemi.
 ## Building
 
 The tests depend on SciPy and pandas, so you need those installed in addition to NumPy.
+Additionally, `pytest` and `mypy` are required for building the project.
+All of these are installed by the "extras" syntax of `pip`.
 
 To install the package in development mode, clone this repository and execute
 ```sh
-pip install scipy pandas mypy
-pip install -e .
+pip install -e .[dev]
 ```
 in the repository root folder.
 

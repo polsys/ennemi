@@ -46,12 +46,9 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install dependencies and pytest
+      - name: Install test dependencies
         run: |
-          pip install -e .
-          pip install scipy
-          pip install pandas
-          pip install pytest
+          pip install -e .[dev]
       
       - name: Run unit tests (with coverage)
         if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.8'
@@ -69,7 +66,6 @@ jobs:
 
       - name: Run type checker
         run: |
-          pip install mypy
           python -m mypy --disallow-untyped-defs ennemi/ tests/
       
       - name: Run Sonar code analysis
