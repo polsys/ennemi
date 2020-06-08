@@ -172,7 +172,7 @@ def _estimate_mi(y: np.ndarray, x: np.ndarray, lag: np.ndarray, k: int,
 
     # If there is benefit in doing so, and the user has not overridden the
     # heuristic, execute the estimation in multiple parallel processes
-    if _should_be_parallel(parallel, indices, y):
+    if _should_be_parallel(parallel, len(indices), len(y)):
         with concurrent.futures.ProcessPoolExecutor() as executor:
             conc_result = executor.map(_lagged_mi, params)
     else:
@@ -181,7 +181,7 @@ def _estimate_mi(y: np.ndarray, x: np.ndarray, lag: np.ndarray, k: int,
     # Collect the results to a 2D array
     result = np.empty((len(lag), nvar))
     for index, res in zip(indices, conc_result):
-        result[index] = res  
+        result[index] = res
     return result
 
 
@@ -288,24 +288,29 @@ def _pairwise_mi(data: np.ndarray, k: int, cond: Optional[np.ndarray],
     # Create a list of variable pairs
     # By symmetry, it suffices to consider a triangular matrix
     indices = []
+    params = []
     for i in range(nvar):
         for j in range(i+1, nvar):
             indices.append((i, j))
+            params.append((data[:,i], data[:,j], 0, 0, 0, k, mask, cond, 0))
 
-    # Run the MI estimation for each pair
-    # TODO: Parallelize
+    # Run the MI estimation for each pair, possibly in parallel
+    if _should_be_parallel(parallel, len(indices), data.shape[0]):
+        with concurrent.futures.ProcessPoolExecutor() as executor:
+            conc_result = executor.map(_lagged_mi, params)
+    else:
+        conc_result = map(_lagged_mi, params)
+
+    # Collect the results, creating a symmetric matrix now
     result = np.full((nvar, nvar), np.nan)
-    for (i,j) in indices:
-        params = (data[:,i], data[:,j], 0, 0, 0, k, mask, cond, 0)
-        mi = _lagged_mi(params)
-
-        result[i,j] = mi
-        result[j,i] = mi
-
+    for (i,j), res in zip(indices, conc_result):
+        result[i,j] = res
+        result[j,i] = res
+    
     return result
 
 
-def _should_be_parallel(parallel: Optional[str], indices: list, y: np.ndarray) -> bool:
+def _should_be_parallel(parallel: Optional[str], num_cases: int, num_obs: int) -> bool:
     # Check whether the user has forced a certain parallel mode
     if parallel == "always":
         return True
@@ -317,7 +322,7 @@ def _should_be_parallel(parallel: Optional[str], indices: list, y: np.ndarray) -
         # As the user has not overridden the choice, use a heuristic
         # TODO: In a many variables/lags, small N case, it may make sense to
         #       use multiple processes, but batch the tasks
-        return len(indices) > 1 and len(y) > 200
+        return num_cases > 1 and num_obs > 200
 
 
 def _lagged_mi(param_tuple: Tuple[np.ndarray, np.ndarray, int, int, int, int,
