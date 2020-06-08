@@ -473,6 +473,15 @@ class TestEstimateMi(unittest.TestCase):
                     estimate_mi(y, x, cond=cond)
                 self.assertEqual(str(cm.exception), NANS_LEFT_MSG)
 
+    def test_normalization(self) -> None:
+        rng = np.random.default_rng(17)
+        cov = np.asarray([[1, 0.6], [0.6, 1]])
+        data = rng.multivariate_normal([0, 0], cov, 1000)
+
+        result = estimate_mi(data[:,0], data[:,1], normalize=True)
+
+        self.assertAlmostEqual(result, 0.6, delta=0.02)
+
 
 class TestNormalizeMi(unittest.TestCase):
 
