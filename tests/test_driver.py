@@ -1,5 +1,6 @@
 """Tests for ennemi.estimate_mi()."""
 
+from itertools import product
 import math
 import numpy as np # type: ignore
 import os.path
@@ -7,7 +8,7 @@ import pandas as pd # type: ignore
 import random
 from typing import List
 import unittest
-from ennemi import estimate_mi, normalize_mi
+from ennemi import estimate_mi, normalize_mi, pairwise_mi
 
 X_Y_DIFFERENT_LENGTH_MSG = "x and y must have same length"
 X_COND_DIFFERENT_LENGTH_MSG = "x and cond must have same length"
@@ -517,3 +518,135 @@ class TestNormalizeMi(unittest.TestCase):
         self.assertAlmostEqual(cor.loc[14,"B"], 0.8, delta=0.05)
         self.assertAlmostEqual(cor.loc[52,"A"], 0.0, delta=0.001)
         self.assertAlmostEqual(cor.loc[52,"B"], -1.0, delta=0.001)
+
+
+class TestPairwiseMi(unittest.TestCase):
+
+    def generate_normal(self, seed: int) -> np.ndarray:
+        rng = np.random.default_rng(seed)
+        cov = np.asarray([[1, 0.6], [0.6, 1]])
+        return rng.multivariate_normal([0, 0], cov, 1000)
+
+    def test_data_has_three_dimensions(self) -> None:
+        data = np.full((10, 3, 2), 0.0)
+        with self.assertRaises(ValueError) as cm:
+            pairwise_mi(data)
+        self.assertEqual(str(cm.exception), X_WRONG_DIMENSION_MSG)
+
+    def test_k_larger_than_observations(self) -> None:
+        data = np.reshape(np.arange(20), (10,2))
+        
+        # Without mask
+        with self.assertRaises(ValueError) as cm:
+            pairwise_mi(data, k=11)
+        self.assertEqual(str(cm.exception), K_TOO_LARGE_MSG)
+
+        # With mask
+        mask = np.full(10, True)
+        mask[:5] = False
+        with self.assertRaises(ValueError) as cm:
+            pairwise_mi(data, k=6, mask=mask)
+        self.assertEqual(str(cm.exception), K_TOO_LARGE_MSG)
+
+    def test_invalid_k(self) -> None:
+        data = np.full((10, 2), 0.0)
+        with self.assertRaises(ValueError) as cm:
+            pairwise_mi(data, k=0)
+        self.assertEqual(str(cm.exception), K_NEGATIVE_MSG)
+
+    def test_cond_different_length(self) -> None:
+        data = np.full((10, 2), 0.0)
+        cond = np.full(9, 0.0)
+        
+        with self.assertRaises(ValueError) as cm:
+            pairwise_mi(data, cond=cond)
+        self.assertEqual(str(cm.exception), X_COND_DIFFERENT_LENGTH_MSG)
+
+    def test_ndarray(self) -> None:
+        data = self.generate_normal(100)
+        expected = -0.5 * math.log(1 - 0.6**2)
+
+        result = pairwise_mi(data)
+
+        self.assertEqual(result.shape, (2,2))
+        self.assertTrue(np.isnan(result[0,0]))
+        self.assertTrue(np.isnan(result[1,1]))
+        self.assertAlmostEqual(result[0,1], expected, delta=0.03)
+        self.assertAlmostEqual(result[1,0], expected, delta=0.03)
+
+    def test_pandas(self) -> None:
+        rng = np.random.default_rng(101)
+        cov = np.asarray([[1, 0.6], [0.6, 1]])
+        normal_data = rng.multivariate_normal([0, 0], cov, 1000)
+        unif_data = rng.uniform(size=1000)
+        expected = -0.5 * math.log(1 - 0.6**2)
+
+        data = pd.DataFrame({"X": normal_data[:,0], "Y": normal_data[:,1], "Z": unif_data})
+        result = pairwise_mi(data)
+
+        self.assertEqual(result.shape, (3,3))
+        self.assertIsInstance(result, pd.DataFrame)
+
+        for i in "XYZ":
+            self.assertTrue(np.isnan(result.loc[i,i]))
+        self.assertAlmostEqual(result.loc["X","Y"], expected, delta=0.04)
+        self.assertAlmostEqual(result.loc["Y","X"], expected, delta=0.04)
+        for i in "XY":
+            self.assertAlmostEqual(result.loc[i,"Z"], 0.0, delta=0.03)
+            self.assertAlmostEqual(result.loc["Z",i], 0.0, delta=0.03)
+
+    def test_only_one_variable_returns_nan(self) -> None:
+        result = pairwise_mi([1, 2, 3, 4])
+        
+        self.assertEqual(result.shape, (1,1))
+        self.assertTrue(np.isnan(result[0,0]))
+
+    def test_only_one_variable_returns_nan_2d_array(self) -> None:
+        result = pairwise_mi([[1], [2], [3], [4]])
+
+        self.assertEqual(result.shape, (1,1))
+        self.assertTrue(np.isnan(result[0,0]))
+
+    def test_conditioning(self) -> None:
+        data = self.generate_normal(102)
+
+        result = pairwise_mi(data, cond=data[:,1])
+
+        self.assertEqual(result.shape, (2,2))
+        self.assertTrue(np.isnan(result[0,0]))
+        self.assertTrue(np.isnan(result[1,1]))
+        self.assertAlmostEqual(result[0,1], 0.0, delta=0.03)
+        self.assertAlmostEqual(result[1,0], 0.0, delta=0.03)
+
+    def test_mask_removes_nans(self) -> None:
+        data = self.generate_normal(102)
+        expected = -0.5 * math.log(1 - 0.6**2)
+        data[0:10, 0] = np.nan
+        data[5:15, 1] = np.nan
+
+        # Without mask, the estimation should fail
+        with self.assertRaises(ValueError) as cm:
+            pairwise_mi(data)
+        self.assertEqual(str(cm.exception), NANS_LEFT_MSG)
+
+        # With mask, the estimation succeeds
+        mask = np.full(1000, True)
+        mask[0:15] = False
+        result = pairwise_mi(data, mask=mask)
+
+        self.assertEqual(result.shape, (2,2))
+        self.assertTrue(np.isnan(result[0,0]))
+        self.assertTrue(np.isnan(result[1,1]))
+        self.assertAlmostEqual(result[0,1], expected, delta=0.02)
+        self.assertAlmostEqual(result[1,0], expected, delta=0.02)
+
+    def test_normalization(self) -> None:
+        data = self.generate_normal(104)
+
+        result = pairwise_mi(data, normalize=True)
+
+        self.assertEqual(result.shape, (2,2))
+        self.assertTrue(np.isnan(result[0,0]))
+        self.assertTrue(np.isnan(result[1,1]))
+        self.assertAlmostEqual(result[0,1], 0.6, delta=0.05)
+        self.assertAlmostEqual(result[0,1], 0.6, delta=0.05)
