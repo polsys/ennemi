@@ -473,6 +473,17 @@ class TestEstimateMi(unittest.TestCase):
                     estimate_mi(y, x, cond=cond)
                 self.assertEqual(str(cm.exception), NANS_LEFT_MSG)
 
+    def test_cond_and_mask_as_list(self) -> None:
+        x = [1, 2, 3, 4, 5, math.nan]
+        y = [2, 4, 6, 8, 10, 12]
+        cond = [1, 1, 2, 3, 5, 8]
+        mask = [True, True, True, True, True, False]
+
+        # Not checking for the (bogus) result, just that this
+        # type-checks and does not crash
+        estimate_mi(y, x, cond=cond, mask=mask)
+
+
     def test_normalization(self) -> None:
         rng = np.random.default_rng(17)
         cov = np.asarray([[1, 0.6], [0.6, 1]])
