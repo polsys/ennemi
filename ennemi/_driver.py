@@ -53,6 +53,7 @@ def estimate_mi(y: ArrayLike, x: ArrayLike,
                 cond: Optional[np.ndarray] = None,
                 cond_lag: Union[Sequence[int], np.ndarray, int] = 0,
                 mask: Optional[np.ndarray] = None,
+                normalize: bool = False,
                 parallel: Optional[str] = None) -> np.ndarray:
     """Estimate the mutual information between y and each x variable.
  
@@ -110,6 +111,9 @@ def estimate_mi(y: ArrayLike, x: ArrayLike,
         while preserving the time series structure of the data. Elements of
         `x` and `cond` are masked with the lags applied. The length of this
         array must match the length `y`.
+    normalize : bool
+        If True, the results will be normalized to correlation coefficient scale.
+        Same as calling `normalize_mi` on the results.
     parallel : str or None
         Whether to run the estimation in multiple processes. If None (the default),
         a heuristic will be used for the decision. If "always", the estimation
@@ -132,6 +136,10 @@ def estimate_mi(y: ArrayLike, x: ArrayLike,
 
     # Check the parameters and run the estimation
     result = _estimate_mi(y_arr, x_arr, lag_arr, k, cond_arr, cond_lag_arr, mask_arr, parallel)
+
+    # Normalize if requested
+    if normalize:
+        result = normalize_mi(result)
 
     # If the input was a pandas data frame, set the column names
     if "pandas" in sys.modules:
@@ -247,7 +255,7 @@ def pairwise_mi(data: ArrayLike, *, k: int = 3, cond: Optional[np.ndarray] = Non
         while preserving the time series structure of the data. The length of
         this array must match the length of `data`.
     normalize: bool
-        If True, the MI values will be normalized to the correlation scale.
+        If True, the MI values will be normalized to correlation coefficient scale.
     parallel : str or None
         Whether to run the estimation in multiple processes. If None (the default),
         a heuristic will be used for the decision. If "always", the estimation
