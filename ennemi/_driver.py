@@ -50,9 +50,9 @@ def _normalize(mi: np.float) -> np.float:
 def estimate_mi(y: ArrayLike, x: ArrayLike,
                 lag: Union[Sequence[int], np.ndarray, int] = 0,
                 *, k: int = 3,
-                cond: Optional[np.ndarray] = None,
+                cond: Optional[ArrayLike] = None,
                 cond_lag: Union[Sequence[int], np.ndarray, int] = 0,
-                mask: Optional[np.ndarray] = None,
+                mask: Optional[ArrayLike] = None,
                 normalize: bool = False,
                 parallel: Optional[str] = None) -> np.ndarray:
     """Estimate the mutual information between y and each x variable.
@@ -225,8 +225,8 @@ def _check_parameters(x: np.ndarray, y: Optional[np.ndarray], k: int,
         raise ValueError("k must be smaller than number of observations")
 
 
-def pairwise_mi(data: ArrayLike, *, k: int = 3, cond: Optional[np.ndarray] = None,
-    mask: Optional[np.ndarray] = None, parallel: Optional[str] = None,
+def pairwise_mi(data: ArrayLike, *, k: int = 3, cond: Optional[ArrayLike] = None,
+    mask: Optional[ArrayLike] = None, parallel: Optional[str] = None,
     normalize: bool = False) -> np.ndarray:
     """Estimate the pairwise MI between each variable.
 
