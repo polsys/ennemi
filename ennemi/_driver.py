@@ -195,11 +195,12 @@ def _estimate_mi(y: np.ndarray, x: np.ndarray, lag: np.ndarray, k: int,
 
 def _check_parameters(x: np.ndarray, y: Optional[np.ndarray], k: int,
         cond: Optional[np.ndarray], mask: Optional[np.ndarray]) -> None:
+    """Does most of parameter checking, but some is still left to _lagged_mi."""
     if k <= 0:
         raise ValueError("k must be greater than zero")
 
     # Validate the array shapes and lengths
-    if len(x.shape) > 2:
+    if not 1 <= len(x.shape) <= 2:
         raise ValueError("x must be one- or two-dimensional")
     if y is not None:
         if len(y.shape) > 1:
@@ -208,21 +209,16 @@ def _check_parameters(x: np.ndarray, y: Optional[np.ndarray], k: int,
             raise ValueError("x and y must have same length")
 
     # Validate the mask
-    obs_count = x.shape[0]
     if mask is not None:
         if len(mask.shape) > 1:
             raise ValueError("mask must be one-dimensional")
-        if len(mask) != obs_count:
+        if len(mask) != x.shape[0]:
             raise ValueError("mask length does not match y length")
         if mask.dtype != np.bool:
             raise TypeError("mask must contain only booleans")
 
-        obs_count = np.sum(mask)
-
     if (cond is not None) and (x.shape[0] != len(cond)):
         raise ValueError("x and cond must have same length")
-    if (obs_count <= k):
-        raise ValueError("k must be smaller than number of observations")
 
 
 def pairwise_mi(data: ArrayLike, *, k: int = 3, cond: Optional[ArrayLike] = None,
@@ -353,7 +349,9 @@ def _lagged_mi(param_tuple: Tuple[np.ndarray, np.ndarray, int, int, int, int,
         xs = xs[mask_subset]
         ys = ys[mask_subset]
 
-    # Check that there are no NaNs
+    # Check that there are enough observations and no NaNs
+    if (len(ys) <= k):
+        raise ValueError("k must be smaller than number of observations (after lag and mask)")
     if np.isnan(xs).any() or np.isnan(ys).any():
         raise ValueError("input contains NaNs (after applying the mask)")
     

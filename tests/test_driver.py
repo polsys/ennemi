@@ -15,7 +15,7 @@ X_COND_DIFFERENT_LENGTH_MSG = "x and cond must have same length"
 X_WRONG_DIMENSION_MSG = "x must be one- or two-dimensional"
 Y_WRONG_DIMENSION_MSG = "y must be one-dimensional"
 MASK_WRONG_DIMENSION_MSG = "mask must be one-dimensional"
-K_TOO_LARGE_MSG = "k must be smaller than number of observations"
+K_TOO_LARGE_MSG = "k must be smaller than number of observations (after lag and mask)"
 K_NEGATIVE_MSG = "k must be greater than zero"
 TOO_LARGE_LAG_MSG = "lag is too large, no observations left"
 INVALID_MASK_LENGTH_MSG = "mask length does not match y length"
@@ -57,6 +57,14 @@ class TestEstimateMi(unittest.TestCase):
         with self.assertRaises(TypeError):
             estimate_mi(x, y, k=2.71828) # type: ignore
 
+    def test_lag_leaves_too_few_observations(self) -> None:
+        x = np.zeros(30)
+        y = np.zeros(30)
+
+        with self.assertRaises(ValueError) as cm:
+            estimate_mi(y, x, lag=[-5, 10], k=15)
+        self.assertEqual(str(cm.exception), K_TOO_LARGE_MSG)
+
     def test_mask_leaves_no_observations(self) -> None:
         x = np.zeros(30)
         y = np.zeros(30)
@@ -64,6 +72,16 @@ class TestEstimateMi(unittest.TestCase):
 
         with self.assertRaises(ValueError) as cm:
             estimate_mi(y, x, mask=mask)
+        self.assertEqual(str(cm.exception), K_TOO_LARGE_MSG)
+
+    def test_mask_and_lag_leave_too_few_observations(self) -> None:
+        x = np.zeros(30)
+        y = np.zeros(30)
+        mask = np.full(30, True)
+        mask[:15] = False
+
+        with self.assertRaises(ValueError) as cm:
+            estimate_mi(y, x, lag=-5, mask=mask, k=10)
         self.assertEqual(str(cm.exception), K_TOO_LARGE_MSG)
 
     def test_lag_too_large(self) -> None:
@@ -113,7 +131,15 @@ class TestEstimateMi(unittest.TestCase):
             estimate_mi(x, x, cond=y)
         self.assertEqual(str(cm.exception), X_COND_DIFFERENT_LENGTH_MSG)
 
-    def test_x_with_wrong_dimension(self) -> None:
+    def test_x_with_zero_dimension(self) -> None:
+        x = np.zeros(())
+        y = np.zeros(10)
+
+        with self.assertRaises(ValueError) as cm:
+            estimate_mi(y, x)
+        self.assertEqual(str(cm.exception), X_WRONG_DIMENSION_MSG)
+
+    def test_x_with_too_large_dimension(self) -> None:
         x = np.zeros((10, 2, 3))
         y = np.zeros(10)
 
@@ -558,14 +584,14 @@ class TestPairwiseMi(unittest.TestCase):
         
         # Without mask
         with self.assertRaises(ValueError) as cm:
-            pairwise_mi(data, k=11)
+            pairwise_mi(data, k=10)
         self.assertEqual(str(cm.exception), K_TOO_LARGE_MSG)
 
         # With mask
         mask = np.full(10, True)
         mask[:5] = False
         with self.assertRaises(ValueError) as cm:
-            pairwise_mi(data, k=6, mask=mask)
+            pairwise_mi(data, k=5, mask=mask)
         self.assertEqual(str(cm.exception), K_TOO_LARGE_MSG)
 
     def test_invalid_k(self) -> None:
