@@ -22,7 +22,7 @@ This assumption can be violated in two ways:
   The data is either discrete or is recorded at low resolution,
   causing duplicate data points.
 - The distribution is neither discrete nor continuous.
-  Censored or truncated distributions fall into this category.
+  Censored distributions fall into this category.
 
 As of this writing, `ennemi` does not yet support discrete distributions.
 For discrete-discrete MI, other packages are available.
@@ -70,8 +70,8 @@ MI: [[0.41807897]]
 ```
 a better approximation of the true value.
 This is still an approximation, as the true distribution is non-continuous,
-but in many cases the value is close to the theoretical result.
-(The computation involves the more general theory of Lebesgue integral.)
+but in many cases the value is close to the theoretical result ($\approx 0.425$).
+The computation involves the more general theory of Lebesgue integral.
 
 
 
