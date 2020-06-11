@@ -75,6 +75,7 @@ from ennemi import normalize_mi
 print(normalize_mi(estimate_mi(y, x)))
 ```
 to get the estimated correlation coefficient (`0.79980729`).
+You can also get the same result by passing `normalize=True` to `estimate_mi()`.
 
 The returned coefficient approximately matches the _absolute value_
 of the linear correlation coefficient after suitable transformations.
@@ -144,9 +145,9 @@ y = data[:,1]
 z = rng.normal(0, 1, size=800)
 
 # Transpose: rows are observations and columns are variables
-data = np.asarray([x, z]).T
+covariates = np.asarray([x, z]).T
 
-print(estimate_mi(y, data))
+print(estimate_mi(y, covariates))
 ```
 
 The code prints

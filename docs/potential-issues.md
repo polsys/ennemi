@@ -69,7 +69,9 @@ With this fix, the code now prints
 MI: [[0.41807897]]
 ```
 a better approximation of the true value.
-This is still a rough approximation, as the true distribution is non-continuous.
+This is still an approximation, as the true distribution is non-continuous,
+but in many cases the value is close to the theoretical result.
+(The computation involves the more general theory of Lebesgue integral.)
 
 
 
