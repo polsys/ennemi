@@ -476,6 +476,22 @@ class TestEstimateMi(unittest.TestCase):
         self.assertEqual(actual.shape, (1, 1))
         self.assertAlmostEqual(actual.loc[-1,"x1"], 0.0, delta=0.03)
 
+    def test_conditional_mi_with_multidimensional_cond(self) -> None:
+        # X, Y, Z are standard normal and W = X+Y+Z.
+        # Therefore I(X;W) < I(X;W | Y) < I(X;W | Y,Z).
+        rng = np.random.default_rng(16)
+        x = rng.normal(size=600)
+        y = rng.normal(size=600)
+        z = rng.normal(size=600)
+        w = x + y + z
+
+        single_cond = estimate_mi(w, x, cond=y)
+        many_cond = estimate_mi(w, x, cond=np.asarray([y,z]).T)
+
+        self.assertEqual(many_cond.shape, (1,1))
+        self.assertAlmostEqual(single_cond.item(), 0.33, delta=0.03)
+        self.assertAlmostEqual(many_cond.item(), 1.12, delta=0.03)
+
     def test_unmasked_nans_are_rejected(self) -> None:
         for (xnan, ynan, condnan) in [(True, False, None),
                                       (False, True, None),
