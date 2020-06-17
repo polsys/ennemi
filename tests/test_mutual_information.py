@@ -70,6 +70,28 @@ class TestEstimateSingleMi(unittest.TestCase):
         actual = _estimate_single_mi(x, y, k=8)
         self.assertAlmostEqual(actual, 0, delta=0.02)
 
+    def test_gamma_exponential(self) -> None:
+        # Kraskov et al. mention that this distribution is hard to estimate
+        # without logarithming the values.
+        # The analytical result is due to doi:10.1109/18.825848.
+        #
+        # x1      ~ Gamma(rate, shape)
+        # x2 | x1 ~ Exp(t * x1)
+        rng = np.random.default_rng(2)
+        r = 1.2
+        s = 3.4
+        t = 0.56
+
+        x1 = rng.gamma(shape=s, scale=1/r, size=1000)
+        x2 = rng.exponential(x1 * t)
+
+        raw = _estimate_single_mi(x1, x2)
+        trans = _estimate_single_mi(np.log(x1), np.log(x2))
+
+        expected = psi(s) - np.log(s) + 1/s
+        self.assertAlmostEqual(raw, expected, delta=0.04)
+        self.assertAlmostEqual(trans, expected, delta=0.005)
+
 
 class TestEstimateConditionalMi(unittest.TestCase):
 
