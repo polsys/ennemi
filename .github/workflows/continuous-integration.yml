@@ -56,17 +56,17 @@ jobs:
         # and has a different view of the file system
         run: |
           pip install pytest-cov
-          python -m pytest tests/ --cov=ennemi --cov-report=xml --junit-xml=test-results.xml
+          python -m pytest tests/unit/ --cov=ennemi --cov-report=xml --junit-xml=test-results.xml
           sed 's/\/home\/runner\/work\/ennemi\/ennemi/\/github\/workspace/g' coverage.xml > coverage-mod.xml
       
       - name: Run unit tests (no coverage)
         if: matrix.os != 'ubuntu-latest' || matrix.python-version != '3.8'
         run: |
-          python -m pytest tests/ -v --junit-xml=test-results.xml
+          python -m pytest tests/unit/ --junit-xml=test-results.xml
 
       - name: Run type checker
         run: |
-          python -m mypy --disallow-untyped-defs ennemi/ tests/
+          python -m mypy --disallow-untyped-defs ennemi/ tests/unit tests/integration
       
       - name: Run Sonar code analysis
         if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.8'
