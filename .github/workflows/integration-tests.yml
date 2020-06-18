@@ -6,9 +6,6 @@ name: Integration Tests
 on:
   push:
     branches: [ master ]
-  pull_request:
-    # TODO: This is for testing only
-    branches: [ master ]
 
 jobs:
   build:
