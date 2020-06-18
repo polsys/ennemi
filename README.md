@@ -1,7 +1,7 @@
 # ennemi
 _Easy-to-use Nearest Neighbor Estimation of Mutual Information_
 
-[![Continuous Integration](https://github.com/polsys/ennemi/workflows/Continuous%20Integration/badge.svg)](https://github.com/polsys/ennemi/actions)
+[![Continuous Integration](https://github.com/polsys/ennemi/workflows/Continuous%20Integration/badge.svg?event=push)](https://github.com/polsys/ennemi/actions)
 [![Integration Tests](https://github.com/polsys/ennemi/workflows/Integration%20Tests/badge.svg)](https://github.com/polsys/ennemi/actions)
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=polsys_ennemi&metric=coverage)](https://sonarcloud.io/dashboard?id=polsys_ennemi)
 [![DOI](https://zenodo.org/badge/247088713.svg)](https://zenodo.org/badge/latestdoi/247088713)
