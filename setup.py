@@ -42,7 +42,7 @@ setup(
 
     packages = [ "ennemi" ],
     python_requires = "~=3.6",
-    install_requires = [ "numpy~=1.13" ],
+    install_requires = [ "numpy~=1.17.5" ],
     extras_require = {
         "dev": ["scipy~=1.4", "pandas~=1.0", "pytest~=5.4", "mypy~=0.770"]
     }

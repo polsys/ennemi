@@ -2,6 +2,7 @@
 _Easy-to-use Nearest Neighbor Estimation of Mutual Information_
 
 [![Continuous Integration](https://github.com/polsys/ennemi/workflows/Continuous%20Integration/badge.svg)](https://github.com/polsys/ennemi/actions)
+[![Integration Tests](https://github.com/polsys/ennemi/workflows/Integration%20Tests/badge.svg)](https://github.com/polsys/ennemi/actions)
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=polsys_ennemi&metric=coverage)](https://sonarcloud.io/dashboard?id=polsys_ennemi)
 [![DOI](https://zenodo.org/badge/247088713.svg)](https://zenodo.org/badge/latestdoi/247088713)
 
@@ -66,7 +67,7 @@ This work is licensed under the MIT license.
 In short, you are allowed to use, modify and distribute it as you wish, as long as
 the original copyright notice is preserved.
 This software is provided "as is", functioning to the extent of passing
-the unit tests in the `tests` directory.
+the unit and integration tests in the `tests` directory.
 
 This package is archived on Zenodo.
 The DOI [10.5281/zenodo.3834018](https://doi.org/10.5281/zenodo.3834018)
