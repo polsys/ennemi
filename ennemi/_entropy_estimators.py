@@ -11,6 +11,67 @@ import math
 import numpy as np # type: ignore
 
 
+def _estimate_single_entropy_1d(x: np.ndarray, k: int = 3) -> float:
+    """Estimate the differential entropy of a one-dimensional random variable.
+
+    Returns the estimated entropy in nats.
+    The calculation is described in Kraskov et al. (2004): Estimating mutual
+    information. Physical Review E 69. doi:10.1103/PhysRevE.69.066138
+    """
+
+    N = x.shape[0]
+    xs = np.sort(x)
+    distances = np.empty(N)
+
+    # Search for the k'th neighbor of each point and store the distance
+    for i in range(N):
+        left = i - 1
+        right = i + 1
+        eps = np.inf
+        for _ in range(k):
+            if left >= 0: ldist = np.abs(xs[i] - xs[left])
+            else: ldist = np.inf
+            if right < N: rdist = np.abs(xs[i] - xs[right])
+            else: rdist = np.inf
+
+            if ldist < rdist:
+                eps = ldist
+                left -= 1
+            else:
+                eps = rdist
+                right += 1
+        distances[i] = eps
+
+    # The log(2) term is because the mean is taken over double the distances
+    return _psi(N) - _psi(k) + np.mean(np.log(distances)) + np.log(2)
+
+
+def _estimate_single_entropy_nd(x: np.ndarray, k: int = 3) -> float:
+    """Estimate the differential entropy of a n-dimensional random variable.
+
+    `x` must be a 2D array with columns denoting the variable dimensions.
+
+    Returns the estimated entropy in nats.
+    The calculation is described in Kraskov et al. (2004): Estimating mutual
+    information. Physical Review E 69. doi:10.1103/PhysRevE.69.066138
+    """
+
+    N, ndim = x.shape
+    grid = _BoxGridND(x, k)
+    distances = np.empty(N)
+
+    # Search for the k'th neighbor of each point and store the distance
+    for i in range(N):
+        cur_x = x[i,0]
+        cur_y = x[i,1]
+        cur_z = x[i,2:]
+        
+        distances[i] = _find_kth_neighbor_nd(k, grid, cur_x, cur_y, cur_z)
+
+    # The log(2) term is because the mean is taken over double the distances
+    return _psi(N) - _psi(k) + ndim * (np.mean(np.log(distances)) + np.log(2))
+
+
 def _estimate_single_mi(x: np.ndarray, y: np.ndarray, k: int = 3) -> float:
     """Estimate the mutual information between two continuous variables.
 

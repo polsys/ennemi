@@ -1,10 +1,102 @@
 """Tests for ennemi._estimate_single_mi() and friends."""
 
+import math
 from math import log
 import numpy as np # type: ignore
-from scipy.special import psi # type: ignore
+from scipy.special import gamma, psi # type: ignore
 import unittest
-from ennemi._entropy_estimators import _estimate_single_mi, _estimate_conditional_mi
+from ennemi._entropy_estimators import _estimate_single_entropy_1d,\
+    _estimate_single_entropy_nd,\
+    _estimate_single_mi, _estimate_conditional_mi
+
+
+class TestEstimateSingleEntropy(unittest.TestCase):
+
+    def test_univariate_gaussian(self) -> None:
+        cases = [ (1, 100, 2, 0.2),
+                  (1, 200, 3, 0.05),
+                  (1, 2000, 3, 0.02),
+                  (0.5, 2000, 3, 0.02),
+                  (2.0, 2000, 1, 0.002),
+                  (2.0, 2000, 3, 0.02),
+                  (2.0, 2000, 30, 0.02), ]
+        for (sd, n, k, delta) in cases:
+            with self.subTest(sd=sd, n=n, k=k):
+                rng = np.random.default_rng(0)
+                x = rng.normal(0, sd, size=n)
+
+                actual = _estimate_single_entropy_1d(x, k=k)
+                expected = 0.5 * log(2 * math.pi * math.e * sd**2)
+                self.assertAlmostEqual(actual, expected, delta=delta)
+
+    def test_uniform(self) -> None:
+        cases = [ (0, 1, 1000, 3, 0.05),
+                  (1, 2, 1000, 3, 0.05),
+                  (-1, 1, 1000, 3, 0.05),
+                  (-0.1, 0.1, 1000, 3, 0.05), ]
+        for (a, b, n, k, delta) in cases:
+            with self.subTest(a=a, b=b, n=n, k=k):
+                rng = np.random.default_rng(1)
+                x = rng.uniform(a, b, size=n)
+
+                actual = _estimate_single_entropy_1d(x, k=k)
+                expected = log(b - a)
+                self.assertAlmostEqual(actual, expected, delta=delta)
+
+    def test_bivariate_gaussian(self) -> None:
+        cases = [ (0, 1, 200, 3, 0.09),
+                  (0, 2, 2000, 3, 0.03),
+                  (0.2, 1, 2000, 3, 0.03),
+                  (0.2, 2, 2000, 5, 0.03),
+                  (0.6, 1, 2000, 1, 0.02),
+                  (0.6, 0.5, 2000, 3, 0.04),
+                  (0.9, 1, 2000, 3, 0.04),
+                  (-0.5, 1, 2000, 5, 0.03), ]
+        for (rho, var1, n, k, delta) in cases:
+            with self.subTest(rho=rho, var1=var1, n=n, k=k):
+                rng = np.random.default_rng(2)
+                cov = np.array([[var1, rho], [rho, 1]])
+                data = rng.multivariate_normal([0, 0], cov, size=n)
+
+                actual = _estimate_single_entropy_nd(data, k=k)
+                expected = 0.5 * log(np.linalg.det(2 * math.pi * math.e * cov))
+                self.assertAlmostEqual(actual, expected, delta=delta)
+
+    def test_4d_gaussian(self) -> None:
+        rng = np.random.default_rng(3)
+        cov = np.array([
+            [ 1.0,  0.5,  0.6, -0.2],
+            [ 0.5,  1.0,  0.7, -0.5],
+            [ 0.6,  0.7,  2.0, -0.1],
+            [-0.2, -0.5, -0.1,  0.5]])
+        data = rng.multivariate_normal([0, 0, 0, 0], cov, size=2000)
+
+        actual = _estimate_single_entropy_nd(data, k=3)
+        expected = 0.5 * log(np.linalg.det(2 * math.pi * math.e * cov))
+        self.assertAlmostEqual(actual, expected, delta=0.05)
+
+    def test_gamma_exponential(self) -> None:
+        # As in the MI test, the analytical result is due to doi:10.1109/18.825848.
+        #
+        # x1      ~ Gamma(rate, shape)
+        # x2 | x1 ~ Exp(t * x1)
+        rng = np.random.default_rng(4)
+        r = 1.2
+        s = 3.4
+        t = 0.56
+
+        x1 = rng.gamma(shape=s, scale=1/r, size=1000)
+        x2 = rng.exponential(x1 * t)
+        data = np.asarray([x1, x2]).T
+
+        raw = _estimate_single_entropy_nd(data)
+        trans = _estimate_single_entropy_nd(np.log(data))
+
+        # The estimate with unlogarithmed data is very bad
+        expected = 1 + s - s*psi(s) + log(gamma(s)) - log(t)
+        self.assertAlmostEqual(raw, expected, delta=0.65)
+        self.assertAlmostEqual(trans, expected, delta=0.01)
+
 
 class TestEstimateSingleMi(unittest.TestCase):
 
