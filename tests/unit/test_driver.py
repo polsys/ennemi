@@ -14,6 +14,7 @@ X_Y_DIFFERENT_LENGTH_MSG = "x and y must have same length"
 X_COND_DIFFERENT_LENGTH_MSG = "x and cond must have same length"
 X_WRONG_DIMENSION_MSG = "x must be one- or two-dimensional"
 Y_WRONG_DIMENSION_MSG = "y must be one-dimensional"
+COND_WRONG_DIMENSION_MSG = "cond must be one- or two-dimensional"
 MASK_WRONG_DIMENSION_MSG = "mask must be one-dimensional"
 K_TOO_LARGE_MSG = "k must be smaller than number of observations (after lag and mask)"
 K_NEGATIVE_MSG = "k must be greater than zero"
@@ -68,6 +69,18 @@ class TestEstimateEntropy(unittest.TestCase):
             estimate_entropy(np.zeros(5), mask=[False, False, False, True, True])
         self.assertEqual(str(cm.exception), K_TOO_LARGE_MSG)
 
+    def test_cond_must_have_same_length_as_x(self) -> None:
+        with self.assertRaises(ValueError) as cm:
+            estimate_entropy(np.zeros(5), cond=np.zeros(7))
+        self.assertEqual(str(cm.exception), X_COND_DIFFERENT_LENGTH_MSG)
+
+    def test_cond_has_wrong_dimension(self) -> None:
+        for dim in [(), (20,2,1)]:
+            with self.subTest(dim=dim):
+                with self.assertRaises(ValueError) as cm:
+                    estimate_entropy(np.zeros(20), cond=np.zeros(dim))
+                self.assertEqual(str(cm.exception), COND_WRONG_DIMENSION_MSG)
+
     def test_single_dimensional_variable_as_list(self) -> None:
         rng = np.random.default_rng(0)
         x = [rng.uniform(0, 2) for _ in range(400)]
@@ -83,19 +96,19 @@ class TestEstimateEntropy(unittest.TestCase):
         cov = np.asarray([[1, 0.6], [0.6, 2]])
         data = rng.multivariate_normal([0, 0], cov, size=1500)
 
-        result_false = estimate_entropy(data)
-        result_true = estimate_entropy(data, multidim=True)
+        marginal = estimate_entropy(data)
+        multidim = estimate_entropy(data, multidim=True)
 
         # If multidim=False, we get marginal entropies
-        self.assertEqual(result_false.shape, (2,))
-        self.assertAlmostEqual(result_false[0],
+        self.assertEqual(marginal.shape, (2,))
+        self.assertAlmostEqual(marginal[0],
             0.5*math.log(2*math.pi*math.e*1), delta=0.03)
-        self.assertAlmostEqual(result_false[1],
+        self.assertAlmostEqual(marginal[1],
             0.5*math.log(2*math.pi*math.e*2), delta=0.03)
 
         # If multidim=True, we get the combined entropy
-        self.assertEqual(result_true.shape, ())
-        self.assertAlmostEqual(result_true.item(),
+        self.assertEqual(multidim.shape, ())
+        self.assertAlmostEqual(multidim.item(),
             math.log(2*math.pi*math.e) + 0.5*math.log(2-0.6**2), delta=0.04)
 
     def test_pandas_dataframe(self) -> None:
@@ -106,20 +119,20 @@ class TestEstimateEntropy(unittest.TestCase):
             "Exp": rng.exponential(1/2.0, size=500)
         })
 
-        result_false = estimate_entropy(data)
-        result_true = estimate_entropy(data, multidim=True)
+        marginal = estimate_entropy(data)
+        multidim = estimate_entropy(data, multidim=True)
 
         # multidim=False results in a DataFrame
-        self.assertIsInstance(result_false, pd.DataFrame)
-        self.assertEqual(result_false.shape, (1,3))
-        self.assertAlmostEqual(result_false.loc[0,"N"], 0.5*math.log(2*math.pi*math.e), delta=0.04)
-        self.assertAlmostEqual(result_false.loc[0,"Unif"], math.log(0.5), delta=0.03)
-        self.assertAlmostEqual(result_false.loc[0,"Exp"], 1.0 - math.log(2.0), delta=0.07)
+        self.assertIsInstance(marginal, pd.DataFrame)
+        self.assertEqual(marginal.shape, (1,3))
+        self.assertAlmostEqual(marginal.loc[0,"N"], 0.5*math.log(2*math.pi*math.e), delta=0.04)
+        self.assertAlmostEqual(marginal.loc[0,"Unif"], math.log(0.5), delta=0.03)
+        self.assertAlmostEqual(marginal.loc[0,"Exp"], 1.0 - math.log(2.0), delta=0.07)
 
         # multidim=True results in a NumPy scalar
         # There is no reference value, the check just guards for regressions
-        self.assertEqual(result_true.shape, ())
-        self.assertAlmostEqual(result_true.item(), 1.22, delta=0.02)
+        self.assertEqual(multidim.shape, ())
+        self.assertAlmostEqual(multidim.item(), 1.22, delta=0.02)
 
     def test_pandas_series(self) -> None:
         rng = np.random.default_rng(2)
@@ -150,6 +163,53 @@ class TestEstimateEntropy(unittest.TestCase):
         expected = 0.5*math.log(2*math.pi*math.e)
         self.assertAlmostEqual(result[0], expected, delta=0.03)
         self.assertAlmostEqual(result[1], expected, delta=0.03)
+
+    def test_conditional_entropy_1d_condition(self) -> None:
+        # Draw a sample from three-dimensional Gaussian distribution
+        rng = np.random.default_rng(4)
+        cov = np.asarray([[1, 0.6, 0.3], [0.6, 2, 0.1], [0.3, 0.1, 1]])
+        data = rng.multivariate_normal([0, 0, 0], cov, size=1500)
+
+        marginal = estimate_entropy(data, cond=data[:,2])
+        multidim = estimate_entropy(data[:,:2], cond=data[:,2], multidim=True)
+
+        # By the chain rule of entropy, H(X|Y) = H(X,Y) - H(Y)
+        def expected(ix: int, iy: int) -> float:
+            joint = 0.5 * math.log((2 * math.pi * math.e)**2 * (cov[ix,ix]*cov[iy,iy] - cov[ix,iy]**2))
+            single = 0.5 * math.log(2 * math.pi * math.e * cov[iy,iy])
+            return joint - single
+
+        self.assertAlmostEqual(marginal[0], expected(0,2), delta=0.04)
+        self.assertAlmostEqual(marginal[1], expected(1,2), delta=0.09)
+        self.assertLess(marginal[2], -4.5)
+
+        expected_multi = 0.5 * (math.log(np.linalg.det(2 * math.pi * math.e * cov)) - math.log(2*math.pi*math.e*1))
+        self.assertAlmostEqual(multidim, expected_multi, delta=0.1)
+
+    def test_conditional_entropy_nd_condition(self) -> None:
+        # Draw a sample from three-dimensional Gaussian distribution
+        rng = np.random.default_rng(5)
+        cov = np.asarray([[1, 0.6, 0.3], [0.6, 2, 0.1], [0.3, 0.1, 1]])
+        data = rng.multivariate_normal([0, 0, 0], cov, size=1000)
+
+        marginal = estimate_entropy(data, cond=data)
+        multidim = estimate_entropy(data, cond=data, multidim=True)
+
+        # All of the entropies should be -inf, but practically this does not happen
+        self.assertLess(marginal[0], -0.5)
+        self.assertLess(marginal[1], -0.5)
+        self.assertLess(marginal[2], -0.5)
+        self.assertLess(multidim, -1.5)
+
+    def test_conditional_entropy_with_independent_condition(self) -> None:
+        rng = np.random.default_rng(6)
+        data = rng.normal(0.0, 1.0, size=1200)
+        cond = rng.uniform(0.0, 1.0, size=1200)
+
+        uncond_result = estimate_entropy(data)
+        cond_result = estimate_entropy(data, cond=cond)
+
+        self.assertAlmostEqual(cond_result, uncond_result, delta=0.05)
 
 
 class TestEstimateMi(unittest.TestCase):

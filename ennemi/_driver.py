@@ -49,7 +49,7 @@ def _normalize(mi: np.float) -> np.float:
 
 
 def estimate_entropy(x: ArrayLike, *, k: int = 3, multidim: bool = False,
-    mask: Optional[ArrayLike] = None) -> np.ndarray:
+    mask: Optional[ArrayLike] = None, cond: Optional[ArrayLike] = None) -> np.ndarray:
     """Estimate the entropy of one or more continuous random variables.
 
     Returns the estimated entropy in nats. If `x` is two-dimensional, each
@@ -83,6 +83,12 @@ def estimate_entropy(x: ArrayLike, *, k: int = 3, multidim: bool = False,
         estimation. Use this to exclude some observations from consideration.
         The length of this array must match the length of `x`.
         Currently, the mask must be one-dimensional.
+    cond : array_like or None
+        Optional 1D or 2D array of observations used for conditioning.
+        Must have as many observations as `x`.
+        All variables in a 2D array are used together.
+        The calculation uses the chain rule H(X|Y) = H(X,Y) - H(Y) without
+        any correction for potential estimation bias.
     """
 
     x_arr = np.asarray(x)
@@ -104,7 +110,12 @@ def estimate_entropy(x: ArrayLike, *, k: int = 3, multidim: bool = False,
     if np.any(np.isnan(x_arr)):
         raise ValueError("input contains NaNs (after applying the mask)")
 
-    result = _estimate_entropy(x_arr, k, multidim)
+    if cond is None:
+        result = _estimate_entropy(x_arr, k, multidim)
+    else:
+        cond_arr = np.asarray(cond)
+        _validate_cond(cond_arr, x_arr.shape[0])
+        result = _estimate_conditional_entropy(x_arr, cond_arr, k, multidim)
 
     # If the original x array was a pandas data type, return a DataFrame
     # As an exception, if multidim=True, we still return a NumPy scalar
@@ -127,6 +138,24 @@ def _estimate_entropy(x: np.ndarray, k: int, multidim: bool) -> np.ndarray:
     else:
         nvar = x.shape[1]
         return np.asarray([_estimate_single_entropy_1d(x[:,i], k) for i in range(nvar)])
+
+
+def _estimate_conditional_entropy(x: np.ndarray, cond: np.ndarray, k: int, multidim: bool) -> np.ndarray:
+    """Conditional entropy by the chain rule: H(X|Y) = H(X,Y) - H(Y)."""
+
+    # Estimate the entropy of cond by the method above
+    marginal = _estimate_entropy(cond, k, multidim=True)
+
+    # The joint entropy depends on multidim and number of dimensions:
+    # In the latter case, the joint entropy is calculated for each x variable
+    if multidim or x.ndim == 1:
+        joint = _estimate_single_entropy_nd(np.column_stack((x, cond)), k)
+        return np.asarray(joint - marginal)
+    else:
+        nvar = x.shape[1]
+        joint = np.asarray(
+            [_estimate_single_entropy_nd(np.column_stack((x[:,i], cond)), k) for i in range(nvar)])
+        return joint - marginal
 
 
 def estimate_mi(y: ArrayLike, x: ArrayLike,
@@ -289,11 +318,9 @@ def _check_parameters(x: np.ndarray, y: Optional[np.ndarray], k: int,
         if (x.shape[0] != y.shape[0]):
             raise ValueError("x and y must have same length")
 
-    # Validate the mask
+    # Validate the mask and condition
     if mask is not None: _validate_mask(mask, x.shape[0])
-
-    if (cond is not None) and (x.shape[0] != len(cond)):
-        raise ValueError("x and cond must have same length")
+    if cond is not None: _validate_cond(cond, x.shape[0])
 
 def _validate_mask(mask: np.ndarray, input_len: int) -> None:
     if len(mask.shape) > 1:
@@ -302,6 +329,12 @@ def _validate_mask(mask: np.ndarray, input_len: int) -> None:
         raise ValueError("mask length does not match input length")
     if mask.dtype != np.bool:
         raise TypeError("mask must contain only booleans")
+
+def _validate_cond(cond: np.ndarray, input_len: int) -> None:
+    if not 1 <= cond.ndim <= 2:
+        raise ValueError("cond must be one- or two-dimensional")
+    if input_len != len(cond):
+        raise ValueError("x and cond must have same length")
 
 
 def pairwise_mi(data: ArrayLike, *, k: int = 3, cond: Optional[ArrayLike] = None,
