@@ -8,7 +8,8 @@ from typing import List, Optional, Sequence, Tuple, TypeVar, Union
 import itertools
 import numpy as np # type: ignore
 import sys
-from ._entropy_estimators import _estimate_single_mi, _estimate_conditional_mi
+from ._entropy_estimators import _estimate_single_mi, _estimate_conditional_mi,\
+    _estimate_single_entropy_1d, _estimate_single_entropy_nd
 
 ArrayLike = Union[List[float], List[Tuple[float, ...]], np.ndarray]
 GenArrayLike = TypeVar("GenArrayLike", List[float], List[Tuple[float, ...]], np.ndarray)
@@ -45,6 +46,87 @@ def _normalize(mi: np.float) -> np.float:
         return mi
     else:
         return np.sqrt(1 - np.exp(-2 * mi))
+
+
+def estimate_entropy(x: ArrayLike, *, k: int = 3, multidim: bool = False,
+    mask: Optional[ArrayLike] = None) -> np.ndarray:
+    """Estimate the entropy of one or more continuous random variables.
+
+    Returns the estimated entropy in nats. If `x` is two-dimensional, each
+    marginal variable is estimated separately by default. If the `multidim`
+    parameter is set to True, the array is interpreted as a single n-dimensional
+    random variable. If `x` is a pandas `DataFrame` or `Series`, the result is
+    a `DataFrame`.
+
+    If the `mask` parameter is set, only those `x` observations with the
+    matching mask element set to `True` are used for estimation.
+
+    The calculation is described in Kraskov et al. (2004): Estimating mutual
+    information. Physical Review E 69. doi:10.1103/PhysRevE.69.066138
+
+    Positional or keyword parameters:
+    ---
+    x : array_like
+        A 1D or 2D array of observations. The interpretation of columns
+        depends on the `multidim` parameter.
+
+    Optional keyword parameters:
+    ---
+    k : int
+        The number of neighbors to consider. Default 3.
+        Must be smaller than the number of observations left after masking.
+    multidim : bool
+        If False (the default), each column of `x` is considered a separate variable.
+        If True, the (n x m) array is considered a single m-dimensional variable.
+    mask : array_like or None
+        If specified, an array of booleans that gives the input elements to use for
+        estimation. Use this to exclude some observations from consideration.
+        The length of this array must match the length of `x`.
+        Currently, the mask must be one-dimensional.
+    """
+
+    x_arr = np.asarray(x)
+
+    # Apply the mask
+    # TODO: This must be moved if each variable gets a separate mask
+    if mask is not None:
+        mask = np.asarray(mask)
+        _validate_mask(mask, x_arr.shape[0])
+        x_arr = x_arr[mask]
+
+    # Validate the parameters
+    if not 1 <= x_arr.ndim <= 2:
+        raise ValueError("x must be one- or two-dimensional")
+    if k <= 0:
+        raise ValueError("k must be greater than zero")
+    if k >= x_arr.shape[0]:
+        raise ValueError("k must be smaller than number of observations (after lag and mask)")
+    if np.any(np.isnan(x_arr)):
+        raise ValueError("input contains NaNs (after applying the mask)")
+
+    result = _estimate_entropy(x_arr, k, multidim)
+
+    # If the original x array was a pandas data type, return a DataFrame
+    # As an exception, if multidim=True, we still return a NumPy scalar
+    if not multidim and "pandas" in sys.modules:
+        import pandas
+        if isinstance(x, pandas.DataFrame):
+            return pandas.DataFrame(np.atleast_2d(result), columns=x.columns)
+        elif isinstance(x, pandas.Series):
+            return pandas.DataFrame(np.atleast_2d(result), columns=[x.name])
+    return result
+
+
+def _estimate_entropy(x: np.ndarray, k: int, multidim: bool) -> np.ndarray:
+    """Strongly typed estimate_entropy()."""
+
+    if multidim and x.ndim > 1:
+        return np.asarray(_estimate_single_entropy_nd(x, k))
+    elif x.ndim == 1:
+        return np.asarray(_estimate_single_entropy_1d(x, k))
+    else:
+        nvar = x.shape[1]
+        return np.asarray([_estimate_single_entropy_1d(x[:,i], k) for i in range(nvar)])
 
 
 def estimate_mi(y: ArrayLike, x: ArrayLike,
@@ -126,7 +208,6 @@ def estimate_mi(y: ArrayLike, x: ArrayLike,
     cond_lag_arr = np.broadcast_to(cond_lag, lag_arr.shape)
     
     # Keep the original x parameter around for the Pandas data frame check
-    original_x = x
     x_arr = np.asarray(x)
     y_arr = np.asarray(y)
     if cond is not None: cond_arr = np.asarray(cond)
@@ -144,10 +225,10 @@ def estimate_mi(y: ArrayLike, x: ArrayLike,
     # If the input was a pandas data frame, set the column names
     if "pandas" in sys.modules:
         import pandas
-        if isinstance(original_x, pandas.DataFrame):
-            return pandas.DataFrame(result, index=lag_arr, columns=original_x.columns)
-        elif isinstance(original_x, pandas.Series):
-            return pandas.DataFrame(result, index=lag_arr, columns=[original_x.name])
+        if isinstance(x, pandas.DataFrame):
+            return pandas.DataFrame(result, index=lag_arr, columns=x.columns)
+        elif isinstance(x, pandas.Series):
+            return pandas.DataFrame(result, index=lag_arr, columns=[x.name])
     return result
 
 def _estimate_mi(y: np.ndarray, x: np.ndarray, lag: np.ndarray, k: int,
@@ -209,16 +290,18 @@ def _check_parameters(x: np.ndarray, y: Optional[np.ndarray], k: int,
             raise ValueError("x and y must have same length")
 
     # Validate the mask
-    if mask is not None:
-        if len(mask.shape) > 1:
-            raise ValueError("mask must be one-dimensional")
-        if len(mask) != x.shape[0]:
-            raise ValueError("mask length does not match y length")
-        if mask.dtype != np.bool:
-            raise TypeError("mask must contain only booleans")
+    if mask is not None: _validate_mask(mask, x.shape[0])
 
     if (cond is not None) and (x.shape[0] != len(cond)):
         raise ValueError("x and cond must have same length")
+
+def _validate_mask(mask: np.ndarray, input_len: int) -> None:
+    if len(mask.shape) > 1:
+        raise ValueError("mask must be one-dimensional")
+    if len(mask) != input_len:
+        raise ValueError("mask length does not match input length")
+    if mask.dtype != np.bool:
+        raise TypeError("mask must contain only booleans")
 
 
 def pairwise_mi(data: ArrayLike, *, k: int = 3, cond: Optional[ArrayLike] = None,
