@@ -8,7 +8,7 @@ import pandas as pd # type: ignore
 import random
 from typing import List
 import unittest
-from ennemi import estimate_mi, normalize_mi, pairwise_mi
+from ennemi import estimate_entropy, estimate_mi, normalize_mi, pairwise_mi
 
 X_Y_DIFFERENT_LENGTH_MSG = "x and y must have same length"
 X_COND_DIFFERENT_LENGTH_MSG = "x and cond must have same length"
@@ -18,9 +18,139 @@ MASK_WRONG_DIMENSION_MSG = "mask must be one-dimensional"
 K_TOO_LARGE_MSG = "k must be smaller than number of observations (after lag and mask)"
 K_NEGATIVE_MSG = "k must be greater than zero"
 TOO_LARGE_LAG_MSG = "lag is too large, no observations left"
-INVALID_MASK_LENGTH_MSG = "mask length does not match y length"
+INVALID_MASK_LENGTH_MSG = "mask length does not match input length"
 INVALID_MASK_TYPE_MSG = "mask must contain only booleans"
 NANS_LEFT_MSG = "input contains NaNs (after applying the mask)"
+
+
+class TestEstimateEntropy(unittest.TestCase):
+
+    def test_input_shorter_than_k(self) -> None:
+        with self.assertRaises(ValueError) as cm:
+            estimate_entropy(np.zeros(3), k=3)
+        self.assertEqual(str(cm.exception), K_TOO_LARGE_MSG)
+
+    def test_k_must_be_positive(self) -> None:
+        for k in [-2, 0]:
+            with self.subTest(k=k):
+                with self.assertRaises(ValueError) as cm:
+                    estimate_entropy(np.zeros(20), k=k)
+                self.assertEqual(str(cm.exception), K_NEGATIVE_MSG)
+
+    def test_k_must_be_integer(self) -> None:
+        with self.assertRaises(TypeError):
+            estimate_entropy(np.zeros(20), k=2.71828) # type: ignore
+
+    def test_x_has_wrong_dimension(self) -> None:
+        for dim in [(), (20,2,1)]:
+            with self.subTest(dim=dim):
+                with self.assertRaises(ValueError) as cm:
+                    estimate_entropy(np.zeros(dim))
+                self.assertEqual(str(cm.exception), X_WRONG_DIMENSION_MSG)
+
+    def test_mask_is_not_boolean(self) -> None:
+        with self.assertRaises(TypeError) as cm:
+            estimate_entropy(np.zeros(5), mask=[1,2,3,4,5])
+        self.assertEqual(str(cm.exception), INVALID_MASK_TYPE_MSG)
+
+    def test_mask_has_wrong_size(self) -> None:
+        with self.assertRaises(ValueError) as cm:
+            estimate_entropy(np.zeros(5), mask=[True, False])
+        self.assertEqual(str(cm.exception), INVALID_MASK_LENGTH_MSG)
+
+    def test_mask_has_wrong_dimension(self) -> None:
+        with self.assertRaises(ValueError) as cm:
+            estimate_entropy(np.zeros((5,2)), mask=np.full((5,2), True))
+        self.assertEqual(str(cm.exception), MASK_WRONG_DIMENSION_MSG)
+
+    def test_mask_leaves_too_few_observations(self) -> None:
+        with self.assertRaises(ValueError) as cm:
+            estimate_entropy(np.zeros(5), mask=[False, False, False, True, True])
+        self.assertEqual(str(cm.exception), K_TOO_LARGE_MSG)
+
+    def test_single_dimensional_variable_as_list(self) -> None:
+        rng = np.random.default_rng(0)
+        x = [rng.uniform(0, 2) for _ in range(400)]
+
+        result = estimate_entropy(x)
+
+        self.assertEqual(result.shape, ())
+        self.assertAlmostEqual(result, math.log(2 - 0), delta=0.01)
+
+    def test_multidim_interpretation(self) -> None:
+        # Generate a two-dimensional Gaussian variable
+        rng = np.random.default_rng(1)
+        cov = np.asarray([[1, 0.6], [0.6, 2]])
+        data = rng.multivariate_normal([0, 0], cov, size=1500)
+
+        result_false = estimate_entropy(data)
+        result_true = estimate_entropy(data, multidim=True)
+
+        # If multidim=False, we get marginal entropies
+        self.assertEqual(result_false.shape, (2,))
+        self.assertAlmostEqual(result_false[0],
+            0.5*math.log(2*math.pi*math.e*1), delta=0.03)
+        self.assertAlmostEqual(result_false[1],
+            0.5*math.log(2*math.pi*math.e*2), delta=0.03)
+
+        # If multidim=True, we get the combined entropy
+        self.assertEqual(result_true.shape, ())
+        self.assertAlmostEqual(result_true.item(),
+            math.log(2*math.pi*math.e) + 0.5*math.log(2-0.6**2), delta=0.04)
+
+    def test_pandas_dataframe(self) -> None:
+        rng = np.random.default_rng(1)
+        data = pd.DataFrame({
+            "N": rng.normal(0.0, 1.0, size=500),
+            "Unif": rng.uniform(0.0, 0.5, size=500),
+            "Exp": rng.exponential(1/2.0, size=500)
+        })
+
+        result_false = estimate_entropy(data)
+        result_true = estimate_entropy(data, multidim=True)
+
+        # multidim=False results in a DataFrame
+        self.assertIsInstance(result_false, pd.DataFrame)
+        self.assertEqual(result_false.shape, (1,3))
+        self.assertAlmostEqual(result_false.loc[0,"N"], 0.5*math.log(2*math.pi*math.e), delta=0.04)
+        self.assertAlmostEqual(result_false.loc[0,"Unif"], math.log(0.5), delta=0.03)
+        self.assertAlmostEqual(result_false.loc[0,"Exp"], 1.0 - math.log(2.0), delta=0.07)
+
+        # multidim=True results in a NumPy scalar
+        # There is no reference value, the check just guards for regressions
+        self.assertEqual(result_true.shape, ())
+        self.assertAlmostEqual(result_true.item(), 1.22, delta=0.02)
+
+    def test_pandas_series(self) -> None:
+        rng = np.random.default_rng(2)
+        data = pd.Series(rng.normal(0.0, 1.0, size=500), name="N")
+
+        result = estimate_entropy(data)
+
+        self.assertIsInstance(result, pd.DataFrame)
+        self.assertEqual(result.shape, (1,1))
+        self.assertAlmostEqual(result.loc[0,"N"], 0.5*math.log(2*math.pi*math.e), delta=0.02)
+
+    def test_nans_must_be_masked(self) -> None:
+        rng = np.random.default_rng(3)
+        data = rng.normal(0.0, 1.0, size=(800,2))
+        data[0:10,0] = np.nan
+        data[5:15,1] = np.nan
+
+        # Without masking, the NaNs are rejected
+        with self.assertRaises(ValueError) as cm:
+            estimate_entropy(data)
+        self.assertEqual(str(cm.exception), NANS_LEFT_MSG)
+
+        # With masking, a correct result is produced
+        mask = np.full(800, True)
+        mask[0:15] = False
+
+        result = estimate_entropy(data, mask=mask)
+        expected = 0.5*math.log(2*math.pi*math.e)
+        self.assertAlmostEqual(result[0], expected, delta=0.03)
+        self.assertAlmostEqual(result[1], expected, delta=0.03)
+
 
 class TestEstimateMi(unittest.TestCase):
     
