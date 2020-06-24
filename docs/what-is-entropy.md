@@ -78,6 +78,10 @@ continuous (or differential) entropy is a _relative_ measure.
 It tells that you need one coin flip less to express $\mathrm{Uniform(0, 1/2)}$
 than $\mathrm{Uniform(0, 1)}$, but both are "at an infinite offset" to zero entropy.
 
+`ennemi` can estimate the entropy of continuous random variables via the
+`estimate_entropy()` method.
+The variables can be one- or $n$-dimensional.
+
 
 
 ## Mutual information
@@ -118,6 +122,7 @@ The `ennemi` package is designed for this workflow:
 
 1. Calculate the MI between $Y$ and many candidate variables.
    With time series data, various time lags may be tried.
+   The methods to use are `pairwise_mi()` and then `estimate_mi()`.
 2. Select the variables with highest MI for further evaluation.
 3. Using MI and conditional MI, further narrow the set of variables.
 4. Analyze the dependencies with scatter plots and theoretical knowledge.
