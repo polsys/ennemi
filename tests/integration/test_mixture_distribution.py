@@ -4,9 +4,9 @@
 """A mixture distribution that has no analytical expression for MI."""
 
 from ennemi import estimate_mi
-from scipy.integrate import dblquad # type: ignore
-from scipy.stats import norm, multivariate_normal as mvnorm # type: ignore
-import numpy as np # type: ignore
+from scipy.integrate import dblquad
+from scipy.stats import norm, multivariate_normal as mvnorm
+import numpy as np
 import unittest
 
 class TestMixtureDistribution(unittest.TestCase):

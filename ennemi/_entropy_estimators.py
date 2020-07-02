@@ -11,7 +11,7 @@ import bisect
 from typing import Dict, Iterator, List, Tuple, Union
 import itertools
 import math
-import numpy as np # type: ignore
+import numpy as np
 
 
 def _estimate_single_entropy_1d(x: np.ndarray, k: int = 3) -> float:

@@ -4,8 +4,8 @@
 """A simplified version of the case study in the documentation."""
 
 from ennemi import estimate_mi, pairwise_mi
-import numpy as np # type: ignore
-import pandas as pd # type: ignore
+import numpy as np
+import pandas as pd
 import unittest
 import os
 

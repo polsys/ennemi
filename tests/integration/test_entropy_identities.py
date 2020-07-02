@@ -4,7 +4,7 @@
 """Mathematical identities for entropy and mutual information."""
 
 from ennemi import estimate_entropy, estimate_mi
-import numpy as np # type: ignore
+import numpy as np
 import unittest
 
 class TestEntropyIdentities(unittest.TestCase):
