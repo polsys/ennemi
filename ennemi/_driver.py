@@ -1,3 +1,6 @@
+# MIT License - Copyright Petri Laarne and contributors
+# See the LICENSE.md file included in this source code package
+
 """The one-line interface to this library.
 
 Do not import this module directly, but rather import the main ennemi module.

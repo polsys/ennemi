@@ -1,3 +1,6 @@
+# MIT License - Copyright Petri Laarne and contributors
+# See the LICENSE.md file included in this source code package
+
 """Mutual Information (MI) estimation using the k-nearest neighbor method."""
 
 from ._driver import estimate_entropy, estimate_mi, normalize_mi, pairwise_mi

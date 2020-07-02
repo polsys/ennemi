@@ -1,3 +1,6 @@
+# MIT License - Copyright Petri Laarne and contributors
+# See the LICENSE.md file included in this source code package
+
 """A mixture distribution that has no analytical expression for MI."""
 
 from ennemi import estimate_mi

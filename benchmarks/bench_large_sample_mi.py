@@ -1,3 +1,6 @@
+# MIT License - Copyright Petri Laarne and contributors
+# See the LICENSE.md file included in this source code package
+
 """Benchmark for a large sample MI between two variables only.
 
 As opposed to bench_mutual_information.py, this benchmark cannot be improved

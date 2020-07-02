@@ -1,3 +1,6 @@
+# MIT License - Copyright Petri Laarne and contributors
+# See the LICENSE.md file included in this source code package
+
 """A simplified version of the case study in the documentation."""
 
 from ennemi import estimate_mi, pairwise_mi

@@ -1,3 +1,6 @@
+# MIT License - Copyright Petri Laarne and contributors
+# See the LICENSE.md file included in this source code package
+
 """Mathematical identities for entropy and mutual information."""
 
 from ennemi import estimate_entropy, estimate_mi
