@@ -5,9 +5,9 @@
 
 from itertools import product
 import math
-import numpy as np # type: ignore
+import numpy as np
 import os.path
-import pandas as pd # type: ignore
+import pandas as pd
 import random
 from typing import List
 import unittest

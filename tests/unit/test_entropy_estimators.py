@@ -5,8 +5,8 @@
 
 import math
 from math import log
-import numpy as np # type: ignore
-from scipy.special import gamma, psi # type: ignore
+import numpy as np
+from scipy.special import gamma, psi
 import unittest
 from ennemi._entropy_estimators import _estimate_single_entropy_1d,\
     _estimate_single_entropy_nd,\

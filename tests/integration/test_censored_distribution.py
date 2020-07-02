@@ -8,9 +8,9 @@ expects a continuous distribution. Nevertheless, ennemi seems to work fine.
 """
 
 from ennemi import estimate_mi
-from scipy.integrate import quad, dblquad # type: ignore
-from scipy.stats import norm, multivariate_normal as mvnorm # type: ignore
-import numpy as np # type: ignore
+from scipy.integrate import quad, dblquad
+from scipy.stats import norm, multivariate_normal as mvnorm
+import numpy as np
 import unittest
 
 class TestCensoredDistribution(unittest.TestCase):

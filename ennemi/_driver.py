@@ -9,7 +9,7 @@ Do not import this module directly, but rather import the main ennemi module.
 import concurrent.futures
 from typing import List, Optional, Sequence, Tuple, TypeVar, Union
 import itertools
-import numpy as np # type: ignore
+import numpy as np
 import sys
 from ._entropy_estimators import _estimate_single_mi, _estimate_conditional_mi,\
     _estimate_single_entropy_1d, _estimate_single_entropy_nd
@@ -38,7 +38,7 @@ def normalize_mi(mi: GenArrayLike) -> GenArrayLike:
 
     # If the parameter is a pandas type, preserve the columns and indices
     if "pandas" in sys.modules:
-        import pandas # type: ignore
+        import pandas
         if isinstance(mi, (pandas.DataFrame, pandas.Series)):
             return mi.applymap(_normalize)
     
