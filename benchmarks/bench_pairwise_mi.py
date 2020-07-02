@@ -1,3 +1,6 @@
+# MIT License - Copyright Petri Laarne and contributors
+# See the LICENSE.md file included in this source code package
+
 """Benchmarks for pairwise MI estimation, with and without conditioning."""
 
 import numpy as np

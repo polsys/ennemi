@@ -1,3 +1,6 @@
+# MIT License - Copyright Petri Laarne and contributors
+# See the LICENSE.md file included in this source code package
+
 """Tests for ennemi._estimate_single_mi() and friends."""
 
 import math

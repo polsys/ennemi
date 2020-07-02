@@ -1,3 +1,6 @@
+# MIT License - Copyright Petri Laarne and contributors
+# See the LICENSE.md file included in this source code package
+
 """Tests for ennemi.estimate_mi()."""
 
 from itertools import product

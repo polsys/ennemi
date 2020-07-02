@@ -1,3 +1,6 @@
+# MIT License - Copyright Petri Laarne and contributors
+# See the LICENSE.md file included in this source code package
+
 #
 # STEP 1: Import the data
 #

@@ -1,3 +1,6 @@
+# MIT License - Copyright Petri Laarne and contributors
+# See the LICENSE.md file included in this source code package
+
 """A Gaussian distribution censored on one axis.
 
 There is no analytical expression for the MI, and the algorithm in ennemi
