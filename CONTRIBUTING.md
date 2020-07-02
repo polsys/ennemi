@@ -25,9 +25,9 @@ and expect other contributors to do the same.
 > - Accepting responsibility and apologizing to those affected by our mistakes, and learning from the experience
 > - Focusing on what is best not just for us as individuals, but for the overall community
 
-As of this writing, the citation for `ennemi` includes Petri Laarne as the author.
-If you contribute to the package, the citation will be changed to
-"Petri Laarne and contributors" for future releases.
+The citation for `ennemi` is "Petri Laarne and contributors" starting from 1.0.0beta1.
+Contributors to a release will be acknowledged in the release notes,
+unless they do not want to be mentioned.
 This policy may be updated.
 
 
