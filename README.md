@@ -18,8 +18,9 @@ _Partial Mutual Information for Coupling Analysis of Multivariate Time Series_,
 Physical Review Letters **99**:20 (2007),
 [doi:10.1103/PhysRevLett.99.204101](https://dx.doi.org/10.1103/PhysRevLett.99.204101).
 
-**NOTE:** This package is **alpha** quality.
-Even though the algorithm is stable, there may still be breaking changes to the API.
+**NOTE:** The package is **beta** quality.
+We are not planning major changes to the API, but breakages are still possible.
+The latest source code on GitHub might be more unstable than the released version on PyPI.
 You can see the roadmap of planned additions on the
 [Milestones page](https://github.com/polsys/ennemi/milestones).
 
@@ -28,7 +29,8 @@ You can see the roadmap of planned additions on the
 
 This package requires Python 3.6 or higher,
 and it is tested to work on the latest versions of Ubuntu, macOS and Windows.
-The only dependency is NumPy.
+The only hard dependency is a reasonably recent version of NumPy;
+Pandas is strongly suggested for more enjoyable data analysis.
 
 This package is available on PyPI:
 ```sh

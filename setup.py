@@ -10,7 +10,7 @@ with open(description_file, encoding="utf-8") as f:
 
 setup(
     name = "ennemi",
-    version = "1.0.0alpha2",
+    version = "1.0.0beta1",
     description = "Easy-to-use Nearest Neighbor Estimation of Mutual Information",
     long_description = long_description,
     long_description_content_type = "text/markdown",
@@ -20,7 +20,7 @@ setup(
     license = "MIT",
 
     classifiers = [
-        "Development Status :: 3 - Alpha",
+        "Development Status :: 4 - Beta",
         "Intended Audience :: Science/Research",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",

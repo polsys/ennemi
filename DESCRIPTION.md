@@ -12,11 +12,11 @@ The interface is minimal and aimed at practical data analysis:
 - Optional integration with `pandas` data frame types (no install-time dependency)
 - Optimized algorithm and parallel processing of multiple estimation tasks
 
-This package depends only on NumPy.
+This package depends only on NumPy; Pandas is suggested for more enjoyable data analysis.
 Support for Python 3.6+ on the latest macOS, Ubuntu and Windows versions
 is officially tested.
 
-This project is still in **alpha** status and interface changes are possible.
+This project is still in **beta** status: breaking changes are unlikely but possible.
 For more information on theoretical background and usage, please see the
 [documentation](https://polsys.github.io/ennemi).
 If you encounter any problems or have suggestions, please file an issue!
