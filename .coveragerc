@@ -1,0 +1,8 @@
+# Exclude the Numba code path from coverage for the time being:
+#   - unsure of whether it will work reliably (Numba issue #4268)
+#   - conditional MI code path still uses pure Python for performance
+#   - need to run tests twice, both with and without Numba
+# Tracking issue: #55
+
+[run]
+omit = ennemi/_entropy_estimators_numba.py
