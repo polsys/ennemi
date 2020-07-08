@@ -63,6 +63,13 @@ jobs:
         if: matrix.os != 'ubuntu-latest' || matrix.python-version != '3.8'
         run: |
           python -m pytest tests/unit/ --junit-xml=test-results.xml
+      
+      - name: Run unit tests (Numba)
+        env:
+          ENNEMI_ENABLE_NUMBA: 1
+        run: |
+          pip install numba
+          python -m pytest tests/unit/ --junit-xml=test-results.xml
 
       - name: Run type checker
         run: |
