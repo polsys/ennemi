@@ -60,7 +60,7 @@ def _estimate_single_entropy_1d(x: np.ndarray, k: int = 3) -> float:
         distances[i] = eps
 
     # The log(2) term is because the mean is taken over double the distances
-    return _psi(N) - _psi(k) + np.mean(np.log(distances)) + np.log(2)
+    return (_psi(N) - _psi(k) + np.mean(np.log(distances)) + np.log(2)).item()
 
 
 def _estimate_single_entropy_nd(x: np.ndarray, k: int = 3) -> float:
@@ -86,9 +86,10 @@ def _estimate_single_entropy_nd(x: np.ndarray, k: int = 3) -> float:
         distances[i] = _find_kth_neighbor_nd(k, grid, cur_x, cur_y, cur_z)
 
     # The log(2) term is because the mean is taken over double the distances
-    return _psi(N) - _psi(k) + ndim * (np.mean(np.log(distances)) + np.log(2))
+    return (_psi(N) - _psi(k) + ndim * (np.mean(np.log(distances)) + np.log(2))).item()
 
 
+@njit(cache=True)
 def _estimate_single_mi(x: np.ndarray, y: np.ndarray, k: int = 3) -> float:
     """Estimate the mutual information between two continuous variables.
 
@@ -549,25 +550,27 @@ class _BoxGridND:
 # Digamma
 #
 
+@njit(cache=True)
 def _psi(x: np.ndarray) -> np.ndarray:
     """A replacement for scipy.special.psi, for non-negative integers only.
-    
-    This is up to a few times slower than the SciPy version, but it's not fun
-    to depend on full SciPy just for this method (even though SciPy is often
-    installed with NumPy). This method is not the bottleneck anyways, so the
-    difference vanishes in the measurement noise.
+
+    - Does not depend on SciPy
+    - Special cases the _psi(0) case, knowing that the result will be passed to mean()
+    - Special cases the _psi(1) case and uses a simple expression for others
+    - Numba accelerated
     """
-    
-    x = np.asarray(x)
+
+    # Numba is happier when there are consistently arrays and not scalars
+    x = np.atleast_1d(np.asarray(x))
 
     # psi(0) = inf for SciPy compatibility
-    result = np.full(x.shape, np.inf)
-    mask = (x != 0)
+    # The shape of result does not matter as inf will propagate in mean()
+    if np.any(x == 0):
+        return np.asarray([np.inf])
 
     # Use the SciPy value for psi(1), because the expansion is not good enough
-    one_mask = (x == 1)
-    result[one_mask] = -0.5772156649015331
-    mask = mask & ~one_mask
+    mask = (x != 1)
+    result = np.full(x.shape, -0.5772156649015331)
 
     # For the rest, a good enough expansion is given by
     # https://www.uv.es/~bernardo/1976AppStatist.pdf
