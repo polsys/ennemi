@@ -13,16 +13,17 @@ This module selects between the pure Python and Numba implementation at runtime.
 try:
     from ._entropy_estimators_numba import _estimate_single_mi,\
         _estimate_conditional_mi,\
-        _estimate_single_entropy_1d, _estimate_single_entropy_nd
+        _estimate_single_entropy_1d, _estimate_single_entropy_nd, _psi
         
 except ImportError:
     from ._entropy_estimators_pure import _estimate_single_mi,\
         _estimate_conditional_mi,\
-        _estimate_single_entropy_1d, _estimate_single_entropy_nd
+        _estimate_single_entropy_1d, _estimate_single_entropy_nd, _psi
 
 __all__ = [
     "_estimate_single_mi",
     "_estimate_conditional_mi",
     "_estimate_single_entropy_1d",
-    "_estimate_single_entropy_nd"
+    "_estimate_single_entropy_nd",
+    "_psi"
 ]

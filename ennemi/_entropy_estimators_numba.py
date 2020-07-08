@@ -1,17 +1,31 @@
 # MIT License - Copyright Petri Laarne and contributors
 # See the LICENSE.md file included in this source code package
 
-"""The estimator methods.
+"""The estimator methods, accelerated with Numba just-in-time compilation.
 
 Do not import this module directly.
 Use the `estimate_mi` method in the main ennemi module instead.
 """
 
-import bisect
+# If the Numba support is disabled, bail out.
+# There are two environment variables controlling whether Numba is enabled:
+#   - ENNEMI_ENABLE_NUMBA opts in to Numba, as long as the support is
+#     experimental only. In the future, this may become a no-op.
+#   - ENNEMI_DISABLE_NUMBA opts out of Numba. This variable will be
+#     respected for the foreseeable future, and is therefore the
+#     suggested way to disable Numba (aside from not installing it).
+from os import getenv
+
+if (getenv("ENNEMI_ENABLE_NUMBA") is None) or (getenv("ENNEMI_DISABLE_NUMBA") is not None):
+    raise ImportError("Numba disabled")
+
 from typing import Dict, Iterator, List, Tuple, Union
 import itertools
 import math
 import numpy as np
+
+from numba import jit, njit, typed, types
+from numba.experimental import jitclass
 
 
 def _estimate_single_entropy_1d(x: np.ndarray, k: int = 3) -> float:
@@ -181,6 +195,7 @@ def _estimate_conditional_mi(x: np.ndarray, y: np.ndarray, cond: np.ndarray,
     return _psi(k) - np.mean(_psi(nxz) + _psi(nyz) - _psi(nz))
 
 
+@njit(cache=True)
 def _find_kth_neighbor_2d(k: int, grid: "_BoxGrid2D", cur_x: float, cur_y: float) -> float:
     # Start with the box containing the point. Then until we have found
     # enough neighbors, extend the rectangle to the most potential direction.
@@ -260,6 +275,7 @@ def _find_kth_neighbor_2d(k: int, grid: "_BoxGrid2D", cur_x: float, cur_y: float
     return eps
 
 
+@njit(cache=True)
 def _update_epsilon_2d(distances: np.ndarray, eps: float,
         cur_x: float, cur_y: float, box: "_Box2D") -> float:
     for (x, y) in box:
@@ -275,6 +291,7 @@ def _update_epsilon_2d(distances: np.ndarray, eps: float,
     return eps
 
 
+@njit(cache=True)
 def _count_within_1d(array: List[float], lower: float, upper: float) -> int:
     """Returns the number of elements between lower and upper (exclusive).
 
@@ -286,12 +303,44 @@ def _count_within_1d(array: List[float], lower: float, upper: float) -> int:
     # bisect_left gives insertion point BEFORE duplicates and bisect_right gives
     # insertion point AFTER duplicates. We can just check where the two limits
     # would be added and this gives us our range.
-    left = bisect.bisect_right(array, lower)
-    right = bisect.bisect_left(array, upper)
+    left = _bisect_right(array, lower)
+    right = _bisect_left(array, upper)
 
     # The interval is strictly between left and right
     # In case of duplicate entries it is possible that right < left
     return max(right - left, 0)
+
+
+@njit(cache=True)
+def _bisect_left(a : np.ndarray, x: float) -> int:
+    # This is a simplified version of the bisect.bisect_left method
+    # of the Python 3.6 standard library.
+    # This copy is needed for its @jit support
+
+    lo = 0
+    hi = len(a)
+
+    while lo < hi:
+        mid = (lo+hi)//2
+        if a[mid] < x: lo = mid+1
+        else: hi = mid
+    return lo
+
+
+@njit(cache=True)
+def _bisect_right(a: np.ndarray, x: float) -> int:
+    # This is a simplified version of the bisect.bisect_left method
+    # of the Python 3.6 standard library.
+    # This copy is needed for its @jit support
+    
+    lo = 0
+    hi = len(a)
+
+    while lo < hi:
+        mid = (lo+hi)//2
+        if x < a[mid]: hi = mid
+        else: lo = mid+1
+    return lo
 
 
 def _find_kth_neighbor_nd(k: int, grid: "_BoxGridND",
@@ -405,7 +454,16 @@ def _count_within_nd(grid: "_BoxGridND", center: np.ndarray, eps: float) -> int:
 #
 
 _Box2D = List[Tuple[float, float]]
+_Box2D_kty = types.Tuple([types.int64, types.int64])
+_Box2D_vty = types.Tuple([types.float64, types.float64])
+_Box2D_kvty = (_Box2D_kty, types.ListType(_Box2D_vty))
 
+@jitclass([
+    ("xy_boxes", types.int64),
+    ("boxes", types.DictType(*_Box2D_kvty)),
+    ("x_splits", types.float64[:]),
+    ("y_splits", types.float64[:])
+])
 class _BoxGrid2D:
     """A helper for accessing a two-dimensional space in smaller blocks."""
 
@@ -417,10 +475,10 @@ class _BoxGrid2D:
 
         # Store the boxes in a dictionary keyed by block coordinates
         self.xy_boxes = xy_boxes
-        self.boxes = {} # type: Dict[Tuple[int, int], _Box2D]
+        self.boxes = typed.Dict.empty(*_Box2D_kvty) # type: Dict[Tuple[int, int], List[Tuple[float, float]]] # TODO: FIXME
         for i in range(xy_boxes):
             for j in range(xy_boxes):
-                    self.boxes[(i,j)] = []
+                    self.boxes[(i,j)] = typed.List.empty_list(_Box2D_vty) # TODO: FIXME
 
         # Now the real initialization: first find the split points
         self.x_splits = np.sort(x)[0:len(x):split_size]
@@ -437,8 +495,8 @@ class _BoxGrid2D:
         # smaller than the coordinate. This is easy to get with bisect,
         # we just need to offset by one.
         # This algorithm is O(log n).
-        box_x = bisect.bisect(self.x_splits, x) - 1
-        box_y = bisect.bisect(self.y_splits, y) - 1
+        box_x = _bisect_right(self.x_splits, x) - 1
+        box_y = _bisect_right(self.y_splits, y) - 1
         return (box_x, box_y)
 
 
@@ -483,7 +541,7 @@ class _BoxGridND:
         coord = []
         point = np.atleast_1d(point)
         for i in range(self.ndim):
-            coord.append(bisect.bisect(self.splits[:,i], point[i]) - 1)
+            coord.append(_bisect_right(self.splits[:,i], point[i]) - 1)
         return tuple(coord)
 
 

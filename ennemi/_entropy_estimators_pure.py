@@ -1,7 +1,7 @@
 # MIT License - Copyright Petri Laarne and contributors
 # See the LICENSE.md file included in this source code package
 
-"""The estimator methods.
+"""The estimator methods, implemented in pure Python.
 
 Do not import this module directly.
 Use the `estimate_mi` method in the main ennemi module instead.

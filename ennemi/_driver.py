@@ -311,6 +311,8 @@ def _check_parameters(x: np.ndarray, y: Optional[np.ndarray], k: int,
     """Does most of parameter checking, but some is still left to _lagged_mi."""
     if k <= 0:
         raise ValueError("k must be greater than zero")
+    if not isinstance(k, int):
+        raise TypeError("k must be int")
 
     # Validate the array shapes and lengths
     if not 1 <= len(x.shape) <= 2:
@@ -473,6 +475,10 @@ def _lagged_mi(param_tuple: Tuple[np.ndarray, np.ndarray, int, int, int, int,
         raise ValueError("k must be smaller than number of observations (after lag and mask)")
     if np.isnan(xs).any() or np.isnan(ys).any():
         raise ValueError("input contains NaNs (after applying the mask)")
+
+    # Make sure that the array values are doubles, to keep Numba happy
+    xs = xs.astype(np.float64)
+    ys = ys.astype(np.float64)
     
     if cond is None:
         return _estimate_single_mi(xs, ys, k)
@@ -481,6 +487,7 @@ def _lagged_mi(param_tuple: Tuple[np.ndarray, np.ndarray, int, int, int, int,
         zs = cond[max_lag-cond_lag : len(cond)-cond_lag+min_lag]
         if mask is not None:
             zs = zs[mask_subset]
+        zs = zs.astype(np.float64)
 
         if np.isnan(zs).any():
             raise ValueError("input contains NaNs (after applying the mask)")
