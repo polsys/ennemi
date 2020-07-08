@@ -28,6 +28,7 @@ from numba import jit, njit, typed, types
 from numba.experimental import jitclass
 
 
+@njit(cache=True)
 def _estimate_single_entropy_1d(x: np.ndarray, k: int = 3) -> float:
     """Estimate the differential entropy of a one-dimensional random variable.
 
