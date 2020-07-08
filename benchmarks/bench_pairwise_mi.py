@@ -25,6 +25,14 @@ data = np.asarray([a, b, c, d]).T
 mi_bench = "pairwise_mi(data, k=3)"
 cmi_bench = "pairwise_mi(data, k=3, cond=e)"
 
+# Warm up so that possible JIT compilation does not show up in results
+print("Warming up...")
+warmup_uncond = timeit.repeat(mi_bench, setup, repeat=1, number=1, globals={"N":50})
+warmup_cond = timeit.repeat(cmi_bench, setup, repeat=1, number=1, globals={"N":50})
+print(f"Warm-up,  MI: {np.min(warmup_uncond):.3} s")
+print(f"Warm-up, CMI: {np.min(warmup_cond):.3} s")
+print()
+
 for (name, bench) in [ ("MI", mi_bench),
                        ("CMI", cmi_bench) ]:
     for n in [ 100, 400, 1600 ]:

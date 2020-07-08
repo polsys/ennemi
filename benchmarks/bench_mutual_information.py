@@ -24,6 +24,14 @@ data = np.asarray([a, b, c]).T
 cond2 = np.asarray([e, f]).T
 """
 
+# Warm up so that possible JIT compilation does not show up in results
+print("Warming up...")
+warmup_uncond = timeit.repeat("estimate_mi(a, b, k=3)", setup, repeat=1, number=1, globals={"N":50})
+warmup_cond = timeit.repeat("estimate_mi(a, b, k=3, cond=c)", setup, repeat=1, number=1, globals={"N":50})
+print(f"Warm-up,  MI: {np.min(warmup_uncond):.3} s")
+print(f"Warm-up, CMI: {np.min(warmup_cond):.3} s")
+print()
+
 mi_bench = "estimate_mi(d, data, lag=[-1, 0, 1, 2], k=3)"
 cmi_bench = "estimate_mi(d, data, lag=[-1, 0, 1, 2], k=3, cond=e)"
 cmi2_bench = "estimate_mi(d, data, lag=[-1, 0, 1, 2], k=3, cond=cond2)"

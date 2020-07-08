@@ -24,6 +24,14 @@ bench_4d = "estimate_entropy(data[:N,:], k=3, multidim=True)"
 bench_independent = "estimate_entropy(data[:N,:], k=3)"
 bench_cond = "estimate_entropy(data[:N,:3], k=3, cond=data[:N,3])"
 
+# Warm up so that possible JIT compilation does not show up in results
+print("Warming up...")
+warmup_1d = timeit.repeat(bench_1d, setup, repeat=1, number=1, globals={"N": 20})
+print(f"Warm-up, 1D: {np.min(warmup_1d):.3} s")
+warmup_4d = timeit.repeat(bench_4d, setup, repeat=1, number=1, globals={"N": 20})
+print(f"Warm-up, 4D: {np.min(warmup_1d):.3} s")
+print()
+
 for (name, bench) in [ ("1D", bench_1d),
                        ("4x1D", bench_independent),
                        ("4D", bench_4d),
