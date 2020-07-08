@@ -52,7 +52,7 @@ class TestPandasWorkflow(unittest.TestCase):
         # The correlation between temperature and wind direction is
         # increased by conditioning on DOY
         self.assertGreater(cond_doy.loc["Temperature", "WindDir"],
-            uncond.loc["Temperature", "WindDir"] + 0.1)
+            uncond.loc["Temperature", "WindDir"] + 0.05)
 
 
     def test_autocorrelation(self) -> None:
