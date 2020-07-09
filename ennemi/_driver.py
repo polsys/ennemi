@@ -106,8 +106,7 @@ def estimate_entropy(x: ArrayLike, *, k: int = 3, multidim: bool = False,
     # Validate the parameters
     if not 1 <= x_arr.ndim <= 2:
         raise ValueError("x must be one- or two-dimensional")
-    if k <= 0:
-        raise ValueError("k must be greater than zero")
+    _validate_k_type(k)
     if k >= x_arr.shape[0]:
         raise ValueError("k must be smaller than number of observations (after lag and mask)")
     if np.any(np.isnan(x_arr)):
@@ -309,8 +308,7 @@ def _estimate_mi(y: np.ndarray, x: np.ndarray, lag: np.ndarray, k: int,
 def _check_parameters(x: np.ndarray, y: Optional[np.ndarray], k: int,
         cond: Optional[np.ndarray], mask: Optional[np.ndarray]) -> None:
     """Does most of parameter checking, but some is still left to _lagged_mi."""
-    if k <= 0:
-        raise ValueError("k must be greater than zero")
+    _validate_k_type(k)
 
     # Validate the array shapes and lengths
     if not 1 <= len(x.shape) <= 2:
@@ -324,6 +322,12 @@ def _check_parameters(x: np.ndarray, y: Optional[np.ndarray], k: int,
     # Validate the mask and condition
     if mask is not None: _validate_mask(mask, x.shape[0])
     if cond is not None: _validate_cond(cond, x.shape[0])
+
+def _validate_k_type(k: int) -> None:
+    if not isinstance(k, int):
+        raise TypeError("k must be int")
+    if k <= 0:
+        raise ValueError("k must be greater than zero")
 
 def _validate_mask(mask: np.ndarray, input_len: int) -> None:
     if len(mask.shape) > 1:
