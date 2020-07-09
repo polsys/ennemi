@@ -10,6 +10,7 @@ import concurrent.futures
 from typing import List, Optional, Sequence, Tuple, TypeVar, Union
 import itertools
 import numpy as np
+from os import cpu_count
 import sys
 from ._entropy_estimators import _estimate_single_mi, _estimate_conditional_mi,\
     _estimate_single_entropy_1d, _estimate_single_entropy_nd
@@ -291,9 +292,12 @@ def _estimate_mi(y: np.ndarray, x: np.ndarray, lag: np.ndarray, k: int,
         params = map(lambda i: (x[:,i[1]], y, lag[i[0]], max_lag, min_lag, k, mask, cond, cond_lag[i[0]]), indices)
 
     # If there is benefit in doing so, and the user has not overridden the
-    # heuristic, execute the estimation in multiple parallel processes
+    # heuristic, execute the estimation in multiple parallel threads.
+    # Multithreading is fine, because the estimator code releases the
+    # Global Interpreter Lock for most of the time. Because the threads are
+    # CPU bound, we should use at most as many threads as there are cores.
     if _should_be_parallel(parallel, len(indices), len(y)):
-        with concurrent.futures.ProcessPoolExecutor() as executor:
+        with concurrent.futures.ThreadPoolExecutor(cpu_count(), "ennemi-work") as executor:
             conc_result = executor.map(_lagged_mi, params)
     else:
         conc_result = map(_lagged_mi, params)
@@ -423,7 +427,7 @@ def _pairwise_mi(data: np.ndarray, k: int, cond: Optional[np.ndarray],
 
     # Run the MI estimation for each pair, possibly in parallel
     if _should_be_parallel(parallel, len(indices), data.shape[0]):
-        with concurrent.futures.ProcessPoolExecutor() as executor:
+        with concurrent.futures.ThreadPoolExecutor(cpu_count(), "ennemi-work") as executor:
             conc_result = executor.map(_lagged_mi, params)
     else:
         conc_result = map(_lagged_mi, params)
@@ -446,10 +450,10 @@ def _should_be_parallel(parallel: Optional[str], num_cases: int, num_obs: int) -
     elif parallel is not None:
         raise ValueError("unrecognized value for parallel argument")
     else:
-        # As the user has not overridden the choice, use a heuristic
-        # TODO: In a many variables/lags, small N case, it may make sense to
-        #       use multiple processes, but batch the tasks
-        return num_cases > 1 and num_obs > 200
+        # As the user has not overridden the choice, use a heuristic.
+        # Because threads are cheap, we use the "always" mode except for
+        # very small tasks.
+        return num_cases >= 5 or num_obs > 1000
 
 
 def _lagged_mi(param_tuple: Tuple[np.ndarray, np.ndarray, int, int, int, int,
