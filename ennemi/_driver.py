@@ -7,7 +7,7 @@ Do not import this module directly, but rather import the main ennemi module.
 """
 
 import concurrent.futures
-from typing import List, Optional, Sequence, Tuple, TypeVar, Union
+from typing import Callable, Iterable, List, Optional, Sequence, Tuple, TypeVar, Union
 import itertools
 import numpy as np
 from os import cpu_count
@@ -17,6 +17,7 @@ from ._entropy_estimators import _estimate_single_mi, _estimate_conditional_mi,\
 
 ArrayLike = Union[List[float], List[Tuple[float, ...]], np.ndarray]
 GenArrayLike = TypeVar("GenArrayLike", List[float], List[Tuple[float, ...]], np.ndarray)
+T = TypeVar("T")
 
 def normalize_mi(mi: GenArrayLike) -> GenArrayLike:
     """Normalize mutual information values to the unit interval.
@@ -168,7 +169,7 @@ def estimate_mi(y: ArrayLike, x: ArrayLike,
                 cond_lag: Union[Sequence[int], np.ndarray, int] = 0,
                 mask: Optional[ArrayLike] = None,
                 normalize: bool = False,
-                parallel: Optional[str] = None) -> np.ndarray:
+                max_threads: Optional[int] = None) -> np.ndarray:
     """Estimate the mutual information between y and each x variable.
  
     Returns the estimated mutual information (in nats) for continuous
@@ -228,11 +229,9 @@ def estimate_mi(y: ArrayLike, x: ArrayLike,
     normalize : bool
         If True, the results will be normalized to correlation coefficient scale.
         Same as calling `normalize_mi` on the results.
-    parallel : str or None
-        Whether to run the estimation in multiple processes. If None (the default),
-        a heuristic will be used for the decision. If "always", the estimation
-        will be run on as many concurrent processes as there are processors.
-        If "disable", the combinations are estimated sequentially in the current process.
+    max_threads : int or None
+        The maximum number of threads to use for estimation.
+        If None (the default), the number of CPU cores is used.
     """
 
     # Convert parameters to consistent types
@@ -248,7 +247,7 @@ def estimate_mi(y: ArrayLike, x: ArrayLike,
     else: mask_arr = None
 
     # Check the parameters and run the estimation
-    result = _estimate_mi(y_arr, x_arr, lag_arr, k, cond_arr, cond_lag_arr, mask_arr, parallel)
+    result = _estimate_mi(y_arr, x_arr, lag_arr, k, cond_arr, cond_lag_arr, mask_arr, max_threads)
 
     # Normalize if requested
     if normalize:
@@ -265,7 +264,7 @@ def estimate_mi(y: ArrayLike, x: ArrayLike,
 
 def _estimate_mi(y: np.ndarray, x: np.ndarray, lag: np.ndarray, k: int,
         cond: Optional[np.ndarray], cond_lag: np.ndarray,
-        mask: Optional[np.ndarray], parallel: Optional[str]) -> np.ndarray:
+        mask: Optional[np.ndarray], max_threads: Optional[int]) -> np.ndarray:
     """This method is strongly typed, estimate_mi() does necessary conversion."""
 
     _check_parameters(x, y, k, cond, mask)
@@ -284,23 +283,16 @@ def _estimate_mi(y: np.ndarray, x: np.ndarray, lag: np.ndarray, k: int,
         _, nvar = x.shape
 
     # Create a list of all variable, time lag combinations
-    # The params map contains tuples for simpler passing into subprocess
+    # The params map contains tuples for simpler passing into worker function
     indices = list(itertools.product(range(len(lag)), range(nvar)))
     if x.ndim == 1:
-        params = map(lambda i: (x, y, lag[i[0]], max_lag, min_lag, k, mask, cond, cond_lag[i[0]]), indices)
+        params = list(map(lambda i: (x, y, lag[i[0]], max_lag, min_lag, k, mask, cond, cond_lag[i[0]]), indices))
     else:
-        params = map(lambda i: (x[:,i[1]], y, lag[i[0]], max_lag, min_lag, k, mask, cond, cond_lag[i[0]]), indices)
+        params = list(map(lambda i: (x[:,i[1]], y, lag[i[0]], max_lag, min_lag, k, mask, cond, cond_lag[i[0]]), indices))
 
-    # If there is benefit in doing so, and the user has not overridden the
-    # heuristic, execute the estimation in multiple parallel threads.
-    # Multithreading is fine, because the estimator code releases the
-    # Global Interpreter Lock for most of the time. Because the threads are
-    # CPU bound, we should use at most as many threads as there are cores.
-    if _should_be_parallel(parallel, len(indices), len(y)):
-        with concurrent.futures.ThreadPoolExecutor(cpu_count(), "ennemi-work") as executor:
-            conc_result = executor.map(_lagged_mi, params)
-    else:
-        conc_result = map(_lagged_mi, params)
+    # Run the estimation, possibly in parallel
+    time_factor = 1.0 # TODO
+    conc_result = _map_maybe_parallel(_lagged_mi, params, max_threads, len(y), time_factor)
     
     # Collect the results to a 2D array
     result = np.empty((len(lag), nvar))
@@ -349,7 +341,7 @@ def _validate_cond(cond: np.ndarray, input_len: int) -> None:
 
 
 def pairwise_mi(data: ArrayLike, *, k: int = 3, cond: Optional[ArrayLike] = None,
-    mask: Optional[ArrayLike] = None, parallel: Optional[str] = None,
+    mask: Optional[ArrayLike] = None, max_threads: Optional[int] = None,
     normalize: bool = False) -> np.ndarray:
     """Estimate the pairwise MI between each variable.
 
@@ -379,11 +371,9 @@ def pairwise_mi(data: ArrayLike, *, k: int = 3, cond: Optional[ArrayLike] = None
         this array must match the length of `data`.
     normalize: bool
         If True, the MI values will be normalized to correlation coefficient scale.
-    parallel : str or None
-        Whether to run the estimation in multiple processes. If None (the default),
-        a heuristic will be used for the decision. If "always", the estimation
-        will be run on as many concurrent processes as there are processors.
-        If "disable", the combinations are estimated sequentially in the current process.
+    max_threads : int or None
+        The maximum number of threads to use for estimation.
+        If None (the default), the number of CPU cores is used.
     """
     data_arr = np.asarray(data)
     if cond is not None: cond_arr = np.asarray(cond)
@@ -395,7 +385,7 @@ def pairwise_mi(data: ArrayLike, *, k: int = 3, cond: Optional[ArrayLike] = None
     if data_arr.ndim == 1 or data_arr.shape[1] == 1:
         return np.full((1,1), np.nan)
     
-    result = _pairwise_mi(data_arr, k, cond_arr, mask_arr, parallel)
+    result = _pairwise_mi(data_arr, k, cond_arr, mask_arr, max_threads)
 
     # Normalize if asked for
     if normalize:
@@ -410,11 +400,11 @@ def pairwise_mi(data: ArrayLike, *, k: int = 3, cond: Optional[ArrayLike] = None
 
 
 def _pairwise_mi(data: np.ndarray, k: int, cond: Optional[np.ndarray],
-    mask: Optional[np.ndarray], parallel: Optional[str]) -> np.ndarray:
+    mask: Optional[np.ndarray], max_threads: Optional[int]) -> np.ndarray:
     """Strongly typed pairwise MI. The data array is at least 2D."""
 
     _check_parameters(data, None, k, cond, mask)
-    nvar = data.shape[1]
+    nobs, nvar = data.shape
 
     # Create a list of variable pairs
     # By symmetry, it suffices to consider a triangular matrix
@@ -426,11 +416,8 @@ def _pairwise_mi(data: np.ndarray, k: int, cond: Optional[np.ndarray],
             params.append((data[:,i], data[:,j], 0, 0, 0, k, mask, cond, 0))
 
     # Run the MI estimation for each pair, possibly in parallel
-    if _should_be_parallel(parallel, len(indices), data.shape[0]):
-        with concurrent.futures.ThreadPoolExecutor(cpu_count(), "ennemi-work") as executor:
-            conc_result = executor.map(_lagged_mi, params)
-    else:
-        conc_result = map(_lagged_mi, params)
+    time_factor = 1.0 # TODO
+    conc_result = _map_maybe_parallel(_lagged_mi, params, max_threads, nobs, time_factor)
 
     # Collect the results, creating a symmetric matrix now
     result = np.full((nvar, nvar), np.nan)
@@ -440,20 +427,28 @@ def _pairwise_mi(data: np.ndarray, k: int, cond: Optional[np.ndarray],
     
     return result
 
+def _map_maybe_parallel(func: Callable[[T], float], params: List[T],
+    max_threads: Optional[int], n: int, time_factor: float) -> Iterable[float]:
+    # If there is benefit in doing so, and the user has not overridden the
+    # heuristic, execute the estimation in multiple parallel threads.
+    # Multithreading is fine, because the estimator code releases the
+    # Global Interpreter Lock for most of the time. Because the threads are
+    # CPU bound, we should use at most as many threads as there are cores.
 
-def _should_be_parallel(parallel: Optional[str], num_cases: int, num_obs: int) -> bool:
-    # Check whether the user has forced a certain parallel mode
-    if parallel == "always":
-        return True
-    elif parallel == "disable":
-        return False
-    elif parallel is not None:
-        raise ValueError("unrecognized value for parallel argument")
+    # If the total execution time is very small, do not bother with threading
+    if len(params) * n * time_factor < 0.2:
+        num_threads = 1
     else:
-        # As the user has not overridden the choice, use a heuristic.
-        # Because threads are cheap, we use the "always" mode except for
-        # very small tasks.
-        return num_cases >= 5 or num_obs > 1000
+        num_threads = cpu_count() or 1
+
+    if max_threads is not None:
+        num_threads = min(num_threads, max_threads)
+
+    if num_threads > 1:
+        with concurrent.futures.ThreadPoolExecutor(num_threads, "ennemi-work") as executor:
+            return executor.map(func, params)
+    else:
+        return map(func, params)
 
 
 def _lagged_mi(param_tuple: Tuple[np.ndarray, np.ndarray, int, int, int, int,
