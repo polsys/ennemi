@@ -385,13 +385,6 @@ class TestEstimateMi(unittest.TestCase):
             estimate_mi(y, x, mask=mask)
         self.assertEqual(str(cm.exception), INVALID_MASK_TYPE_MSG)
 
-    def test_unknown_parallel_parameter(self) -> None:
-        x = [1, 2, 3, 4]
-        y = [5, 6, 7, 8]
-
-        with self.assertRaises(ValueError):
-            estimate_mi(y, x, parallel="whatever")
-
     def test_two_covariates_without_lag(self) -> None:
         rng = np.random.default_rng(0)
         x1 = rng.uniform(0, 1, 100)
@@ -486,10 +479,9 @@ class TestEstimateMi(unittest.TestCase):
         data_path = os.path.join(script_path, "example_data.csv")
         data = np.loadtxt(data_path, delimiter=",", skiprows=1)
 
-        parallel_modes = [ None, "always", "disable" ]
-        for parallel in parallel_modes:
-            with self.subTest(parallel=parallel):
-                actual = estimate_mi(data[:,0], data[:,1:4], lag=[0, 1, 3], parallel=parallel)
+        for max_threads in [ None, 1, 2 ]:
+            with self.subTest(max_threads=max_threads):
+                actual = estimate_mi(data[:,0], data[:,1:4], lag=[0, 1, 3], max_threads=max_threads)
 
                 # The returned object is a plain ndarray
                 self.assertIsInstance(actual, np.ndarray)
