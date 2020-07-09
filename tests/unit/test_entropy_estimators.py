@@ -105,7 +105,7 @@ class TestEstimateSingleMi(unittest.TestCase):
 
     def test_bivariate_gaussian(self) -> None:
         cases = [ (0, 40, 3, 0.1),
-                  (0, 200, 3, 0.05),
+                  (0, 200, 3, 0.06),
                   (0, 2000, 3, 0.005),
                   (0, 2000, 5, 0.006),
                   (0, 2000, 20, 0.003),

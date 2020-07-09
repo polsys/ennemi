@@ -47,8 +47,8 @@ setup(
     package_data = { "ennemi": ["py.typed"] },
     python_requires = "~=3.6",
     # At least pandas requires numpy 1.17.3+ (security fixes), we should too
-    install_requires = [ "numpy>=1.17.5", "numpy<2.0" ],
+    install_requires = [ "numpy>=1.17.5", "numpy<2.0", "scipy~=1.4" ],
     extras_require = {
-        "dev": ["scipy~=1.4", "pandas~=1.0", "pytest~=5.4", "mypy~=0.770"]
+        "dev": [ "pandas~=1.0", "pytest~=5.4", "mypy~=0.770" ]
     }
 )
