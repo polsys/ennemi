@@ -8,8 +8,7 @@ from math import log
 import numpy as np
 from scipy.special import gamma, psi
 import unittest
-from ennemi._entropy_estimators import _estimate_single_entropy_1d,\
-    _estimate_single_entropy_nd,\
+from ennemi._entropy_estimators import _estimate_single_entropy,\
     _estimate_single_mi, _estimate_conditional_mi
 
 
@@ -28,7 +27,7 @@ class TestEstimateSingleEntropy(unittest.TestCase):
                 rng = np.random.default_rng(0)
                 x = rng.normal(0, sd, size=n)
 
-                actual = _estimate_single_entropy_1d(x, k=k)
+                actual = _estimate_single_entropy(x, k=k)
                 expected = 0.5 * log(2 * math.pi * math.e * sd**2)
                 self.assertAlmostEqual(actual, expected, delta=delta)
 
@@ -42,7 +41,7 @@ class TestEstimateSingleEntropy(unittest.TestCase):
                 rng = np.random.default_rng(1)
                 x = rng.uniform(a, b, size=n)
 
-                actual = _estimate_single_entropy_1d(x, k=k)
+                actual = _estimate_single_entropy(x, k=k)
                 expected = log(b - a)
                 self.assertAlmostEqual(actual, expected, delta=delta)
 
@@ -61,7 +60,7 @@ class TestEstimateSingleEntropy(unittest.TestCase):
                 cov = np.array([[var1, rho], [rho, 1]])
                 data = rng.multivariate_normal([0, 0], cov, size=n)
 
-                actual = _estimate_single_entropy_nd(data, k=k)
+                actual = _estimate_single_entropy(data, k=k)
                 expected = 0.5 * log(np.linalg.det(2 * math.pi * math.e * cov))
                 self.assertAlmostEqual(actual, expected, delta=delta)
 
@@ -74,7 +73,7 @@ class TestEstimateSingleEntropy(unittest.TestCase):
             [-0.2, -0.5, -0.1,  0.5]])
         data = rng.multivariate_normal([0, 0, 0, 0], cov, size=2000)
 
-        actual = _estimate_single_entropy_nd(data, k=3)
+        actual = _estimate_single_entropy(data, k=3)
         expected = 0.5 * log(np.linalg.det(2 * math.pi * math.e * cov))
         self.assertAlmostEqual(actual, expected, delta=0.05)
 
@@ -92,8 +91,8 @@ class TestEstimateSingleEntropy(unittest.TestCase):
         x2 = rng.exponential(x1 * t)
         data = np.asarray([x1, x2]).T
 
-        raw = _estimate_single_entropy_nd(data)
-        trans = _estimate_single_entropy_nd(np.log(data))
+        raw = _estimate_single_entropy(data)
+        trans = _estimate_single_entropy(np.log(data))
 
         # The estimate with unlogarithmed data is very bad
         expected = 1 + s - s*psi(s) + log(gamma(s)) - log(t)
