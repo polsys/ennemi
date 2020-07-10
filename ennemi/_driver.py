@@ -14,7 +14,7 @@ import numpy as np
 from os import cpu_count
 import sys
 from ._entropy_estimators import _estimate_single_mi, _estimate_conditional_mi,\
-    _estimate_single_entropy_1d, _estimate_single_entropy_nd
+    _estimate_single_entropy
 
 ArrayLike = Union[List[float], List[Tuple[float, ...]], np.ndarray]
 GenArrayLike = TypeVar("GenArrayLike", List[float], List[Tuple[float, ...]], np.ndarray)
@@ -137,12 +137,12 @@ def _estimate_entropy(x: np.ndarray, k: int, multidim: bool) -> np.ndarray:
     """Strongly typed estimate_entropy()."""
 
     if multidim and x.ndim > 1:
-        return np.asarray(_estimate_single_entropy_nd(x, k))
+        return np.asarray(_estimate_single_entropy(x, k))
     elif x.ndim == 1:
-        return np.asarray(_estimate_single_entropy_1d(x, k))
+        return np.asarray(_estimate_single_entropy(x, k))
     else:
         nvar = x.shape[1]
-        return np.asarray([_estimate_single_entropy_1d(x[:,i], k) for i in range(nvar)])
+        return np.asarray([_estimate_single_entropy(x[:,i], k) for i in range(nvar)])
 
 
 def _estimate_conditional_entropy(x: np.ndarray, cond: np.ndarray, k: int, multidim: bool) -> np.ndarray:
@@ -154,12 +154,12 @@ def _estimate_conditional_entropy(x: np.ndarray, cond: np.ndarray, k: int, multi
     # The joint entropy depends on multidim and number of dimensions:
     # In the latter case, the joint entropy is calculated for each x variable
     if multidim or x.ndim == 1:
-        joint = _estimate_single_entropy_nd(np.column_stack((x, cond)), k)
+        joint = _estimate_single_entropy(np.column_stack((x, cond)), k)
         return np.asarray(joint - marginal)
     else:
         nvar = x.shape[1]
         joint = np.asarray(
-            [_estimate_single_entropy_nd(np.column_stack((x[:,i], cond)), k) for i in range(nvar)])
+            [_estimate_single_entropy(np.column_stack((x[:,i], cond)), k) for i in range(nvar)])
         return joint - marginal
 
 
