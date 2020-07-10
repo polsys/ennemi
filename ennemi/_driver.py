@@ -9,6 +9,7 @@ Do not import this module directly, but rather import the main ennemi module.
 import concurrent.futures
 from typing import Callable, Iterable, List, Optional, Sequence, Tuple, TypeVar, Union
 import itertools
+import math
 import numpy as np
 from os import cpu_count
 import sys
@@ -291,8 +292,8 @@ def _estimate_mi(y: np.ndarray, x: np.ndarray, lag: np.ndarray, k: int,
         params = list(map(lambda i: (x[:,i[1]], y, lag[i[0]], max_lag, min_lag, k, mask, cond, cond_lag[i[0]]), indices))
 
     # Run the estimation, possibly in parallel
-    time_factor = 1.0 # TODO
-    conc_result = _map_maybe_parallel(_lagged_mi, params, max_threads, len(y), time_factor)
+    time_estimate = _get_mi_time_estimate(len(y), cond, k)
+    conc_result = _map_maybe_parallel(_lagged_mi, params, max_threads, time_estimate)
     
     # Collect the results to a 2D array
     result = np.empty((len(lag), nvar))
@@ -416,8 +417,8 @@ def _pairwise_mi(data: np.ndarray, k: int, cond: Optional[np.ndarray],
             params.append((data[:,i], data[:,j], 0, 0, 0, k, mask, cond, 0))
 
     # Run the MI estimation for each pair, possibly in parallel
-    time_factor = 1.0 # TODO
-    conc_result = _map_maybe_parallel(_lagged_mi, params, max_threads, nobs, time_factor)
+    time_estimate = _get_mi_time_estimate(nobs, cond, k)
+    conc_result = _map_maybe_parallel(_lagged_mi, params, max_threads, time_estimate)
 
     # Collect the results, creating a symmetric matrix now
     result = np.full((nvar, nvar), np.nan)
@@ -427,8 +428,20 @@ def _pairwise_mi(data: np.ndarray, k: int, cond: Optional[np.ndarray],
     
     return result
 
+
+def _get_mi_time_estimate(n: int, cond: Optional[np.ndarray], k: int) -> float:
+    if cond is None:
+        n_cond = 0
+    elif cond.ndim == 1:
+        n_cond = 1
+    else:
+        n_cond = cond.shape[1]
+
+    # These are determined pretty experimentally on a laptop computer
+    return n**(1.0 + 0.05*n_cond) * (0.9 + 0.1*math.sqrt(k)) * 1e-5
+
 def _map_maybe_parallel(func: Callable[[T], float], params: List[T],
-    max_threads: Optional[int], n: int, time_factor: float) -> Iterable[float]:
+    max_threads: Optional[int], time_estimate: float) -> Iterable[float]:
     # If there is benefit in doing so, and the user has not overridden the
     # heuristic, execute the estimation in multiple parallel threads.
     # Multithreading is fine, because the estimator code releases the
@@ -436,7 +449,7 @@ def _map_maybe_parallel(func: Callable[[T], float], params: List[T],
     # CPU bound, we should use at most as many threads as there are cores.
 
     # If the total execution time is very small, do not bother with threading
-    if len(params) * n * time_factor < 0.2:
+    if len(params) * time_estimate < 0.2:
         num_threads = 1
     else:
         num_threads = cpu_count() or 1
