@@ -70,7 +70,7 @@ MI: [[0.41807897]]
 ```
 a better approximation of the true value.
 This is still an approximation, as the true distribution is non-continuous,
-but in many cases the value is close to the theoretical result ($\approx 0.425$).
+but in many cases the value is close to the theoretical result (here $\approx 0.425$).
 The computation involves the more general theory of Lebesgue integral.
 
 
@@ -117,6 +117,8 @@ Running the code outputs
 
 This demonstrates that you should normalize all variables before running
 the estimation.
+Entropy is not transformation-invariant, and therefore this guidance
+does not apply to `estimate_entropy()`.
 
 
 
@@ -183,16 +185,23 @@ Can you reduce the sampling frequency so that the autocorrelation is smaller?
 
 
 
-## Improving performance
-Even though `ennemi` uses good algorithms (in terms of asymptotic performance),
-it is not designed for high-performance computing.
-The library is implemented in Python (for easy portability)
-and can use efficient NumPy methods only to some extent.
-If you need absolutely highest performance, you should look at alternative
-libraries or implement your own in a compiled, vectorized language.
+## High MI values
+As noted by [Gao et al. (2015)](http://proceedings.mlr.press/v38/gao15.pdf),
+the nearest-neighbor estimation method is not accurate when the variables
+are strongly dependent; roughly, this means MI values above 1.5.
+They also present a correction term.
 
-That being said, `ennemi` is fairly fast for reasonable problem sizes,
-and here are some tips to get the most out of your resources.
+Because the primary goal of `ennemi` is general correlation detection,
+and the affected MI values are equivalent to correlation coefficients
+above 0.97, we do not consider this issue to be severe.
+
+
+
+## Improving performance
+`ennemi` uses fast, compiled algorithms from the NumPy and SciPy packages.
+This makes the estimation performance good, while letting you write
+simple and portable Python code.
+There are still some things to keep in mind to get the most out of your resources.
 
 
 ### Basics
@@ -207,9 +216,7 @@ and here are some tips to get the most out of your resources.
 ### Parallelize the calculation
 If you call `estimate_mi()` with several variables and/or time lags,
 the calculation will be split into as many concurrent tasks
-as you have processor cores.
-With a four-core processor, you may expect the run time to be cut in half.
-(There is some overhead from starting new Python processes and copying the data.)
+as you have processor cores (except if the tasks are very small).
 
 This means that instead of writing
 ```python
@@ -222,3 +229,20 @@ you should write
 ```python
 estimate_mi(y, data, all_the_lags)
 ```
+
+Similarly, you should use `pairwise_mi` when you want to calculate,
+well, the pairwise MI between variables.
+The calculation is parallelized and utilizes the symmetry of MI.
+
+If you have only some processor cores available for Python,
+you can override the `max_threads` parameter.
+You should not pass a value greater than the number of cores;
+the additional threads will not make the estimation faster,
+but only increase the overhead of switching between threads.
+
+If you pass the `callback` parameter, make sure that the callback returns quickly.
+Only one thread of Python code can run at a time, for consistency reasons.
+The heavy computation is done in compiled code that can run simultaneously,
+but some steps are done in Python.
+Time spent in a callback is not only time spent not calculating,
+but also competes of the Global Interpreter Lock with other threads.
