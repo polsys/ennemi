@@ -27,6 +27,6 @@ cmi_bench = "pairwise_mi(data, k=3, cond=e)"
 
 for (name, bench) in [ ("MI", mi_bench),
                        ("CMI", cmi_bench) ]:
-    for n in [ 100, 400, 1600 ]:
+    for n in [ 100, 400, 1600, 6400 ]:
         res = timeit.repeat(bench, setup, repeat=5, number=1, globals={"N": n})
         print(f"{name:<3}, N={n:<4}: min={np.min(res):<6.3} s, mean={np.mean(res):<6.3} s")
