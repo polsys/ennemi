@@ -394,9 +394,9 @@ class TestEstimateMi(unittest.TestCase):
         actual = estimate_mi(y, np.array([x1, x2]).T)
 
         self.assertEqual(actual.shape, (1, 2))
-        # The first x component is almost equal to y and has entropy ~ exp(1),
+        # The first x component is almost equal to y,
         # while the second x component is independent
-        self.assertAlmostEqual(actual[0,0], math.exp(1), delta=0.1)
+        self.assertGreaterEqual(actual[0,0], 2.5)
         self.assertAlmostEqual(actual[0,1], 0, delta=0.02)
 
     def test_one_variable_with_no_lag(self) -> None:
@@ -406,8 +406,8 @@ class TestEstimateMi(unittest.TestCase):
         actual = estimate_mi(xy, xy, lag=[0, 1, -1])
 
         self.assertEqual(actual.shape, (3, 1))
-        # As above, entropy of xy is exp(1), and values are independent.
-        self.assertAlmostEqual(actual[0,0], math.exp(1), delta=0.02)
+        # As above, MI of xy with itself is high, but successive values are independent
+        self.assertGreaterEqual(actual[0,0], 2.5)
         self.assertAlmostEqual(actual[1,0], 0, delta=0.1)
         self.assertAlmostEqual(actual[2,0], 0, delta=0.1)
 
@@ -421,7 +421,7 @@ class TestEstimateMi(unittest.TestCase):
 
         self.assertEqual(actual.shape, (3, 1))
         self.assertAlmostEqual(actual[0,0], 0, delta=0.1)
-        self.assertAlmostEqual(actual[1,0], math.exp(1), delta=0.02)
+        self.assertGreaterEqual(actual[1,0], 2.5)
         self.assertAlmostEqual(actual[2,0], 0, delta=0.1)
         self.assertAlmostEqual(actual[2,0], 0, delta=0.1)
 
@@ -435,7 +435,7 @@ class TestEstimateMi(unittest.TestCase):
         actual = estimate_mi(y, x, lag=np.asarray(1))
 
         self.assertEqual(actual.shape, (1, 1))
-        self.assertAlmostEqual(actual[0,0], math.exp(1), delta=0.02)
+        self.assertGreaterEqual(actual[0,0], 2.5)
 
     def test_one_variable_with_lead(self) -> None:
         rng = np.random.default_rng(1)
@@ -554,10 +554,11 @@ class TestEstimateMi(unittest.TestCase):
         mask = np.full(1000, True)
         mask[150:450] = False
 
-        # Sanity check: the unmasked estimation is incorrect
+        # The unmasked estimation is clearly incorrect
         unmasked = estimate_mi(y, x, mask=None)
         self.assertLess(unmasked, 0.4)
 
+        # Constraining to the correct dataset produces correct results
         expected = -0.5 * math.log(1 - 0.8**2)
         masked = estimate_mi(y, x, mask=mask)
         self.assertAlmostEqual(masked, expected, delta=0.03)
@@ -598,7 +599,7 @@ class TestEstimateMi(unittest.TestCase):
         z = x[0:800] + rng.normal(0, 0.001, size=800)
         x = x[2:802]
 
-        # As a sanity check, test the non-conditional MI
+        # As a consistency check, the non-conditional MI should be large
         noncond = estimate_mi(z, y, k=5, lag=1)
         self.assertGreater(noncond, 1)
 
