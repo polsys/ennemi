@@ -170,7 +170,8 @@ def estimate_mi(y: ArrayLike, x: ArrayLike,
                 cond_lag: Union[Sequence[int], np.ndarray, int] = 0,
                 mask: Optional[ArrayLike] = None,
                 normalize: bool = False,
-                max_threads: Optional[int] = None) -> np.ndarray:
+                max_threads: Optional[int] = None,
+                callback: Optional[Callable[[int, int], None]] = None) -> np.ndarray:
     """Estimate the mutual information between y and each x variable.
  
     Returns the estimated mutual information (in nats) for continuous
@@ -233,6 +234,11 @@ def estimate_mi(y: ArrayLike, x: ArrayLike,
     max_threads : int or None
         The maximum number of threads to use for estimation.
         If None (the default), the number of CPU cores is used.
+    callback : method or None:
+        A method to call when each estimation task is completed. The method
+        must take two integer parameters: `x` variable index and lag value.
+        This method should be very short. Because Python code is not executed
+        concurrently, the callback may block other tasks from proceeding.
     """
 
     # Convert parameters to consistent types
@@ -248,7 +254,8 @@ def estimate_mi(y: ArrayLike, x: ArrayLike,
     else: mask_arr = None
 
     # Check the parameters and run the estimation
-    result = _estimate_mi(y_arr, x_arr, lag_arr, k, cond_arr, cond_lag_arr, mask_arr, max_threads)
+    result = _estimate_mi(y_arr, x_arr, lag_arr, k, cond_arr,
+        cond_lag_arr, mask_arr, max_threads, callback)
 
     # Normalize if requested
     if normalize:
@@ -265,7 +272,8 @@ def estimate_mi(y: ArrayLike, x: ArrayLike,
 
 def _estimate_mi(y: np.ndarray, x: np.ndarray, lag: np.ndarray, k: int,
         cond: Optional[np.ndarray], cond_lag: np.ndarray,
-        mask: Optional[np.ndarray], max_threads: Optional[int]) -> np.ndarray:
+        mask: Optional[np.ndarray], max_threads: Optional[int],
+        callback: Optional[Callable[[int, int], None]]) -> np.ndarray:
     """This method is strongly typed, estimate_mi() does necessary conversion."""
 
     _check_parameters(x, y, k, cond, mask)
@@ -292,8 +300,13 @@ def _estimate_mi(y: np.ndarray, x: np.ndarray, lag: np.ndarray, k: int,
         params = list(map(lambda i: (x[:,i[1]], y, lag[i[0]], max_lag, min_lag, k, mask, cond, cond_lag[i[0]]), indices))
 
     # Run the estimation, possibly in parallel
+    def wrapped_callback(i: int) -> None:
+        if callback is not None:
+            lag_index, var_index = indices[i]
+            callback(var_index, lag[lag_index])
+    
     time_estimate = _get_mi_time_estimate(len(y), cond, k)
-    conc_result = _map_maybe_parallel(_lagged_mi, params, max_threads, time_estimate)
+    conc_result = _map_maybe_parallel(_lagged_mi, params, max_threads, time_estimate, wrapped_callback)
     
     # Collect the results to a 2D array
     result = np.empty((len(lag), nvar))
@@ -343,7 +356,8 @@ def _validate_cond(cond: np.ndarray, input_len: int) -> None:
 
 def pairwise_mi(data: ArrayLike, *, k: int = 3, cond: Optional[ArrayLike] = None,
     mask: Optional[ArrayLike] = None, max_threads: Optional[int] = None,
-    normalize: bool = False) -> np.ndarray:
+    normalize: bool = False,
+    callback: Optional[Callable[[int, int], None]] = None) -> np.ndarray:
     """Estimate the pairwise MI between each variable.
 
     Returns a matrix where the (i,j)'th element is the mutual information
@@ -375,6 +389,11 @@ def pairwise_mi(data: ArrayLike, *, k: int = 3, cond: Optional[ArrayLike] = None
     max_threads : int or None
         The maximum number of threads to use for estimation.
         If None (the default), the number of CPU cores is used.
+    callback : method or None:
+        A method to call when each estimation task is completed. The method
+        must take two integer parameters, representing the variable indices.
+        This method should be very short. Because Python code is not executed
+        concurrently, the callback may block other tasks from proceeding.
     """
     data_arr = np.asarray(data)
     if cond is not None: cond_arr = np.asarray(cond)
@@ -386,7 +405,7 @@ def pairwise_mi(data: ArrayLike, *, k: int = 3, cond: Optional[ArrayLike] = None
     if data_arr.ndim == 1 or data_arr.shape[1] == 1:
         return np.full((1,1), np.nan)
     
-    result = _pairwise_mi(data_arr, k, cond_arr, mask_arr, max_threads)
+    result = _pairwise_mi(data_arr, k, cond_arr, mask_arr, max_threads, callback)
 
     # Normalize if asked for
     if normalize:
@@ -401,7 +420,8 @@ def pairwise_mi(data: ArrayLike, *, k: int = 3, cond: Optional[ArrayLike] = None
 
 
 def _pairwise_mi(data: np.ndarray, k: int, cond: Optional[np.ndarray],
-    mask: Optional[np.ndarray], max_threads: Optional[int]) -> np.ndarray:
+    mask: Optional[np.ndarray], max_threads: Optional[int],
+    callback: Optional[Callable[[int, int], None]]) -> np.ndarray:
     """Strongly typed pairwise MI. The data array is at least 2D."""
 
     _check_parameters(data, None, k, cond, mask)
@@ -417,8 +437,12 @@ def _pairwise_mi(data: np.ndarray, k: int, cond: Optional[np.ndarray],
             params.append((data[:,i], data[:,j], 0, 0, 0, k, mask, cond, 0))
 
     # Run the MI estimation for each pair, possibly in parallel
+    def wrapped_callback(i: int) -> None:
+        if callback is not None:
+            callback(*indices[i])
+
     time_estimate = _get_mi_time_estimate(nobs, cond, k)
-    conc_result = _map_maybe_parallel(_lagged_mi, params, max_threads, time_estimate)
+    conc_result = _map_maybe_parallel(_lagged_mi, params, max_threads, time_estimate, wrapped_callback)
 
     # Collect the results, creating a symmetric matrix now
     result = np.full((nvar, nvar), np.nan)
@@ -441,7 +465,8 @@ def _get_mi_time_estimate(n: int, cond: Optional[np.ndarray], k: int) -> float:
     return n**(1.0 + 0.05*n_cond) * (0.9 + 0.1*math.sqrt(k)) * 1e-5
 
 def _map_maybe_parallel(func: Callable[[T], float], params: List[T],
-    max_threads: Optional[int], time_estimate: float) -> Iterable[float]:
+    max_threads: Optional[int], time_estimate: float,
+    callback: Callable[[int], None]) -> Iterable[float]:
     # If there is benefit in doing so, and the user has not overridden the
     # heuristic, execute the estimation in multiple parallel threads.
     # Multithreading is fine, because the estimator code releases the
@@ -458,10 +483,37 @@ def _map_maybe_parallel(func: Callable[[T], float], params: List[T],
         num_threads = min(num_threads, max_threads)
 
     if num_threads > 1:
+        # Submit the individual tasks to thread pool
+        result = [ np.nan ] * len(params)
         with concurrent.futures.ThreadPoolExecutor(num_threads, "ennemi-work") as executor:
-            return executor.map(func, params)
+            tasks = []
+
+            # Do some work that would be done by executor.map() so that we can
+            # implement callbacks. The result list must be in the same order
+            # as the params list.
+            # Type comments because type info for Future comes from typeshed;
+            # the class itself is not subscriptable
+            def get_callback(i): # type: (int) -> Callable[[concurrent.futures.Future[float]], None]
+                def done(future): # type: (concurrent.futures.Future[float]) -> None
+                    result[i] = future.result()
+                    callback(i)
+                return done
+            
+            for (i, p) in enumerate(params):
+                task = executor.submit(func, p)
+                task.add_done_callback(get_callback(i))
+                tasks.append(task)
+
+            concurrent.futures.wait(tasks)
+        return result
     else:
-        return map(func, params)
+        # Run the tasks sequentially
+        # To support callbacks, we reimplement map() here too
+        result = []
+        for (i, p) in enumerate(params):
+            result.append(func(p))
+            callback(i)
+        return result
 
 
 def _lagged_mi(param_tuple: Tuple[np.ndarray, np.ndarray, int, int, int, int,

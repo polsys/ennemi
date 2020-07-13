@@ -722,6 +722,34 @@ class TestEstimateMi(unittest.TestCase):
         self.assertAlmostEqual(result, 0.6, delta=0.02)
 
 
+    def test_callback_on_single_task(self) -> None:
+        callback_results = []
+        def callback(var_index: int, lag: int) -> None:
+            callback_results.append((var_index, lag))
+
+        _ = estimate_mi([1, 2, 3, 4, 5, 6, 7], [2, 3, 4, 5, 6, 7, 8], callback=callback)
+
+        self.assertEqual(len(callback_results), 1)
+        self.assertIn((0, 0), callback_results)
+
+    def test_callback_on_many_tasks(self) -> None:
+        # Use larger N to force multithreading
+        for N in [100, 3000]:
+            with self.subTest(N=N):
+                callback_results = []
+                def callback(var_index: int, lag: int) -> None:
+                    callback_results.append((var_index, lag))
+
+                rng = np.random.default_rng(18)
+                data = rng.multivariate_normal([0] * 11, np.eye(11), N)
+
+                _ = estimate_mi(data[:,0], data[:,1:], lag=[7, -3, 2], callback=callback)
+
+                self.assertEqual(len(callback_results), 30)
+                for (i, lag) in product(range(10), [7, -3, 2]):
+                    self.assertIn((i, lag), callback_results)
+
+
 class TestNormalizeMi(unittest.TestCase):
 
     def test_correct_values(self) -> None:
@@ -898,3 +926,23 @@ class TestPairwiseMi(unittest.TestCase):
         self.assertTrue(np.isnan(result[1,1]))
         self.assertAlmostEqual(result[0,1], 0.6, delta=0.05)
         self.assertAlmostEqual(result[0,1], 0.6, delta=0.05)
+
+    def test_callback(self) -> None:
+        # Use larger N to force multithreading
+        for N in [100, 3000]:
+            with self.subTest(N=N):
+                callback_results = []
+                def callback(i: int, j: int) -> None:
+                    callback_results.append((i, j))
+
+                rng = np.random.default_rng(105)
+                data = rng.multivariate_normal([0] * 10, np.eye(10), N)
+
+                _ = pairwise_mi(data, callback=callback)
+
+                self.assertEqual(len(callback_results), 10*9 / 2)
+                for (i, j) in product(range(10), range(10)):
+                    if i < j:
+                        self.assertIn((i, j), callback_results)
+                    else:
+                        self.assertNotIn((i, j), callback_results)
