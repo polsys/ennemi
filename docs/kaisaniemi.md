@@ -118,7 +118,7 @@ plt.show()
 ![Now the day of year correlations are zero and most other correlations reduced.
 There remain correlations between temperature, dew point and wind direction.](casestudy_pairwise_doy.png)
 
-As a sanity check, the correlations with day of year are now zero.
+As a consistency check, the correlations with day of year are now zero.
 (With unscaled data, there would actually remain quite significant noise.)
 The correlation between air pressure and temperature is now weaker,
 suggesting that it was partly caused by seasonal cycles of the two variables.
