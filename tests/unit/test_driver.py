@@ -752,6 +752,28 @@ class TestEstimateMi(unittest.TestCase):
         mi = estimate_mi(y, x, discrete_y=True)
         self.assertAlmostEqual(mi, math.log(2), delta=0.02)
 
+    def test_discrete_y_with_condition(self) -> None:
+        # With X,Y,Z normal, W their sum and S = sign(X),
+        # we should have I(S;W) < I(S;W|Y) < I(S;W|Y,Z) = I(S;X) = H(S).
+        rng = np.random.default_rng(53)
+        x = rng.normal(0.0, 1.0, size=3000)
+        y = rng.normal(0.0, 0.5, size=3000)
+        z = rng.normal(0.0, 0.3, size=3000)
+        w = x + y + z
+        s = np.sign(x)
+
+        mi0 = estimate_mi(s, w, discrete_y=True)
+        mi1 = estimate_mi(s, w, discrete_y=True, cond=y)
+        mi2 = estimate_mi(s, w, discrete_y=True, cond=np.column_stack((y,z)))
+
+        self.assertAlmostEqual(mi2, math.log(2), delta=0.04)
+        self.assertGreater(mi2, mi1 + 0.15)
+        self.assertGreater(mi1, mi0 + 0.1)
+
+        # There should also be a warning for misplaced x and y
+        with self.assertWarns(UserWarning):
+            _ = estimate_mi(x, s, cond=z, discrete_y=True)
+
 
     def test_normalization(self) -> None:
         rng = np.random.default_rng(17)

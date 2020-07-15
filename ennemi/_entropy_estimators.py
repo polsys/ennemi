@@ -170,6 +170,55 @@ def _estimate_semidiscrete_mi(x: np.ndarray, y: np.ndarray, k: int = 3) -> float
     return _psi(N) + _psi(k) - np.mean(_psi(n_full)) - weighted_y_counts_mean
 
 
+def _estimate_conditional_semidiscrete_mi(x: np.ndarray, y: np.ndarray, cond: np.ndarray, 
+        k: int = 3) -> float:
+    """Estimate conditional MI between discrete y and continuous x and cond.
+
+    This is an adaptation of the CMI algorithm with the 
+    discrete-continuous distance metric.
+    """
+
+    # Ensure that cond is 2-dimensional
+    N = len(y)
+    cond = np.column_stack((cond,))
+
+    # Find the unique values of y
+    y_values = np.unique(y)
+    
+    if len(y_values) > N / 4:
+        warn("The discrete variable has relatively many unique values." +
+            " Did you pass y and x in correct order?", UserWarning)
+
+    # First, create N-dimensional trees for variables
+    # The full space is partitioned according to y levels
+    xz = np.column_stack((x, cond))
+    full_grids = [cKDTree(xz[y==val]) for val in y_values]
+
+    xz_grid = cKDTree(xz)
+    z_grid = cKDTree(cond)
+
+    # Similarly, the YZ marginal space is partitioned between y levels
+    yz_grids = [cKDTree(cond[y==val]) for val in y_values]
+
+    # Find the distance to the k'th neighbor of each point
+    # in the y-partitioned spaces, and find the number of neighbors
+    # in marginal spaces.
+    xz_proj = np.column_stack((x, cond))
+    nxz = np.empty(N)
+    nyz = np.empty(N)
+    nz = np.empty(N)
+
+    for i, val in enumerate(y_values):
+        subset = y==val
+        eps = full_grids[i].query(xz[subset], k=[k+1], p=np.inf)[0].flatten()
+
+        nxz[subset] = xz_grid.query_ball_point(xz_proj[subset], eps - 1e-12, p=np.inf, return_length=True)
+        nyz[subset] = yz_grids[i].query_ball_point(cond[subset], eps - 1e-12, p=np.inf, return_length=True)
+        nz[subset] = z_grid.query_ball_point(cond[subset], eps - 1e-12, p=np.inf, return_length=True)
+
+    return _psi(k) - np.mean(_psi(nxz) + _psi(nyz) - _psi(nz))
+
+
 #
 # Digamma
 #
