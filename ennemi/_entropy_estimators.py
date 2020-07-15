@@ -9,6 +9,7 @@ Use the `estimate_mi` method in the main ennemi module instead.
 
 import numpy as np
 from scipy.spatial import cKDTree
+from warnings import warn
 
 
 def _estimate_single_entropy(x: np.ndarray, k: int = 3) -> float:
@@ -59,7 +60,7 @@ def _estimate_single_mi(x: np.ndarray, y: np.ndarray, k: int = 3) -> float:
 
     N = len(x)
 
-    # Ensure that x and y are is 2-dimensional
+    # Ensure that x and y are 2-dimensional
     x = np.column_stack((x,))
     y = np.column_stack((y,))
 
@@ -124,6 +125,50 @@ def _estimate_conditional_mi(x: np.ndarray, y: np.ndarray, cond: np.ndarray,
     nz = z_grid.query_ball_point(cond, eps - 1e-12, p=np.inf, return_length=True)
 
     return _psi(k) - np.mean(_psi(nxz) + _psi(nyz) - _psi(nz))
+
+
+def _estimate_semidiscrete_mi(x: np.ndarray, y: np.ndarray, k: int = 3) -> float:
+    """Estimate unconditional MI between discrete y and continuous x.
+    
+    The calculation is based on Ross (2014): Mutual Information between
+    Discrete and Continuous Data Sets. PLoS ONE 9(2):e87357.
+    doi:10.1371/journal.pone.0087357
+    
+    The only difference to basic estimation is that the distance metric
+    treats different y values as being further away from each other
+    than the marginal distance between any two x values.
+    """
+    
+    N = len(x)
+
+    # Ensure that x is 2-dimensional
+    x = np.column_stack((x,))
+    
+    # Find the unique values of y
+    y_values, y_counts = np.unique(y, return_counts=True)
+
+    if len(y_values) > N / 4:
+        warn("The discrete variable has relatively many unique values." +
+            " Did you pass y and x in correct order?", UserWarning)
+
+    # Create trees for each y value and for the marginal x space
+    grids = [cKDTree(x[y==val]) for val in y_values]
+    x_grid = cKDTree(x)
+
+    # For each y value:
+    # - Find the distance to the k'th neighbor sharing the y value
+    # - Find the number of neighbors within that distance in the marginal x space
+    n_full = np.empty(N)
+    for i, val in enumerate(y_values):
+        subset = x[y==val]
+        eps = grids[i].query(subset, k=[k+1], p=np.inf)[0].flatten()
+        
+        n_full[y==val] = x_grid.query_ball_point(subset, eps - 1e-12, p=np.inf, return_length=True)
+
+    # The mean of psi(y_counts) is taken over all sample points, not y buckets
+    weighted_y_counts_mean = np.sum(np.dot(_psi(y_counts), y_counts / N))
+    return _psi(N) + _psi(k) - np.mean(_psi(n_full)) - weighted_y_counts_mean
+
 
 #
 # Digamma

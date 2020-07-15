@@ -233,6 +233,13 @@ class TestEstimateMi(unittest.TestCase):
             estimate_mi(x, y, k=5)
         self.assertEqual(str(cm.exception), K_TOO_LARGE_MSG)
 
+    def test_continuous_y_must_be_numeric(self) -> None:
+        x = np.zeros(3)
+        y = np.asarray(["One", "Two", "Three"])
+
+        with self.assertRaises(TypeError):
+            estimate_mi(x, y, k=1)
+
     def test_k_must_be_positive(self) -> None:
         x = np.zeros(30)
         y = np.zeros(30)
@@ -701,6 +708,15 @@ class TestEstimateMi(unittest.TestCase):
                     estimate_mi(y, x, cond=cond)
                 self.assertEqual(str(cm.exception), NANS_LEFT_MSG)
 
+    def test_unmasked_nans_in_discrete_y_are_rejected(self) -> None:
+        x = np.zeros(100)
+        y = np.zeros(100)
+        y[25] = np.nan
+
+        with self.assertRaises(ValueError) as cm:
+            estimate_mi(y, x, discrete_y=True)
+        self.assertEqual(str(cm.exception), NANS_LEFT_MSG)
+
     def test_cond_and_mask_as_list(self) -> None:
         x = [1, 2, 3, 4, 5, math.nan]
         y = [2, 4, 6, 8, 10, 12]
@@ -710,6 +726,31 @@ class TestEstimateMi(unittest.TestCase):
         # Not checking for the (bogus) result, just that this
         # type-checks and does not crash
         estimate_mi(y, x, cond=cond, mask=mask)
+
+
+    def test_discrete_y(self) -> None:
+        # See the two_disjoint_uniforms algorithm test
+        rng = np.random.default_rng(51)
+        y = rng.choice([0, 2], size=800)
+        x = rng.uniform(y, y+1)
+
+        mi = estimate_mi(y, x, discrete_y=True)
+        self.assertAlmostEqual(mi, math.log(2), delta=0.02)
+
+        # If the parameters are put the wrong way, a warning is emitted
+        with self.assertWarns(UserWarning):
+            _ = estimate_mi(x, y, discrete_y=True)
+
+    def test_discrete_nonnumeric_y(self) -> None:
+        rng = np.random.default_rng(52)
+        y = rng.choice([0, 2], size=800)
+        x = rng.uniform(y, y+1)
+
+        # The discrete variable may be non-numeric
+        y = np.asarray(["Zero", "One", "Two"])[y]
+
+        mi = estimate_mi(y, x, discrete_y=True)
+        self.assertAlmostEqual(mi, math.log(2), delta=0.02)
 
 
     def test_normalization(self) -> None:

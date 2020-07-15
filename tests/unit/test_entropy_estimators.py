@@ -9,7 +9,7 @@ import numpy as np
 from scipy.special import gamma, psi
 import unittest
 from ennemi._entropy_estimators import _estimate_single_entropy,\
-    _estimate_single_mi, _estimate_conditional_mi
+    _estimate_single_mi, _estimate_conditional_mi, _estimate_semidiscrete_mi
 
 
 class TestEstimateSingleEntropy(unittest.TestCase):
@@ -258,6 +258,55 @@ class TestEstimateConditionalMi(unittest.TestCase):
         actual = _estimate_conditional_mi(data[:,0], data[:,1], data[:,2:])
         expected = 0.64964
         self.assertAlmostEqual(actual, expected, delta=0.04)
+
+
+class TestEstimateSemiDiscreteMi(unittest.TestCase):
+
+    def test_independent_variables(self) -> None:
+        cases = [ (2, 200, 3, 0.04),
+                  (2, 400, 1, 0.02),
+                  (2, 400, 3, 0.02),
+                  (2, 800, 8, 0.02),
+                  (4, 2000, 2, 0.01) ]
+        for (discrete_count, n, k, delta) in cases:
+            with self.subTest(count=discrete_count, n=n, k=k):
+                rng = np.random.default_rng(50)
+                x = rng.normal(0.0, 1.0, size=n)
+                y = rng.choice(np.arange(discrete_count), size=n)
+
+                mi = _estimate_semidiscrete_mi(x, y, k)
+                self.assertAlmostEqual(max(mi, 0.0), 0.0, delta=delta)
+
+    def test_two_disjoint_uniforms(self) -> None:
+        # Y takes two equally probable values, and then X is sampled
+        # from two disjoint distributions depending on Y.
+        # Therefore I(X;Y) = H(Y) = log(2).
+        rng = np.random.default_rng(51)
+        y = rng.choice([0, 2], size=800)
+        x = rng.uniform(y, y+1)
+
+        mi = _estimate_semidiscrete_mi(x, y)
+        self.assertAlmostEqual(mi, log(2), delta=0.02)
+
+    def test_three_disjoint_uniforms(self) -> None:
+        # As above, but with three equally probable values for Y.
+        rng = np.random.default_rng(51)
+        y = rng.choice([0, 2, 5], size=800)
+        x = rng.uniform(y, y+1)
+
+        mi = _estimate_semidiscrete_mi(x, y)
+        self.assertAlmostEqual(mi, log(3), delta=0.02)
+
+    def test_two_overlapping_uniforms(self) -> None:
+        # Here there are two values for Y, but the associated X intervals overlap.
+        # Additionally, one of the values is more likely than the other.
+        rng = np.random.default_rng(52)
+        y = rng.choice([0, 0.7, 0.7], size=2000)
+        x = rng.uniform(y, y+1)
+
+        mi = _estimate_semidiscrete_mi(x, y)
+        expected = log(3)*7/30 + log(1)*9/30 + log(3/2)*14/30
+        self.assertAlmostEqual(mi, expected, delta=0.05)
 
 
 # Test our custom implementation of the digamma function
