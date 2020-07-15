@@ -14,7 +14,7 @@ import numpy as np
 from os import cpu_count
 import sys
 from ._entropy_estimators import _estimate_single_mi, _estimate_conditional_mi,\
-    _estimate_semidiscrete_mi, _estimate_single_entropy
+    _estimate_semidiscrete_mi, _estimate_conditional_semidiscrete_mi, _estimate_single_entropy
 
 ArrayLike = Union[List[float], List[Tuple[float, ...]], np.ndarray]
 GenArrayLike = TypeVar("GenArrayLike", List[float], List[Tuple[float, ...]], np.ndarray)
@@ -571,6 +571,6 @@ def _lagged_mi(param_tuple: Tuple[np.ndarray, np.ndarray, int, int, int, int,
             raise ValueError(NAN_MSG)
 
         if discrete_y:
-            raise NotImplementedError("Conditional discrete-continuous MI")
+            return _estimate_conditional_semidiscrete_mi(xs, ys, zs, k)
         else:
             return _estimate_conditional_mi(xs, ys, zs, k)

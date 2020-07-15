@@ -7,9 +7,11 @@ import math
 from math import log
 import numpy as np
 from scipy.special import gamma, psi
+from scipy.stats import gamma as gamma_dist
 import unittest
 from ennemi._entropy_estimators import _estimate_single_entropy,\
-    _estimate_single_mi, _estimate_conditional_mi, _estimate_semidiscrete_mi
+    _estimate_single_mi, _estimate_conditional_mi,\
+    _estimate_semidiscrete_mi, _estimate_conditional_semidiscrete_mi
 
 
 class TestEstimateSingleEntropy(unittest.TestCase):
@@ -307,6 +309,95 @@ class TestEstimateSemiDiscreteMi(unittest.TestCase):
         mi = _estimate_semidiscrete_mi(x, y)
         expected = log(3)*7/30 + log(1)*9/30 + log(3/2)*14/30
         self.assertAlmostEqual(mi, expected, delta=0.05)
+
+
+class TestEstimateConditionalSemiDiscreteMi(unittest.TestCase):
+
+    def test_independent_vars_and_condition(self) -> None:
+        cases = [ (2, 200, 3, 0.02),
+                  (2, 400, 1, 0.05),
+                  (2, 400, 3, 0.02),
+                  (2, 800, 8, 0.02),
+                  (4, 2000, 2, 0.02) ]
+        for (discrete_count, n, k, delta) in cases:
+            with self.subTest(count=discrete_count, n=n, k=k):
+                rng = np.random.default_rng(50)
+                x = rng.normal(0.0, 1.0, size=n)
+                y = rng.choice(np.arange(discrete_count), size=n)
+                z = rng.normal(0.0, 1.0, size=n)
+
+                mi = _estimate_conditional_semidiscrete_mi(x, y, z, k)
+                self.assertAlmostEqual(max(mi, 0.0), 0.0, delta=delta)
+
+    def test_irrelevant_condition(self) -> None:
+        # Two disjoint uniforms, but with independent condition
+        rng = np.random.default_rng(51)
+        y = rng.choice([0, 2], size=800)
+        x = rng.uniform(y, y+1)
+        z = rng.beta(2, 3, size=800)
+
+        mi = _estimate_conditional_semidiscrete_mi(x, y, z)
+        self.assertAlmostEqual(mi, log(2), delta=0.02)
+
+    def test_condition_equal_to_x(self) -> None:
+        # Y = sign(X), and I(Y;X | X) = 0
+        rng = np.random.default_rng(52)
+        x = rng.normal(0.0, 1.0, size=800)
+        y = np.sign(x)
+
+        # Consistency check: the unconditional MI should be equal to y entropy
+        uncond = _estimate_semidiscrete_mi(x, y)
+        self.assertAlmostEqual(uncond, log(2), delta=0.01)
+
+        mi = _estimate_conditional_semidiscrete_mi(x, y, x)
+        self.assertAlmostEqual(mi, 0.0, delta=0.02)
+
+    def test_condition_increases_mi(self) -> None:
+        # X, Y are normal, Z = X + Y
+        # W = sign(X)
+        # I(Z; W) < I(X; W), but I(Z; W | Y) = I(X; W)
+        rng = np.random.default_rng(53)
+        x = rng.normal(0.0, 1.0, size=1500)
+        y = rng.normal(0.0, 0.3, size=1500)
+        z = x + y
+        w = np.sign(x)
+
+        # Consistency check
+        uncond_zw = _estimate_semidiscrete_mi(z, w)
+        uncond_xw = _estimate_semidiscrete_mi(x, w)
+        self.assertLess(uncond_zw, uncond_xw - 0.2)
+        self.assertAlmostEqual(uncond_xw, log(2), delta=0.01)
+
+        # Conditioning should increase MI
+        cond_zw = _estimate_conditional_semidiscrete_mi(z, w, y)
+        self.assertAlmostEqual(cond_zw, log(2), delta=0.02)
+
+    def test_multiple_levels(self) -> None:
+        # X is a Gamma random variable, Y takes levels based on X,
+        # and W is X with added Gaussian noise. Conditioning on noise increases MI.
+        rng = np.random.default_rng(54)
+        x = rng.gamma(shape=1.5, scale=1.0, size=2000)
+        z = rng.normal(size=x.shape)
+        w = x + z
+
+        # The 1e-4 level would cause issues with the continuous-continuous algorithm
+        # as it would be picked up in neighbor searches on the y=0 plane
+        y = np.zeros(x.shape)
+        y[x < 0.5] = 1e-4
+        y[x > 2.0] = 4
+
+        uncond = _estimate_semidiscrete_mi(w, y, k=1)
+        cond = _estimate_conditional_semidiscrete_mi(w, y, z, k=1)
+
+        # The expected MI is the discrete entropy of Y
+        p_low = gamma_dist.cdf(0.5, a=1.5)
+        p_high = 1 - gamma_dist.cdf(2.0, a=1.5)
+        p_mid = 1 - p_low - p_high
+        expected = -log(p_low)*p_low - log(p_mid)*p_mid - log(p_high)*p_high
+
+        self.assertLess(uncond, cond - 0.6)
+        self.assertAlmostEqual(cond, expected, delta=0.06)
+
 
 
 # Test our custom implementation of the digamma function
