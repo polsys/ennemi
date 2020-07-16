@@ -14,14 +14,9 @@ class TestPandasWorkflow(unittest.TestCase):
         # Import the Kaisaniemi data set used in documentation
         script_path = os.path.dirname(os.path.abspath(__file__))
         data_path = os.path.join(script_path, "../../docs/kaisaniemi.csv")
-        raw_data = pd.read_csv(data_path, index_col=0, parse_dates=True)
 
-        # Standardize and add low-amplitude noise
-        scaled_data = (raw_data - raw_data.mean()) / raw_data.std()
-        rng = np.random.default_rng(0)
-        scaled_data += rng.normal(0, 1e-10, scaled_data.shape)
-
-        self.data = scaled_data
+        # Data preprocessing is done by ennemi, the distributions are symmetric
+        self.data = pd.read_csv(data_path, index_col=0, parse_dates=True)
 
 
     def test_pairwise_mi(self) -> None:
@@ -47,7 +42,7 @@ class TestPandasWorkflow(unittest.TestCase):
         self.assertAlmostEqual(uncond.loc["Temperature", "DayOfYear"], 0.9, delta=0.03)
 
         # There is no correlation with the conditioning variable
-        self.assertAlmostEqual(cond_doy.loc["Temperature", "DayOfYear"], 0.0, delta=0.02)
+        self.assertLess(cond_doy.loc["Temperature", "DayOfYear"], 0.02)
 
         # The correlation between temperature and wind direction is
         # increased by conditioning on DOY

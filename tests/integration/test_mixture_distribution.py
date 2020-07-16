@@ -23,27 +23,38 @@ class TestMixtureDistribution(unittest.TestCase):
         # Estimate the actual MI by numerical integration
         expected = self.integrate_mi()
 
-        # Create a random sample from the distribution
+        # Create random samples from the distribution
         rng = np.random.default_rng(0)
-        full_sample = np.concatenate((
-            rng.multivariate_normal(self.mean1, self.cov1, 2000),
-            rng.multivariate_normal(self.mean2, self.cov2, 2000),
-        ))
-        small_sample = rng.choice(full_sample, 200, replace=False)
+        small_k1 = []
+        small_k3 = []
+        full_k2 = []
+        full_k40 = []
 
-        # Estimate the MI with two k values and sample sizes
-        small_k1 = estimate_mi(small_sample[:,0], small_sample[:,1], k=1)
-        small_k3 = estimate_mi(small_sample[:,0], small_sample[:,1], k=3)
-        full_k2 = estimate_mi(full_sample[:,0], full_sample[:,1], k=2)
-        full_k40 = estimate_mi(full_sample[:,0], full_sample[:,1], k=40)
+        for _ in range(5):
+            full_sample = np.concatenate((
+                rng.multivariate_normal(self.mean1, self.cov1, 2000),
+                rng.multivariate_normal(self.mean2, self.cov2, 2000),
+            ))
+            small_sample = rng.choice(full_sample, 200, replace=False)
+
+            # Estimate the MI with two k values and sample sizes
+            small_k1.append(estimate_mi(small_sample[:,0], small_sample[:,1], k=1))
+            small_k3.append(estimate_mi(small_sample[:,0], small_sample[:,1], k=3))
+            full_k2.append(estimate_mi(full_sample[:,0], full_sample[:,1], k=2))
+            full_k40.append(estimate_mi(full_sample[:,0], full_sample[:,1], k=40))
+
+        small_k1a = np.asarray(small_k1)
+        small_k3a = np.asarray(small_k3)
+        full_k2a = np.asarray(full_k2)
+        full_k40a = np.asarray(full_k40)
 
         # With low sample size, increasing k should increase accuracy
-        self.assertLess(abs(small_k3 - expected), abs(small_k1 - expected))
-        self.assertAlmostEqual(small_k3, expected, delta=0.05)
+        self.assertLess(np.mean(np.abs(small_k3a - expected)), np.mean(np.abs(small_k1a - expected)))
+        self.assertAlmostEqual(np.median(small_k3a), expected, delta=0.02)
 
         # With high sample size, decreasing k should increase accuracy
-        self.assertLess(abs(full_k2 - expected), abs(full_k40 - expected))
-        self.assertAlmostEqual(full_k2, expected, delta=0.01)
+        self.assertLess(np.mean(np.abs(full_k2a - expected)), np.mean(np.abs(full_k40a - expected)))
+        self.assertAlmostEqual(np.median(full_k2a), expected, delta=0.01)
 
 
     def integrate_mi(self) -> float:

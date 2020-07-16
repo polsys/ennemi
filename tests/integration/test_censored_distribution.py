@@ -25,12 +25,10 @@ class TestCensoredDistribution(unittest.TestCase):
         expected = self.integrate_mi()
 
         # Sample from the distribution
+        # The automatic preprocessing adds minor noise to the data
         rng = np.random.default_rng(0)
         sample = rng.multivariate_normal(self.mean, self.cov, 4000)
         sample[:,0] = np.maximum(0, sample[:,0])
-
-        # Add low-amplitude noise to the data
-        sample += rng.normal(0.0, 1e-8, size=sample.shape)
 
         # The estimated MI should be very close to the numerical one
         actual = estimate_mi(sample[:,0], sample[:,1])
