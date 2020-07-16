@@ -17,10 +17,7 @@ print(data.head())
 #
 # STEP 2: Preprocess
 #
-scaled_data = (data - data.mean()) / data.std()
-
-rng = np.random.default_rng(5678)
-scaled_data += rng.normal(0, 1e-10, scaled_data.shape)
+# Nothing to be done, because the distributions are roughly symmetric
 
 
 #
@@ -32,7 +29,7 @@ afternoon_mask = (data.index.hour == 13)
 #
 # STEP 4: Plot pairwise MI
 #
-pairwise = pairwise_mi(scaled_data, mask=afternoon_mask, normalize=True)
+pairwise = pairwise_mi(data, mask=afternoon_mask, normalize=True)
 
 # Plot a matrix where the color represents the correlation coefficient.
 # We clip the color values at 0.2 because of significant random noise,
@@ -56,8 +53,8 @@ plt.savefig("casestudy_pairwise.png")
 #
 
 # Now we pass the 'cond' parameter
-pairwise_doy = pairwise_mi(scaled_data, mask=afternoon_mask,
-    cond=scaled_data["DayOfYear"], normalize=True)
+pairwise_doy = pairwise_mi(data, mask=afternoon_mask,
+    cond=data["DayOfYear"], normalize=True)
 
 # The same plotting code as above
 fig, ax = plt.subplots(figsize=(8,6))
@@ -82,8 +79,8 @@ covariates = ["Temperature", "DewPoint", "WindDir", "AirPressure", "WindSpeed"]
 
 # Lag up to two days with 2-hour spacing
 lags = np.arange(0, 2*24 + 1, 2)
-temp = estimate_mi(scaled_data["Temperature"], scaled_data[covariates], lags,
-    cond=scaled_data["DayOfYear"], mask=afternoon_mask, normalize=True)
+temp = estimate_mi(data["Temperature"], data[covariates], lags,
+    cond=data["DayOfYear"], mask=afternoon_mask, normalize=True)
 
 # Plot the MI correlation coefficients as a line plot
 fig, ax = plt.subplots(figsize=(8,6))
@@ -109,10 +106,10 @@ plt.savefig("casestudy_lags.png")
 #
 
 # Do two more estimations and average the three runs
-temp_12 = estimate_mi(scaled_data["Temperature"], scaled_data[covariates], lags,
-    cond=scaled_data["DayOfYear"], mask=(data.index.hour == 12), normalize=True)
-temp_14 = estimate_mi(scaled_data["Temperature"], scaled_data[covariates], lags,
-    cond=scaled_data["DayOfYear"], mask=(data.index.hour == 14), normalize=True)
+temp_12 = estimate_mi(data["Temperature"], data[covariates], lags,
+    cond=data["DayOfYear"], mask=(data.index.hour == 12), normalize=True)
+temp_14 = estimate_mi(data["Temperature"], data[covariates], lags,
+    cond=data["DayOfYear"], mask=(data.index.hour == 14), normalize=True)
 
 temp_avg = (temp_12 + temp + temp_14) / 3
 

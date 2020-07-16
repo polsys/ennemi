@@ -46,27 +46,28 @@ data = rng.multivariate_normal([0.5, 0.5], cov, size=800)
 x = np.maximum(0, data[:,0])
 y = np.maximum(0, data[:,1])
 
-print("MI:", estimate_mi(y, x))
+print("MI:", estimate_mi(y, x, preprocess=False))
 print("On one or both axes:", np.mean((x == 0) | (y == 0)))
 print("At origin:", np.mean((x == 0) & (y == 0)))
 ```
 This code prints
 ```
-MI: [[-0.49151162]]
+MI: [[-inf]]
 On one or both axes: 0.4025
 At origin: 0.22
 ```
 As many of the observations lie on the x or y axis, and most of those at $(0, 0)$,
 the algorithm produces a clearly incorrect result.
-The fix is to add
+The fix is to either add
 ```python
 x += rng.normal(0, 1e-6, size=800)
 y += rng.normal(0, 1e-6, size=800)
 ```
-before the call to `estimate_mi()`.
+before the call to `estimate_mi()`,
+or set `preprocess=True` (or remove the parameter altogether; it is true by default).
 With this fix, the code now prints
 ```
-MI: [[0.41807897]]
+MI: [[0.41881861]]
 ```
 a better approximation of the true value.
 This is still an approximation, as the true distribution is non-continuous,
@@ -107,16 +108,17 @@ data = rng.multivariate_normal([0, 0], cov, size=800)
 x = np.exp(5 * data[:,0])
 y = np.exp(data[:,1])
 
-print(estimate_mi(y, x))
+print(estimate_mi(y, x, preprocess=False))
 ```
 
 Running the code outputs
 ```
-[[0.28945921]]
+[[0.28671063]]
 ```
 
-This demonstrates that you should normalize all variables before running
+This demonstrates that you should make all variables symmetric before running
 the estimation.
+The rescaling is done by default (disabled by setting `preprocess=False`).
 Entropy is not transformation-invariant, and therefore this guidance
 does not apply to `estimate_entropy()`.
 
