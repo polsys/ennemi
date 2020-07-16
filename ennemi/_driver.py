@@ -24,11 +24,11 @@ def normalize_mi(mi: GenArrayLike) -> GenArrayLike:
     """Normalize mutual information values to the unit interval.
 
     The return value matches the correlation coefficient between two Gaussian
-    random variables with unit variance. This coefficient is preserved by most
-    transformations, including scaling. The return value is positive regardless
+    random variables with unit variance. This coefficient is preserved by all
+    monotonic transformations, including scaling. The value is positive regardless
     of the sign of the correlation.
 
-    Negative values are kept as is. This is because mutual information is always
+    Negative values are kept as-is. This is because mutual information is always
     non-negative, but `estimate_mi` may produce negative values.
 
     Parameters:
@@ -78,20 +78,17 @@ def estimate_entropy(x: ArrayLike, *, k: int = 3, multidim: bool = False,
 
     Optional keyword parameters:
     ---
-    k : int
-        The number of neighbors to consider. Default 3.
-        Must be smaller than the number of observations left after masking.
+    k : int, default 3
+        The number of neighbors to consider.
     multidim : bool
         If False (the default), each column of `x` is considered a separate variable.
         If True, the (n x m) array is considered a single m-dimensional variable.
     mask : array_like or None
         If specified, an array of booleans that gives the input elements to use for
         estimation. Use this to exclude some observations from consideration.
-        The length of this array must match the length of `x`.
         Currently, the mask must be one-dimensional.
     cond : array_like or None
         Optional 1D or 2D array of observations used for conditioning.
-        Must have as many observations as `x`.
         All variables in a 2D array are used together.
         The calculation uses the chain rule H(X|Y) = H(X,Y) - H(Y) without
         any correction for potential estimation bias.
@@ -183,7 +180,7 @@ def estimate_mi(y: ArrayLike, x: ArrayLike,
     The time lag is interpreted as `y(t) ~ x(t - lag) | z(t - cond_lag)`.
     The time lags are applied to the `x` and `cond` arrays such that the `y`
     array stays the same every time.
-    This means that `y` is cropped to `y[max_lag:N+min(min_lag, 0)]`.
+    This means that `y` is cropped to `y[max(max_lag,0) : N+min(min_lag,0)]`.
 
     If the `cond` parameter is set, conditional mutual information is estimated.
     The `cond_lag` parameter specifies the lag for the `cond` array, separately
@@ -192,9 +189,8 @@ def estimate_mi(y: ArrayLike, x: ArrayLike,
     If the `mask` parameter is set, only those `y` observations with the
     matching mask element set to `True` are used for estimation.
     
-    If the data set contains many identical observations,
-    this method may return incorrect results or `-inf`.
-    In that case, add low-amplitude noise to the data and try again.
+    For accurate results, the variables should be transformed to roughly
+    symmetrical distributions.
 
     The calculation is based on "Kraskov et al. (2004): Estimating mutual
     information. Physical Review E 69. doi:10.1103/PhysRevE.69.066138" and
@@ -208,44 +204,39 @@ def estimate_mi(y: ArrayLike, x: ArrayLike,
     x : array_like
         A 1D or 2D array where the columns are one or more variables and the
         rows are observations. The number of rows must be the same as in y.
-    lag : int or array_like
-        A time lag or 1D array of time lags to apply to x. Default 0.
-        The values may be any integers with magnitude
-        less than the number of observations.
+    lag : int or array_like, default 0
+        A time lag or 1D array of time lags to apply.
 
     Optional keyword parameters:
     ---
-    k : int
-        The number of neighbors to consider. Default 3.
-        Must be smaller than the number of observations left after masking and cropping.
+    k : int, default 3
+        The number of neighbors to consider.
     cond : array_like or None
         Optional 1D or 2D array of observations used for conditioning.
         Must have as many observations as y.
         All variables in a 2D array are used together.
-    cond_lag : int
-        Lag applied to the cond array.
-        Must be broadcastable to the size of `lag`. Default 0.
+    cond_lag : int or array_like, default 0
+        Lag applied to the cond array. Must be broadcastable to the size of `lag`.
     mask : array_like or None
-        If specified, an array of booleans that gives the y elements to use for
+        If specified, an array of booleans that gives the `y` elements to use for
         estimation. Use this to exclude some observations from consideration
         while preserving the time series structure of the data. Elements of
-        `x` and `cond` are masked with the lags applied. The length of this
-        array must match the length `y`.
-    discrete_y : bool
+        `x` and `cond` are masked with the lags applied.
+    discrete_y : bool, default False
         If True, the `y` variable is interpreted as a discrete variable. The `x`
         variables are still continuous. The `y` values may be non-numeric.
         Default False.
-    normalize : bool
+    normalize : bool, default False
         If True, the results will be normalized to correlation coefficient scale.
         Same as calling `normalize_mi` on the results.
     max_threads : int or None
         The maximum number of threads to use for estimation.
         If None (the default), the number of CPU cores is used.
-    callback : method or None:
+    callback : method or None
         A method to call when each estimation task is completed. The method
         must take two integer parameters: `x` variable index and lag value.
         This method should be very short. Because Python code is not executed
-        concurrently, the callback may block other tasks from proceeding.
+        concurrently, the callback may slow down other estimation tasks.
     """
 
     # Convert parameters to consistent types
@@ -364,9 +355,12 @@ def _validate_cond(cond: np.ndarray, input_len: int) -> None:
         raise ValueError("x and cond must have same length")
 
 
-def pairwise_mi(data: ArrayLike, *, k: int = 3, cond: Optional[ArrayLike] = None,
-    mask: Optional[ArrayLike] = None, max_threads: Optional[int] = None,
+def pairwise_mi(data: ArrayLike,
+    *, k: int = 3,
+    cond: Optional[ArrayLike] = None,
+    mask: Optional[ArrayLike] = None,
     normalize: bool = False,
+    max_threads: Optional[int] = None,
     callback: Optional[Callable[[int, int], None]] = None) -> np.ndarray:
     """Estimate the pairwise MI between each variable.
 
@@ -382,28 +376,25 @@ def pairwise_mi(data: ArrayLike, *, k: int = 3, cond: Optional[ArrayLike] = None
 
     Optional keyword parameters:
     ---
-    k : int
-        The number of neighbors to consider. Default 3.
-        Must be smaller than the number of observations left after masking.
+    k : int, default 3
+        The number of neighbors to consider.
     cond : array_like or None
         Optional 1D or 2D array of observations used for conditioning.
         Must have as many observations as the data.
         All variables in a 2D array are used together.
     mask : array_like or None
         If specified, an array of booleans that gives the data elements to use for
-        estimation. Use this to exclude some observations from consideration
-        while preserving the time series structure of the data. The length of
-        this array must match the length of `data`.
-    normalize: bool
+        estimation. Use this to exclude some observations from consideration.
+    normalize: bool, default False
         If True, the MI values will be normalized to correlation coefficient scale.
     max_threads : int or None
         The maximum number of threads to use for estimation.
         If None (the default), the number of CPU cores is used.
-    callback : method or None:
+    callback : method or None
         A method to call when each estimation task is completed. The method
         must take two integer parameters, representing the variable indices.
         This method should be very short. Because Python code is not executed
-        concurrently, the callback may block other tasks from proceeding.
+        concurrently, the callback may slow down other estimation tasks.
     """
     data_arr = np.asarray(data)
     if cond is not None: cond_arr = np.asarray(cond)
