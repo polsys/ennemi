@@ -414,7 +414,7 @@ class TestEstimateMi(unittest.TestCase):
 
         self.assertEqual(actual.shape, (3, 1))
         # As above, MI of xy with itself is high, but successive values are independent
-        self.assertGreaterEqual(actual[0,0], 2.5)
+        self.assertGreaterEqual(actual[0,0], 2.0)
         self.assertAlmostEqual(actual[1,0], 0, delta=0.1)
         self.assertAlmostEqual(actual[2,0], 0, delta=0.1)
 
@@ -428,7 +428,7 @@ class TestEstimateMi(unittest.TestCase):
 
         self.assertEqual(actual.shape, (3, 1))
         self.assertAlmostEqual(actual[0,0], 0, delta=0.1)
-        self.assertGreaterEqual(actual[1,0], 2.5)
+        self.assertGreaterEqual(actual[1,0], 2.0)
         self.assertAlmostEqual(actual[2,0], 0, delta=0.1)
         self.assertAlmostEqual(actual[2,0], 0, delta=0.1)
 
@@ -442,7 +442,7 @@ class TestEstimateMi(unittest.TestCase):
         actual = estimate_mi(y, x, lag=np.asarray(1))
 
         self.assertEqual(actual.shape, (1, 1))
-        self.assertGreaterEqual(actual[0,0], 2.5)
+        self.assertGreaterEqual(actual[0,0], 2.0)
 
     def test_one_variable_with_lead(self) -> None:
         rng = np.random.default_rng(1)
@@ -455,7 +455,7 @@ class TestEstimateMi(unittest.TestCase):
         self.assertEqual(actual.shape, (3, 1))
         self.assertAlmostEqual(actual[0,0], 0, delta=0.1)
         self.assertAlmostEqual(actual[1,0], 0, delta=0.1)
-        self.assertAlmostEqual(actual[2,0], math.exp(1), delta=0.02)
+        self.assertGreaterEqual(actual[2,0], 2.0)
 
     def test_one_variable_with_lists(self) -> None:
         # The parameters are plain Python lists
@@ -488,23 +488,23 @@ class TestEstimateMi(unittest.TestCase):
 
         for max_threads in [ None, 1, 2 ]:
             with self.subTest(max_threads=max_threads):
-                actual = estimate_mi(data[:,0], data[:,1:4], lag=[0, 1, 3], max_threads=max_threads)
+                actual = estimate_mi(data[:,0], data[:,1:4], lag=[0, 1, 3], k=5, max_threads=max_threads)
 
                 # The returned object is a plain ndarray
                 self.assertIsInstance(actual, np.ndarray)
 
                 # y(t) depends on x1(t+1)
-                self.assertAlmostEqual(actual[0,0], 0.0, delta=0.05)
+                self.assertAlmostEqual(actual[0,0], 0.0, delta=0.04)
                 self.assertGreater(actual[1,0], 0.5)
-                self.assertAlmostEqual(actual[2,0], 0.0, delta=0.05)
+                self.assertAlmostEqual(actual[2,0], 0.0, delta=0.04)
 
                 # y(t) is completely independent of x2
                 for i in range(3):
-                    self.assertAlmostEqual(actual[i,1], 0.0, delta=0.05)
+                    self.assertAlmostEqual(actual[i,1], 0.0, delta=0.04)
                 
                 # y(t) depends on abs(x3(t+3))
-                self.assertAlmostEqual(actual[0,2], 0.0, delta=0.07)
-                self.assertAlmostEqual(actual[1,2], 0.0, delta=0.05)
+                self.assertAlmostEqual(actual[0,2], 0.0, delta=0.04)
+                self.assertAlmostEqual(actual[1,2], 0.0, delta=0.04)
                 self.assertGreater(actual[2,2], 0.15)
 
     def test_pandas_data_frame(self) -> None:
@@ -513,23 +513,23 @@ class TestEstimateMi(unittest.TestCase):
         data_path = os.path.join(script_path, "example_data.csv")
         data = pd.read_csv(data_path)
 
-        actual = estimate_mi(data["y"], data[["x1", "x2", "x3"]], lag=[0, 1, 3])
+        actual = estimate_mi(data["y"], data[["x1", "x2", "x3"]], lag=[0, 1, 3], k=5)
 
         # The returned object is a Pandas data frame, with row and column names!
         self.assertIsInstance(actual, pd.DataFrame)
 
         # y(t) depends on x1(t+1)
-        self.assertAlmostEqual(actual.loc[0,"x1"], 0.0, delta=0.05)
-        self.assertGreater(actual.loc[1,"x1"], 0.5)
-        self.assertAlmostEqual(actual.loc[3,"x1"], 0.0, delta=0.05)
+        self.assertAlmostEqual(actual.loc[0,"x1"], 0.0, delta=0.04)
+        self.assertGreater(actual.loc[1,"x1"], 0.4)
+        self.assertAlmostEqual(actual.loc[3,"x1"], 0.0, delta=0.04)
 
         # y(t) is completely independent of x2
         for i in [0, 1, 3]:
-            self.assertAlmostEqual(actual.loc[i,"x2"], 0.0, delta=0.05)
+            self.assertAlmostEqual(actual.loc[i,"x2"], 0.0, delta=0.04)
         
         # y(t) depends on abs(x3(t+3))
-        self.assertAlmostEqual(actual.loc[0,"x3"], 0.0, delta=0.07)
-        self.assertAlmostEqual(actual.loc[1,"x3"], 0.0, delta=0.05)
+        self.assertAlmostEqual(actual.loc[0,"x3"], 0.0, delta=0.04)
+        self.assertAlmostEqual(actual.loc[1,"x3"], 0.0, delta=0.04)
         self.assertGreater(actual.loc[3,"x3"], 0.15)
 
     def test_pandas_data_and_mask_with_custom_indices(self) -> None:
@@ -578,7 +578,7 @@ class TestEstimateMi(unittest.TestCase):
         y = list(range(300, 0, -1))
         mask = [ True, False ] * 150
 
-        self.assertGreater(estimate_mi(y, x, lag=1, mask=mask), 4)
+        self.assertGreater(estimate_mi(y, x, lag=1, mask=mask), 3)
 
     def test_mask_and_lag(self) -> None:
         # Only even y and odd x elements are preserved
@@ -623,22 +623,23 @@ class TestEstimateMi(unittest.TestCase):
         rng = np.random.default_rng(12)
         cov = np.array([[1, 1, 1], [1, 4, 1], [1, 1, 9]])
 
-        data = rng.multivariate_normal([0, 0, 0], cov, size=2002)
+        data = rng.multivariate_normal([0, 0, 0], cov, size=2000)
         mask = np.arange(2000) % 5 == 0
 
         x = np.zeros(2000)
         y = np.zeros(2000)
         z = np.zeros(2000)
-        x[mask] = data[2:,0][mask]
-        y[mask] = data[2:,1][mask]
-        z[mask] = data[:2000,2][mask]
+        x[mask] = data[:,0][mask]
+        y[mask] = data[:,1][mask]
+        z[np.arange(2000) % 5 == 3] = data[:,2][mask]
 
         lags = [ 0, -1 ]
 
-        actual = estimate_mi(y, x, lag=lags, cond=z, cond_lag=[2, 1], mask=mask)
+        # Don't preprocess because with cond_lag=1 the cond array is all zeros
+        actual = estimate_mi(y, x, lag=lags, cond=z, cond_lag=[2, 1], mask=mask, preprocess=False)
         expected = 0.5 * (math.log(8) + math.log(35) - math.log(9) - math.log(24))
 
-        self.assertAlmostEqual(actual[0,0], expected, delta=0.01)
+        self.assertAlmostEqual(actual[0,0], expected, delta=0.03)
         self.assertAlmostEqual(actual[1,0], 0.0, delta=0.01)
 
     def test_conditional_mi_with_negative_lag(self) -> None:
@@ -662,7 +663,7 @@ class TestEstimateMi(unittest.TestCase):
         data_path = os.path.join(script_path, "example_data.csv")
         data = pd.read_csv(data_path)
 
-        actual = estimate_mi(data["y"], data["x1"], lag=-1,
+        actual = estimate_mi(data["y"], data["x1"], lag=-1, k=5,
                              cond=data["x2"], cond_lag=0)
 
         self.assertIsInstance(actual, pd.DataFrame)
@@ -683,7 +684,7 @@ class TestEstimateMi(unittest.TestCase):
 
         self.assertEqual(many_cond.shape, (1,1))
         self.assertAlmostEqual(single_cond.item(), 0.33, delta=0.03)
-        self.assertAlmostEqual(many_cond.item(), 1.12, delta=0.03)
+        self.assertGreater(many_cond.item(), 1.0)
 
     def test_unmasked_nans_are_rejected(self) -> None:
         for (xnan, ynan, condnan) in [(True, False, None),
@@ -705,7 +706,8 @@ class TestEstimateMi(unittest.TestCase):
                     cond = None
 
                 with self.assertRaises(ValueError) as cm:
-                    estimate_mi(y, x, cond=cond)
+                    # Pass preprocess=False to avoid warnings with the zero data
+                    estimate_mi(y, x, cond=cond, preprocess=False)
                 self.assertEqual(str(cm.exception), NANS_LEFT_MSG)
 
     def test_unmasked_nans_in_discrete_y_are_rejected(self) -> None:
@@ -766,13 +768,28 @@ class TestEstimateMi(unittest.TestCase):
         mi1 = estimate_mi(s, w, discrete_y=True, cond=y)
         mi2 = estimate_mi(s, w, discrete_y=True, cond=np.column_stack((y,z)))
 
-        self.assertAlmostEqual(mi2, math.log(2), delta=0.04)
-        self.assertGreater(mi2, mi1 + 0.15)
+        self.assertAlmostEqual(mi2, math.log(2), delta=0.055)
+        self.assertGreater(mi2, mi1 + 0.1)
         self.assertGreater(mi1, mi0 + 0.1)
 
         # There should also be a warning for misplaced x and y
         with self.assertWarns(UserWarning):
             _ = estimate_mi(x, s, cond=z, discrete_y=True)
+
+
+    def test_preprocess(self) -> None:
+        # The highly different variances should cause issues
+        rng = np.random.default_rng(2020_07_16)
+        cov = np.asarray([[1, 0.6], [0.6, 1]])
+        data = rng.multivariate_normal([0, 0], cov, size=800)
+        x = 1e3 * data[:,0]
+        y = 1e-3 * data[:,1]
+
+        mi_unscaled = estimate_mi(y, x, preprocess=False, normalize=True)
+        mi_scaled = estimate_mi(y, x, preprocess=True, normalize=True)
+
+        self.assertNotAlmostEqual(mi_unscaled, 0.6, delta=0.1)
+        self.assertAlmostEqual(mi_scaled, 0.6, delta=0.03)
 
 
     def test_normalization(self) -> None:
@@ -954,8 +971,8 @@ class TestPairwiseMi(unittest.TestCase):
         self.assertEqual(result.shape, (2,2))
         self.assertTrue(np.isnan(result[0,0]))
         self.assertTrue(np.isnan(result[1,1]))
-        self.assertAlmostEqual(result[0,1], 0.0, delta=0.03)
-        self.assertAlmostEqual(result[1,0], 0.0, delta=0.03)
+        self.assertLess(result[0,1], 0.03)
+        self.assertLess(result[1,0], 0.03)
 
     def test_mask_removes_nans(self) -> None:
         data = self.generate_normal(102)
@@ -978,6 +995,17 @@ class TestPairwiseMi(unittest.TestCase):
         self.assertTrue(np.isnan(result[1,1]))
         self.assertAlmostEqual(result[0,1], expected, delta=0.02)
         self.assertAlmostEqual(result[1,0], expected, delta=0.02)
+
+    def test_preprocess(self) -> None:
+        # The low variance of cond breaks the algorithm
+        data = self.generate_normal(2020_07_16)
+        cond = data[:,0] * 1e-5
+
+        mi_unscaled = pairwise_mi(data, cond=cond, preprocess=False)
+        mi_scaled = pairwise_mi(data, cond=cond, preprocess=True)
+
+        self.assertNotAlmostEqual(mi_unscaled[0,1], 0.0, delta=0.2)
+        self.assertLess(mi_scaled[0,1], 0.03)
 
     def test_normalization(self) -> None:
         data = self.generate_normal(104)
