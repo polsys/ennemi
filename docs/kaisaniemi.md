@@ -40,16 +40,13 @@ the air pressure is in hehtopascals (millibars) and the wind speed in meters per
 2015-01-01 04:00:00       1009.7          3.6       2.7    267.0        3.5       1.17
 ```
 
-To make the MI estimation more accurate, we should scale the variables to unit variance.
-We should also add very low-amplitude noise.
+To make the MI estimation more accurate, we should ensure that the variables have
+roughly symmetric distributions.
+By visual inspection (not shown here), we don't need to transform anything.
+`ennemi` automatically rescales the variables to unit variance and
+adds low-amplitude noise (with fixed random seed) as long as we don't
+override the `preprocess` parameter.
 The reasons for these steps are discussed on the [Potential issues page](potential-issues.md).
-
-```python
-scaled_data = (data - data.mean()) / data.std()
-
-rng = np.random.default_rng(5678)
-scaled_data += rng.normal(0, 1e-10, scaled_data.shape)
-```
 
 As a final preprocessing step, we create a mask that selects only the observations
 at 15:00 local time (13:00 UTC).
@@ -69,7 +66,7 @@ We pass the `normalize` parameter to transform the MI values to a correlation
 coefficient scale (0 to 1, sign of correlation not determined).
 
 ```python
-pairwise = pairwise_mi(scaled_data, mask=afternoon_mask, normalize=True)
+pairwise = pairwise_mi(data, mask=afternoon_mask, normalize=True)
 
 # Plot a matrix where the color represents the correlation coefficient.
 # We clip the color values at 0.2 because of significant random noise,
@@ -98,8 +95,8 @@ in our case this variable is DayOfYear.
 
 ```python
 # Now we pass the 'cond' parameter
-pairwise_doy = pairwise_mi(scaled_data, mask=afternoon_mask,
-    cond=scaled_data["DayOfYear"], normalize=True)
+pairwise_doy = pairwise_mi(data, mask=afternoon_mask,
+    cond=data["DayOfYear"], normalize=True)
 
 # The same plotting code as above
 fig, ax = plt.subplots(figsize=(8,6))
@@ -145,8 +142,8 @@ covariates = ["Temperature", "DewPoint", "WindDir", "AirPressure", "WindSpeed"]
 
 # Lag up to two days with 2-hour spacing
 lags = np.arange(0, 2*24 + 1, 2)
-temp = estimate_mi(scaled_data["Temperature"], scaled_data[covariates], lags,
-    cond=scaled_data["DayOfYear"], mask=afternoon_mask, normalize=True)
+temp = estimate_mi(data["Temperature"], data[covariates], lags,
+    cond=data["DayOfYear"], mask=afternoon_mask, normalize=True)
 
 # Plot the MI correlation coefficients as a line plot
 fig, ax = plt.subplots(figsize=(8,6))
@@ -192,10 +189,10 @@ We can then repeat the estimation with two more masks.
 
 ```python
 # Do two more estimations and average the three runs
-temp_12 = estimate_mi(scaled_data["Temperature"], scaled_data[covariates], lags,
-    cond=scaled_data["DayOfYear"], mask=(data.index.hour == 12), normalize=True)
-temp_14 = estimate_mi(scaled_data["Temperature"], scaled_data[covariates], lags,
-    cond=scaled_data["DayOfYear"], mask=(data.index.hour == 14), normalize=True)
+temp_12 = estimate_mi(data["Temperature"], data[covariates], lags,
+    cond=data["DayOfYear"], mask=(data.index.hour == 12), normalize=True)
+temp_14 = estimate_mi(data["Temperature"], data[covariates], lags,
+    cond=data["DayOfYear"], mask=(data.index.hour == 14), normalize=True)
 
 temp_avg = (temp_12 + temp + temp_14) / 3
 
