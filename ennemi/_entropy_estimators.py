@@ -28,7 +28,6 @@ def _estimate_single_entropy(x: np.ndarray, k: int = 3) -> float:
 
     N, ndim = x.shape
     grid = cKDTree(x, k)
-    distances = np.empty(N)
 
     # Search for the k'th neighbor of each point and store the distance
     distances = grid.query(x, k=[k+1], p=np.inf)[0].flatten()
