@@ -768,7 +768,7 @@ class TestEstimateMi(unittest.TestCase):
         mi1 = estimate_mi(s, w, discrete_y=True, cond=y)
         mi2 = estimate_mi(s, w, discrete_y=True, cond=np.column_stack((y,z)))
 
-        self.assertAlmostEqual(mi2, math.log(2), delta=0.055)
+        self.assertAlmostEqual(mi2, math.log(2), delta=0.06)
         self.assertGreater(mi2, mi1 + 0.1)
         self.assertGreater(mi1, mi0 + 0.1)
 
@@ -1005,6 +1005,17 @@ class TestPairwiseMi(unittest.TestCase):
         mi_scaled = pairwise_mi(data, cond=cond, preprocess=True)
 
         self.assertNotAlmostEqual(mi_unscaled[0,1], 0.0, delta=0.2)
+        self.assertLess(mi_scaled[0,1], 0.03)
+
+    def test_preprocess_two_cond_vars(self) -> None:
+        # As above, but detect if the normalization is done over the whole
+        # cond array, not per-column.
+        data = self.generate_normal(2020_07_27)
+        unif = np.random.default_rng(2020_07_27).uniform(size=len(data)) * 1e6
+        cond = np.column_stack((data[:,0] * 1e-5, unif))
+
+        mi_scaled = pairwise_mi(data, cond=cond, preprocess=True)
+
         self.assertLess(mi_scaled[0,1], 0.03)
 
     def test_normalization(self) -> None:

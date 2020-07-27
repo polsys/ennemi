@@ -603,7 +603,7 @@ def _rescale_data(xs: np.ndarray, ys: np.ndarray, zs: Optional[np.ndarray], disc
         ys += rng.normal(0.0, 1e-10, ys.shape)
     
     if zs is not None:
-        zs = (zs - zs.mean()) / zs.std()
+        zs = (zs - zs.mean(axis=0)) / zs.std(axis=0)
         zs += rng.normal(0.0, 1e-10, zs.shape)
 
     return xs, ys, zs
