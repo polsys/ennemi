@@ -24,7 +24,7 @@ K_NEGATIVE_MSG = "k must be greater than zero"
 TOO_LARGE_LAG_MSG = "lag is too large, no observations left"
 INVALID_MASK_LENGTH_MSG = "mask length does not match input length"
 INVALID_MASK_TYPE_MSG = "mask must contain only booleans"
-NANS_LEFT_MSG = "input contains NaNs (after applying the mask)"
+NANS_LEFT_MSG = "input contains NaNs (after applying the mask), pass drop_nan=True to ignore"
 
 
 class TestEstimateEntropy(unittest.TestCase):
@@ -213,6 +213,89 @@ class TestEstimateEntropy(unittest.TestCase):
         cond_result = estimate_entropy(data, cond=cond)
 
         self.assertAlmostEqual(cond_result, uncond_result, delta=0.05)
+
+    def test_conditional_entropy_with_mask(self) -> None:
+        # The remaining observations are identical, giving entropy of -inf
+        # However, the masked-out variables follow very different distributions
+        rng = np.random.default_rng(7)
+        unif = rng.uniform(0, 1, size=1000)
+        data = np.concatenate((unif, rng.beta(2, 3, size=400)))
+        cond = np.concatenate((unif, rng.normal(0, 1, size=400)))
+        mask = np.concatenate((np.full(1000, True), np.full(400, False)))
+
+        unmasked = estimate_entropy(data, cond=cond)
+        masked = estimate_entropy(data, cond=cond, mask=mask)
+
+        self.assertLess(masked, unmasked - 1)
+        self.assertLess(masked, -5)
+
+    def test_drop_nan_separate_vars(self) -> None:
+        rng = np.random.default_rng(8)
+        data = np.column_stack((rng.uniform(0, 2, size=2000), rng.uniform(0, 3, size=2000)))
+        data[:1000,0] = np.nan
+        data[1000:,1] = np.nan
+
+        result = estimate_entropy(data, drop_nan=True)
+
+        self.assertAlmostEqual(result[0], math.log(2), delta=0.04)
+        self.assertAlmostEqual(result[1], math.log(3), delta=0.04)
+
+    def test_drop_nan_multidim(self) -> None:
+        rng = np.random.default_rng(9)
+        cov = np.asarray([[1, 0.6], [0.6, 2]])
+        data = rng.multivariate_normal([0, 0], cov, size=1000)
+        data[:50,0] = np.nan
+        data[950:,1] = np.nan
+
+        result = estimate_entropy(data, multidim=True, drop_nan=True)
+
+        self.assertAlmostEqual(result,
+            math.log(2*math.pi*math.e) + 0.5*math.log(2-0.6**2), delta=0.05)
+
+    def test_drop_nan_cond(self) -> None:
+        # Independent condition
+        rng = np.random.default_rng(10)
+        data = rng.uniform(size=1000)
+        cond = rng.uniform(size=1000)
+        cond[:10] = np.nan
+
+        result = estimate_entropy(data, cond=cond, drop_nan=True)
+
+        self.assertAlmostEqual(result, 0.0, delta=0.04)
+
+    def test_drop_nan_cond_multidim(self) -> None:
+        # See test_conditional_entropy_1d_condition
+        rng = np.random.default_rng(11)
+        cov = np.asarray([[1, 0.6, 0.3], [0.6, 2, 0.1], [0.3, 0.1, 1]])
+        data = rng.multivariate_normal([0, 0, 0], cov, size=1500)
+        data[10:20,0] = np.nan
+        data[20:30,1] = np.nan
+        data[25:40,2] = np.nan
+
+        result = estimate_entropy(data[:,:2], cond=data[:,2], multidim=True, drop_nan=True)
+
+        expected = 0.5 * (math.log(np.linalg.det(2 * math.pi * math.e * cov)) - math.log(2*math.pi*math.e*1))
+        self.assertAlmostEqual(result, expected, delta=0.1)
+
+    def test_drop_nan_leaves_too_few_observations(self) -> None:
+        data = [(np.nan, 2), (np.nan, 4), (5, np.nan), (7, np.nan), (9, 10), (11, 12)]
+        cond = [(np.nan, 2), (3, 4), (5, np.nan), (7, 8), (9, 10), (11, 12)]
+
+        # When multidim=False, there are three observations left
+        # When multidim=True, there are just two
+        for (multidim, k, should_throw) in [(False, 3, True),
+                                            (False, 2, False),
+                                            (True, 2, True),
+                                            (True, 1, False)]:
+            if should_throw:
+                with self.assertRaises(ValueError) as cm:
+                    estimate_entropy(data, cond=cond, multidim=multidim, k=k, drop_nan=True)
+                self.assertEqual(str(cm.exception), K_TOO_LARGE_MSG, f"multidim={multidim}, k={k}")
+            else:
+                try:
+                    estimate_entropy(data, cond=cond, multidim=multidim, k=k, drop_nan=True)
+                except:
+                    self.fail(f"Exception occurred; multidim={multidim}, k={k}")
 
 
 class TestEstimateMi(unittest.TestCase):
@@ -729,6 +812,16 @@ class TestEstimateMi(unittest.TestCase):
         # type-checks and does not crash
         estimate_mi(y, x, cond=cond, mask=mask)
 
+    def test_drop_nan(self) -> None:
+        rng = np.random.default_rng(2020_07_28)
+        cov = np.array([[1, 0.8], [0.8, 1]])
+        data = rng.multivariate_normal([0, 0], cov, size=1000)
+        data[:50,0] = np.nan
+        data[950:,1] = np.nan
+
+        mi = estimate_mi(data[:,1], data[:,0], normalize=True, drop_nan=True)
+        self.assertAlmostEqual(mi, 0.8, delta=0.02)
+
 
     def test_discrete_y(self) -> None:
         # See the two_disjoint_uniforms algorithm test
@@ -1017,6 +1110,22 @@ class TestPairwiseMi(unittest.TestCase):
         mi_scaled = pairwise_mi(data, cond=cond, preprocess=True)
 
         self.assertLess(mi_scaled[0,1], 0.03)
+
+
+    def test_drop_nan(self) -> None:
+        rng = np.random.default_rng(2020_07_28)
+        cov = np.array([[1, 0.8], [0.8, 1]])
+        data = rng.multivariate_normal([0, 0], cov, size=1000)
+        data[:50,0] = np.nan
+        data[950:,1] = np.nan
+
+        cond = rng.uniform(size=data.shape)
+        cond[100:120,0] = np.nan
+        cond[900:960,0] = np.nan
+
+        mi = pairwise_mi(data, cond=cond, normalize=True, drop_nan=True)
+        self.assertAlmostEqual(mi[0,1], 0.8, delta=0.02)
+
 
     def test_normalization(self) -> None:
         data = self.generate_normal(104)

@@ -54,8 +54,12 @@ def _normalize(mi: np.float) -> np.float:
         return np.sqrt(1 - np.exp(-2 * mi))
 
 
-def estimate_entropy(x: ArrayLike, *, k: int = 3, multidim: bool = False,
-    mask: Optional[ArrayLike] = None, cond: Optional[ArrayLike] = None) -> np.ndarray:
+def estimate_entropy(x: ArrayLike,
+    *, k: int = 3,
+    multidim: bool = False,
+    mask: Optional[ArrayLike] = None,
+    cond: Optional[ArrayLike] = None,
+    drop_nan: bool = False) -> np.ndarray:
     """Estimate the entropy of one or more continuous random variables.
 
     Returns the estimated entropy in nats. If `x` is two-dimensional, each
@@ -92,32 +96,27 @@ def estimate_entropy(x: ArrayLike, *, k: int = 3, multidim: bool = False,
         All variables in a 2D array are used together.
         The calculation uses the chain rule H(X|Y) = H(X,Y) - H(Y) without
         any correction for potential estimation bias.
+    drop_nan : bool, default False
+        If True, all NaN (not a number) values are masked out.
     """
 
     x_arr = np.asarray(x)
 
-    # Apply the mask
-    # TODO: This must be moved if each variable gets a separate mask
+    # Validate the parameters
+    # Post-masking validation is done just before going to the algorithm
     if mask is not None:
         mask = np.asarray(mask)
         _validate_mask(mask, x_arr.shape[0])
-        x_arr = x_arr[mask]
-
-    # Validate the parameters
     if not 1 <= x_arr.ndim <= 2:
         raise ValueError("x must be one- or two-dimensional")
     _validate_k_type(k)
-    if k >= x_arr.shape[0]:
-        raise ValueError("k must be smaller than number of observations (after lag and mask)")
-    if np.any(np.isnan(x_arr)):
-        raise ValueError("input contains NaNs (after applying the mask)")
 
     if cond is None:
-        result = _estimate_entropy(x_arr, k, multidim)
+        result = _estimate_entropy(x_arr, k, multidim, mask, drop_nan)
     else:
         cond_arr = np.asarray(cond)
         _validate_cond(cond_arr, x_arr.shape[0])
-        result = _estimate_conditional_entropy(x_arr, cond_arr, k, multidim)
+        result = _estimate_conditional_entropy(x_arr, cond_arr, k, multidim, mask, drop_nan)
 
     # If the original x array was a pandas data type, return a DataFrame
     # As an exception, if multidim=True, we still return a NumPy scalar
@@ -130,33 +129,60 @@ def estimate_entropy(x: ArrayLike, *, k: int = 3, multidim: bool = False,
     return result
 
 
-def _estimate_entropy(x: np.ndarray, k: int, multidim: bool) -> np.ndarray:
+def _estimate_entropy(x: np.ndarray, k: int, multidim: bool,
+        mask: Optional[np.ndarray], drop_nan: bool) -> np.ndarray:
     """Strongly typed estimate_entropy()."""
 
-    if multidim and x.ndim > 1:
-        return np.asarray(_estimate_single_entropy(x, k))
-    elif x.ndim == 1:
+    if multidim or x.ndim == 1:
+        x = _mask_and_validate_entropy(x, mask, drop_nan, k)
         return np.asarray(_estimate_single_entropy(x, k))
     else:
         nvar = x.shape[1]
-        return np.asarray([_estimate_single_entropy(x[:,i], k) for i in range(nvar)])
+        result = np.empty(nvar)
+        for i in range(nvar):
+            xs = _mask_and_validate_entropy(x[:,i], mask, drop_nan, k)
+            result[i] = _estimate_single_entropy(xs, k)
+        return result
 
+def _mask_and_validate_entropy(x: np.ndarray, mask: Optional[np.ndarray],
+        drop_nan: bool, k: int) -> np.ndarray:
+    # Apply the mask and drop NaNs
+    # TODO: Support 2D masks (https://github.com/polsys/ennemi/issues/37)
+    if mask is not None:
+        x = x[mask]
 
-def _estimate_conditional_entropy(x: np.ndarray, cond: np.ndarray, k: int, multidim: bool) -> np.ndarray:
+    if drop_nan and x.ndim > 1:
+        x = x[~np.max(np.isnan(x), axis=1)]
+    elif drop_nan:
+        x = x[~np.isnan(x)]
+
+    # Validate the x array
+    if k >= x.shape[0]:
+        raise ValueError("k must be smaller than number of observations (after lag and mask)")
+    if np.any(np.isnan(x)):
+        raise ValueError("input contains NaNs (after applying the mask), pass drop_nan=True to ignore")
+
+    return x
+
+def _estimate_conditional_entropy(x: np.ndarray, cond: np.ndarray, k: int, multidim: bool,
+        mask: Optional[np.ndarray], drop_nan: bool) -> np.ndarray:
     """Conditional entropy by the chain rule: H(X|Y) = H(X,Y) - H(Y)."""
 
-    # Estimate the entropy of cond by the method above
-    marginal = _estimate_entropy(cond, k, multidim=True)
+    # Estimate the entropy of cond by the method above (multidim=True)
+    marginal = _estimate_entropy(cond, k, True, mask, drop_nan)
 
     # The joint entropy depends on multidim and number of dimensions:
     # In the latter case, the joint entropy is calculated for each x variable
     if multidim or x.ndim == 1:
-        joint = _estimate_single_entropy(np.column_stack((x, cond)), k)
+        xs = _mask_and_validate_entropy(np.column_stack((x, cond)), mask, drop_nan, k)
+        joint = _estimate_single_entropy(xs, k)
         return np.asarray(joint - marginal)
     else:
         nvar = x.shape[1]
-        joint = np.asarray(
-            [_estimate_single_entropy(np.column_stack((x[:,i], cond)), k) for i in range(nvar)])
+        joint = np.empty(nvar)
+        for i in range(nvar):
+            xs = _mask_and_validate_entropy(np.column_stack((x[:,i], cond)), mask, drop_nan, k)
+            joint[i] = _estimate_single_entropy(xs, k)
         return joint - marginal
 
 
@@ -168,6 +194,7 @@ def estimate_mi(y: ArrayLike, x: ArrayLike,
                 mask: Optional[ArrayLike] = None,
                 discrete_y: bool = False,
                 preprocess: bool = True,
+                drop_nan: bool = False,
                 normalize: bool = False,
                 max_threads: Optional[int] = None,
                 callback: Optional[Callable[[int, int], None]] = None) -> np.ndarray:
@@ -231,6 +258,8 @@ def estimate_mi(y: ArrayLike, x: ArrayLike,
     preprocess : bool, default True
         If True (the default), the variables are scaled to unit variance and
         added with low-amplitude noise. The noise uses a fixed random seed.
+    drop_nan : bool, default False
+        If True, all NaN (not a number) values are masked out.
     normalize : bool, default False
         If True, the results will be normalized to correlation coefficient scale.
         Same as calling `normalize_mi` on the results.
@@ -258,7 +287,7 @@ def estimate_mi(y: ArrayLike, x: ArrayLike,
 
     # Check the parameters and run the estimation
     result = _estimate_mi(y_arr, x_arr, lag_arr, k, cond_arr,
-        cond_lag_arr, mask_arr, discrete_y, preprocess, max_threads, callback)
+        cond_lag_arr, mask_arr, discrete_y, preprocess, drop_nan, max_threads, callback)
 
     # Normalize if requested
     if normalize:
@@ -275,7 +304,7 @@ def estimate_mi(y: ArrayLike, x: ArrayLike,
 
 def _estimate_mi(y: np.ndarray, x: np.ndarray, lag: np.ndarray, k: int,
         cond: Optional[np.ndarray], cond_lag: np.ndarray,
-        mask: Optional[np.ndarray], discrete_y: bool, preprocess: bool,
+        mask: Optional[np.ndarray], discrete_y: bool, preprocess: bool, drop_nan: bool,
         max_threads: Optional[int],
         callback: Optional[Callable[[int, int], None]]) -> np.ndarray:
     """This method is strongly typed, estimate_mi() does necessary conversion."""
@@ -300,10 +329,10 @@ def _estimate_mi(y: np.ndarray, x: np.ndarray, lag: np.ndarray, k: int,
     indices = list(itertools.product(range(len(lag)), range(nvar)))
     if x.ndim == 1:
         params = list(map(lambda i: (x, y, lag[i[0]], max_lag, min_lag, k,
-            mask, cond, cond_lag[i[0]], discrete_y, preprocess), indices))
+            mask, cond, cond_lag[i[0]], discrete_y, preprocess, drop_nan), indices))
     else:
         params = list(map(lambda i: (x[:,i[1]], y, lag[i[0]], max_lag, min_lag, k,
-            mask, cond, cond_lag[i[0]], discrete_y, preprocess), indices))
+            mask, cond, cond_lag[i[0]], discrete_y, preprocess, drop_nan), indices))
 
     # Run the estimation, possibly in parallel
     def wrapped_callback(i: int) -> None:
@@ -365,6 +394,7 @@ def pairwise_mi(data: ArrayLike,
     cond: Optional[ArrayLike] = None,
     mask: Optional[ArrayLike] = None,
     preprocess: bool = True,
+    drop_nan: bool = False,
     normalize: bool = False,
     max_threads: Optional[int] = None,
     callback: Optional[Callable[[int, int], None]] = None) -> np.ndarray:
@@ -394,6 +424,8 @@ def pairwise_mi(data: ArrayLike,
     preprocess : bool, default True
         If True (the default), the variables are scaled to unit variance and
         added with low-amplitude noise. The noise uses a fixed random seed.
+    drop_nan : bool, default False
+        If True, all NaN (not a number) values are masked out.
     normalize: bool, default False
         If True, the MI values will be normalized to correlation coefficient scale.
     max_threads : int or None
@@ -415,7 +447,7 @@ def pairwise_mi(data: ArrayLike,
     if data_arr.ndim == 1 or data_arr.shape[1] == 1:
         return np.full((1,1), np.nan)
     
-    result = _pairwise_mi(data_arr, k, cond_arr, preprocess, mask_arr, max_threads, callback)
+    result = _pairwise_mi(data_arr, k, cond_arr, preprocess, drop_nan, mask_arr, max_threads, callback)
 
     # Normalize if asked for
     if normalize:
@@ -430,7 +462,7 @@ def pairwise_mi(data: ArrayLike,
 
 
 def _pairwise_mi(data: np.ndarray, k: int, cond: Optional[np.ndarray], preprocess: bool,
-    mask: Optional[np.ndarray], max_threads: Optional[int],
+    drop_nan: bool, mask: Optional[np.ndarray], max_threads: Optional[int],
     callback: Optional[Callable[[int, int], None]]) -> np.ndarray:
     """Strongly typed pairwise MI. The data array is at least 2D."""
 
@@ -444,7 +476,7 @@ def _pairwise_mi(data: np.ndarray, k: int, cond: Optional[np.ndarray], preproces
     for i in range(nvar):
         for j in range(i+1, nvar):
             indices.append((i, j))
-            params.append((data[:,i], data[:,j], 0, 0, 0, k, mask, cond, 0, False, preprocess))
+            params.append((data[:,i], data[:,j], 0, 0, 0, k, mask, cond, 0, False, preprocess, drop_nan))
 
     # Run the MI estimation for each pair, possibly in parallel
     def wrapped_callback(i: int) -> None:
@@ -527,9 +559,9 @@ def _map_maybe_parallel(func: Callable[[T], float], params: List[T],
 
 
 def _lagged_mi(param_tuple: Tuple[np.ndarray, np.ndarray, int, int, int, int,
-        Optional[np.ndarray], Optional[np.ndarray], int, bool, bool]) -> float:
+        Optional[np.ndarray], Optional[np.ndarray], int, bool, bool, bool]) -> float:
     # Unpack the param tuple used for possible cross-thread transfer
-    x, y, lag, max_lag, min_lag, k, mask, cond, cond_lag, discrete_y, preprocess = param_tuple
+    x, y, lag, max_lag, min_lag, k, mask, cond, cond_lag, discrete_y, preprocess, drop_nan = param_tuple
 
     # Handle negative lags correctly
     min_lag = min(min_lag, 0)
@@ -545,7 +577,7 @@ def _lagged_mi(param_tuple: Tuple[np.ndarray, np.ndarray, int, int, int, int,
     else: zs = None
 
     # Apply masks, validate and preprocess the data
-    xs, ys, zs = _apply_masks(xs, ys, zs, mask, min_lag, max_lag)
+    xs, ys, zs = _apply_masks(xs, ys, zs, mask, min_lag, max_lag, drop_nan)
     _validate_masked_data(xs, ys, zs, k, discrete_y)
     if preprocess:
         xs, ys, zs = _rescale_data(xs, ys, zs, discrete_y)
@@ -563,15 +595,25 @@ def _lagged_mi(param_tuple: Tuple[np.ndarray, np.ndarray, int, int, int, int,
             return _estimate_conditional_mi(xs, ys, zs, k)
 
 def _apply_masks(xs: np.ndarray, ys: np.ndarray, zs: Optional[np.ndarray],
-        mask: np.ndarray, min_lag: int, max_lag: int)\
+        mask: np.ndarray, min_lag: int, max_lag: int, drop_nan: bool)\
         -> Tuple[np.ndarray, np.ndarray, Optional[np.ndarray]]:
-    # Apply the mask if necessary
+    # Apply the mask
     if mask is not None:
         mask_subset = mask[max_lag : len(mask)+min_lag]
         xs = xs[mask_subset]
         ys = ys[mask_subset]
         if zs is not None:
             zs = zs[mask_subset]
+
+    # Drop NaNs
+    if drop_nan:
+        notna = ~(np.isnan(xs) | np.isnan(ys))
+        if zs is not None:
+            notna &= ~np.max(np.isnan(zs), axis=1)
+            zs = zs[notna]
+        xs = xs[notna]
+        ys = ys[notna]
+
     return xs, ys, zs
 
 def _validate_masked_data(xs: np.ndarray, ys: np.ndarray, zs: Optional[np.ndarray],
@@ -581,7 +623,7 @@ def _validate_masked_data(xs: np.ndarray, ys: np.ndarray, zs: Optional[np.ndarra
     if (len(ys) <= k):
         raise ValueError("k must be smaller than number of observations (after lag and mask)")
 
-    NAN_MSG = "input contains NaNs (after applying the mask)"
+    NAN_MSG = "input contains NaNs (after applying the mask), pass drop_nan=True to ignore"
     if np.isnan(xs).any():
         raise ValueError(NAN_MSG)
     if (not discrete_y or ys.dtype.kind in "iufc") and np.isnan(ys).any():
