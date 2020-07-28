@@ -175,11 +175,10 @@ def _estimate_conditional_entropy(x: np.ndarray, cond: np.ndarray, k: int, multi
     # In the latter case, the joint entropy is calculated for each x variable
     if multidim or x.ndim == 1:
         xs = _mask_and_validate_entropy(np.column_stack((x, cond)), mask, drop_nan, k)
-        joint = _estimate_single_entropy(xs, k)
-        return np.asarray(joint - marginal)
+        return np.asarray(_estimate_single_entropy(xs, k) - marginal)
     else:
         nvar = x.shape[1]
-        joint = np.empty(nvar)
+        joint = np.empty(nvar) # type: np.ndarray
         for i in range(nvar):
             xs = _mask_and_validate_entropy(np.column_stack((x[:,i], cond)), mask, drop_nan, k)
             joint[i] = _estimate_single_entropy(xs, k)
