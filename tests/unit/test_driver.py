@@ -9,7 +9,7 @@ import numpy as np
 import os.path
 import pandas as pd
 import random
-from typing import List
+from typing import List, Tuple
 import unittest
 from ennemi import estimate_entropy, estimate_mi, normalize_mi, pairwise_mi
 
@@ -768,6 +768,39 @@ class TestEstimateMi(unittest.TestCase):
         self.assertEqual(many_cond.shape, (1,1))
         self.assertAlmostEqual(single_cond.item(), 0.33, delta=0.03)
         self.assertGreater(many_cond.item(), 1.0)
+
+    def _create_4d_data(self) -> Tuple[np.ndarray, float]:
+        # The same dataset as in test_four_gaussians algorithm test
+        rng = np.random.default_rng(2020_07_29)
+        cov = np.array([[1, 0, 2, 1],
+                        [0, 6, 1, 2],
+                        [2, 1, 5, 2],
+                        [1, 2, 2, 2]])
+        dist = rng.multivariate_normal([0, 0, 0, 0], cov, size=4002)
+
+        # X(t) and Y(t) depend on each other and Z(t-1) and W(t+1)
+        # Verify the cropping by setting NaN's
+        data = np.column_stack((dist[1:4001,0], dist[1:4001,1], dist[2:,2], dist[:4000,3]))
+        data[0,1] = np.nan
+        data[-1,1] = np.nan
+
+        return data, 0.64964
+
+    def test_conditional_mi_with_separate_lags(self) -> None:
+        data, expected = self._create_4d_data()
+
+        actual = estimate_mi(data[:,1], data[:,0], cond=data[:,2:], cond_lag=[[1,-1]])
+        self.assertAlmostEqual(actual, expected, delta=0.08)
+
+    def test_conditional_mi_with_multiple_and_separate_lags(self) -> None:
+        # The same as above, but with multiple lags too
+        data, expected = self._create_4d_data()
+
+        actual = estimate_mi(data[:,1], data[:,0], cond=data[:,2:],
+            lag=[0, 1], cond_lag=[(1,-1)])
+        self.assertAlmostEqual(actual[0,0], expected, delta=0.08)
+        self.assertAlmostEqual(actual[1,0], 0.0, delta=0.02)
+
 
     def test_unmasked_nans_are_rejected(self) -> None:
         for (xnan, ynan, condnan) in [(True, False, None),
