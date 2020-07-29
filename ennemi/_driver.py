@@ -245,6 +245,7 @@ def estimate_mi(y: ArrayLike, x: ArrayLike,
         All variables in a 2D array are used together.
     cond_lag : int or array_like, default 0
         Lag applied to the cond array. Must be broadcastable to the size of `lag`.
+        Can be two-dimensional to lag each conditioning variable separately.
     mask : array_like or None
         If specified, an array of booleans that gives the `y` elements to use for
         estimation. Use this to exclude some observations from consideration
@@ -271,18 +272,24 @@ def estimate_mi(y: ArrayLike, x: ArrayLike,
         This method should be very short. Because Python code is not executed
         concurrently, the callback may slow down other estimation tasks.
     """
-
-    # Convert parameters to consistent types
-    lag_arr = np.atleast_1d(lag)
-    cond_lag_arr = np.broadcast_to(cond_lag, lag_arr.shape)
     
+    # Convert parameters to consistent types
     # Keep the original x parameter around for the Pandas data frame check
     x_arr = np.asarray(x)
     y_arr = np.asarray(y)
-    if cond is not None: cond_arr = np.asarray(cond)
-    else: cond_arr = None
+    if cond is not None:
+        # Make cond 2D
+        cond_arr = np.column_stack((np.asarray(cond),))
+        ncond = cond_arr.shape[1]
+    else:
+        cond_arr = None
+        ncond = 1
     if mask is not None: mask_arr = np.asarray(mask)
     else: mask_arr = None
+
+    # Broadcast cond_lag to be (#lags, #cond vars) in shape
+    lag_arr = np.atleast_1d(lag)
+    cond_lag_arr = np.broadcast_to(np.column_stack((cond_lag,)), (lag_arr.shape[0], ncond))
 
     # Check the parameters and run the estimation
     result = _estimate_mi(y_arr, x_arr, lag_arr, k, cond_arr,
@@ -436,8 +443,10 @@ def pairwise_mi(data: ArrayLike,
         This method should be very short. Because Python code is not executed
         concurrently, the callback may slow down other estimation tasks.
     """
+
+    # Convert arrays to consistent type; _lagged_mi assumes cond to be 2D
     data_arr = np.asarray(data)
-    if cond is not None: cond_arr = np.asarray(cond)
+    if cond is not None: cond_arr = np.column_stack((np.asarray(cond),))
     else: cond_arr = None
     if mask is not None: mask_arr = np.asarray(mask)
     else: mask_arr = None
@@ -468,6 +477,12 @@ def _pairwise_mi(data: np.ndarray, k: int, cond: Optional[np.ndarray], preproces
     _check_parameters(data, None, k, cond, mask)
     nobs, nvar = data.shape
 
+    # Fake a cond_lag of correct shape for _lagged_mi
+    # TODO: Actually support cond lag (https://github.com/polsys/ennemi/issues/61)
+    if cond is not None:
+        cond_lag = np.full(cond.shape[1], 0)
+    else: cond_lag = np.asarray(0)
+
     # Create a list of variable pairs
     # By symmetry, it suffices to consider a triangular matrix
     indices = []
@@ -475,7 +490,7 @@ def _pairwise_mi(data: np.ndarray, k: int, cond: Optional[np.ndarray], preproces
     for i in range(nvar):
         for j in range(i+1, nvar):
             indices.append((i, j))
-            params.append((data[:,i], data[:,j], 0, 0, 0, k, mask, cond, 0, False, preprocess, drop_nan))
+            params.append((data[:,i], data[:,j], 0, 0, 0, k, mask, cond, cond_lag, False, preprocess, drop_nan))
 
     # Run the MI estimation for each pair, possibly in parallel
     def wrapped_callback(i: int) -> None:
@@ -558,7 +573,7 @@ def _map_maybe_parallel(func: Callable[[T], float], params: List[T],
 
 
 def _lagged_mi(param_tuple: Tuple[np.ndarray, np.ndarray, int, int, int, int,
-        Optional[np.ndarray], Optional[np.ndarray], int, bool, bool, bool]) -> float:
+        Optional[np.ndarray], Optional[np.ndarray], np.ndarray, bool, bool, bool]) -> float:
     # Unpack the param tuple used for possible cross-thread transfer
     x, y, lag, max_lag, min_lag, k, mask, cond, cond_lag, discrete_y, preprocess, drop_nan = param_tuple
 
@@ -570,9 +585,10 @@ def _lagged_mi(param_tuple: Tuple[np.ndarray, np.ndarray, int, int, int, int,
     xs = x[max_lag-lag : len(x)-lag+min_lag]
     # The y observations always start from max_lag
     ys = y[max_lag : len(y)+min_lag]
-    # The cond observations have their own lag term
+    # The cond observations have their own lag terms
     if cond is not None:
-        zs = cond[max_lag-cond_lag : len(cond)-cond_lag+min_lag]
+        zs = np.column_stack([cond[max_lag-cond_lag[i] : len(cond)-cond_lag[i]+min_lag, i]\
+            for i in range(len(cond_lag))])
     else: zs = None
 
     # Apply masks, validate and preprocess the data
