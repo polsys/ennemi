@@ -67,6 +67,12 @@ jobs:
       - name: Run type checker
         run: |
           python -m mypy ennemi/ tests/unit tests/integration
+
+      - name: Try building the package
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.8'
+        run: |
+          pip install setuptools wheel
+          python setup.py sdist bdist_wheel
       
       - name: Run Sonar code analysis
         if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.8'
