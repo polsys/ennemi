@@ -23,6 +23,8 @@ T = TypeVar("T")
 def normalize_mi(mi: GenArrayLike) -> GenArrayLike:
     """Normalize mutual information values to the unit interval.
 
+    Equivalent to passing `normalize=True` to the estimation methods.
+
     The return value matches the correlation coefficient between two Gaussian
     random variables with unit variance. This coefficient is preserved by all
     monotonic transformations, including scaling. The value is positive regardless
@@ -97,7 +99,7 @@ def estimate_entropy(x: ArrayLike,
         The calculation uses the chain rule H(X|Y) = H(X,Y) - H(Y) without
         any correction for potential estimation bias.
     drop_nan : bool, default False
-        If True, all NaN (not a number) values are masked out.
+        If True, all NaN (not a number) values in `x` and `cond` are masked out.
     """
 
     x_arr = np.asarray(x)
@@ -198,19 +200,21 @@ def estimate_mi(y: ArrayLike, x: ArrayLike,
                 max_threads: Optional[int] = None,
                 callback: Optional[Callable[[int, int], None]] = None) -> np.ndarray:
     """Estimate the mutual information between y and each x variable.
+
+    - Unconditional MI: the default.
+    - Conditional MI: pass a `cond` array.
+    - Discrete-continuous MI: set `discrete_y` to True.
  
     Returns the estimated mutual information (in nats) for continuous
-    variables. The result is a 2D `ndarray` where the first index represents `x`
-    rows and the second index represents the `lag` values. If `x` is a pandas
+    variables. The result is a 2D `ndarray` where the first index represents `lag` values
+    and the second index represents `x` columns. If `x` is a pandas
     `DataFrame` or `Series`, the result is a `DataFrame`.
 
     The time lag is interpreted as `y(t) ~ x(t - lag) | z(t - cond_lag)`.
     The time lags are applied to the `x` and `cond` arrays such that the `y`
     array stays the same every time.
     This means that `y` is cropped to `y[max(max_lag,0) : N+min(min_lag,0)]`.
-
-    If the `cond` parameter is set, conditional mutual information is estimated.
-    The `cond_lag` parameter specifies the lag for the `cond` array, separately
+    The `cond_lag` parameter specifies the lag for the `cond` array separately
     from the `x` lag.
 
     If the `mask` parameter is set, only those `y` observations with the
@@ -233,7 +237,8 @@ def estimate_mi(y: ArrayLike, x: ArrayLike,
         A 1D or 2D array where the columns are one or more variables and the
         rows are observations. The number of rows must be the same as in y.
     lag : int or array_like, default 0
-        A time lag or 1D array of time lags to apply.
+        A time lag or 1D array of time lags to apply. A positive lag means that
+        `y` depends on earlier `x` values and vice versa.
 
     Optional keyword parameters:
     ---
@@ -254,9 +259,8 @@ def estimate_mi(y: ArrayLike, x: ArrayLike,
     discrete_y : bool, default False
         If True, the `y` variable is interpreted as a discrete variable. The `x`
         variables are still continuous. The `y` values may be non-numeric.
-        Default False.
     preprocess : bool, default True
-        If True (the default), the variables are scaled to unit variance and
+        By default, the variables are scaled to unit variance and
         added with low-amplitude noise. The noise uses a fixed random seed.
     drop_nan : bool, default False
         If True, all NaN (not a number) values are masked out.
@@ -265,7 +269,7 @@ def estimate_mi(y: ArrayLike, x: ArrayLike,
         Same as calling `normalize_mi` on the results.
     max_threads : int or None
         The maximum number of threads to use for estimation.
-        If None (the default), the number of CPU cores is used.
+        By default, the number of CPU cores is used.
     callback : method or None
         A method to call when each estimation task is completed. The method
         must take two integer parameters: `x` variable index and lag value.
@@ -414,7 +418,7 @@ def pairwise_mi(data: ArrayLike,
     Positional or keyword parameters:
     ---
     data : array_like
-        A 2D array where the columns are variables and rows are observations.
+        A 2D array where the columns represent variables.
 
     Optional keyword parameters:
     ---
@@ -428,15 +432,15 @@ def pairwise_mi(data: ArrayLike,
         If specified, an array of booleans that gives the data elements to use for
         estimation. Use this to exclude some observations from consideration.
     preprocess : bool, default True
-        If True (the default), the variables are scaled to unit variance and
+        By default, the variables are scaled to unit variance and
         added with low-amplitude noise. The noise uses a fixed random seed.
     drop_nan : bool, default False
-        If True, all NaN (not a number) values are masked out.
-    normalize: bool, default False
+        If True, all NaN (not a number) values in `x` and `cond` are masked out.
+    normalize : bool, default False
         If True, the MI values will be normalized to correlation coefficient scale.
     max_threads : int or None
         The maximum number of threads to use for estimation.
-        If None (the default), the number of CPU cores is used.
+        By default, the number of CPU cores is used.
     callback : method or None
         A method to call when each estimation task is completed. The method
         must take two integer parameters, representing the variable indices.
