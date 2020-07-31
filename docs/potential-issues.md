@@ -154,7 +154,7 @@ print(estimate_mi(y, x))
 
 Running the code outputs
 ```
-[[1.02612906]]
+[[1.02554819]]
 ```
 a significantly higher value than the $\approx 0.51$ expected of
 non-autocorrelated samples.

@@ -189,7 +189,7 @@ Equivalent to passing `normalize=True` to the estimation methods.
 
 The normalization formula
 $$
-\rho = \sqrt{1 - \exp(-2\, I(X;Y))}
+\rho = \sqrt{1 - \exp(-2\, \mathrm{MI}(X;Y))}
 $$
 is based on the MI of bivariate normal distribution.
 The value matches the absolute Pearson correlation coefficient in a linear model.

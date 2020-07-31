@@ -45,7 +45,7 @@ ax.set_xticklabels(data.columns)
 ax.set_yticklabels(data.columns)
 ax.set_title("Unconditional MI at 15:00 local time")
 
-plt.savefig("casestudy_pairwise.png")
+plt.savefig("casestudy_pairwise.png", transparent=True)
 
 
 #
@@ -67,7 +67,7 @@ ax.set_xticklabels(data.columns)
 ax.set_yticklabels(data.columns)
 ax.set_title("Conditional on day of year, at 15:00 local time")
 
-plt.savefig("casestudy_pairwise_doy.png")
+plt.savefig("casestudy_pairwise_doy.png", transparent=True)
 
 
 #
@@ -98,7 +98,7 @@ ax.set_title("Time dependency of temperature at 15:00 (conditional on DOY)")
 ax.legend(lines, covariates)
 ax.grid()
 
-plt.savefig("casestudy_lags.png")
+plt.savefig("casestudy_lags.png", transparent=True)
 
 
 #
@@ -127,4 +127,4 @@ ax.set_title("Time dependency of temperature centered at 15:00 (conditional on D
 ax.legend(lines, covariates)
 ax.grid()
 
-plt.savefig("casestudy_lags_avg.png")
+plt.savefig("casestudy_lags_avg.png", transparent=True)

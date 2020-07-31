@@ -65,17 +65,15 @@ This will be discussed more below.
 
 
 
-## Interpretation
+## Correlation coefficient
 Mutual information may have any non-negative value.
 For easier interpretation, the `normalize_mi()` method converts MI to
 match correlation coefficient.
 To continue the above example, we could execute
 ```python
-from ennemi import normalize_mi
-print(normalize_mi(estimate_mi(y, x)))
+print(estimate_mi(y, x, normalize=True))
 ```
 to get the estimated correlation coefficient (`0.79980729`).
-You can also get the same result by passing `normalize=True` to `estimate_mi()`.
 
 The returned coefficient approximately matches the _absolute value_
 of the linear correlation coefficient after suitable transformations.
@@ -83,14 +81,14 @@ of the linear correlation coefficient after suitable transformations.
 For example, consider the model $y = \sin(x) + \varepsilon$.
 We calculate both the linear correlation and correlation from MI:
 ```python
-from ennemi import estimate_mi, normalize_mi
+from ennemi import estimate_mi
 import numpy as np
 
 rng = np.random.default_rng(1234)
 x = rng.normal(0.0, 3.0, size=800)
 y = np.sin(x) + rng.normal(0.0, 0.5, size=800)
 
-print(f"From MI: {normalize_mi(estimate_mi(y, x))[0,0]:.3}")
+print(f"From MI: {estimate_mi(y, x, normalize=True)[0,0]:.3}")
 print(f"Pearson: {np.corrcoef(y, np.sin(x))[0,1]:.3}")
 print(f"Pearson, untransformed: {np.corrcoef(y, x)[0,1]:.3}")
 ```
@@ -144,26 +142,23 @@ x = data[:,0]
 y = data[:,1]
 z = rng.normal(0, 1, size=800)
 
-# Transpose: rows are observations and columns are variables
-covariates = np.asarray([x, z]).T
+covariates = np.column_stack((x, z))
 
-print(estimate_mi(y, covariates))
+print(estimate_mi(y, covariates, normalize=True))
 ```
 
 The code prints
 ```
-[[ 0.51039762 -0.02167661]]
+[[ 0.79978795 -0.02110195]]
 ```
-The first column gives $\mathrm{MI}(X, Y)$ and the second column $\mathrm{MI}(Z, Y)$.
+The first column gives the correlation between $(X, Y)$ and the second column between $(Z, Y)$.
 As expected, the latter is very close to $0$.
 Due to random uncertainty and properties of the estimation algorithm,
 the result will not be exactly 0, and may even be negative.
 (Negative values far from zero, including $-\infty$, are discussed in the chapter
 on potential issues.)
 
-Above, we had to transpose the array so that the rows and columns were in
-correct order.
-The `x` parameter is interpreted as `x[observation, variable]`.
+The `x` parameter is interpreted as `x[observation index, variable index]`.
 This matches the order used by NumPy and Pandas libraries.
 See below for an example of using Pandas for data import.
 
@@ -206,16 +201,16 @@ y = np.zeros(400)
 y[1:] = x[0:-1]
 y += rng.normal(0, 0.01, size=400)
 
-print(estimate_mi(y, x, lag=[1, 0, -1]))
+print(estimate_mi(y, x, lag=[1, 0, -1], normalize=True))
 ```
 
 The code prints:
 ```
-[[ 3.8158148 ]
- [-0.04623529]
- [-0.00942073]]
+[[ 0.99975754]
+ [-0.04579946]
+ [-0.00918085]]
 ```
-which means that there is a link between $Y(t)$ and $X(t-1)$, but not
+which means that there is a strong link between $Y(t)$ and $X(t-1)$, but not
 between $Y(t)$ and $X(t)$ or $X(t+1)$.
 
 
@@ -237,14 +232,15 @@ import pandas as pd
 data = pd.read_csv("mi_example.csv")
 time_lags = np.arange(-3, 6)
 
-mi = estimate_mi(data["y"], data[["x1", "x2", "x3"]], lag=time_lags)
+mi = estimate_mi(data["y"], data[["x1", "x2", "x3"]],
+                 lag=time_lags, normalize=True)
 
-plt.plot(time_lags, mi["x1"], label="$x_1$")
-plt.plot(time_lags, mi["x2"], label="$x_2$")
-plt.plot(time_lags, mi["x3"], label="$x_3$")
+plt.plot(time_lags, mi["x1"], label="$x_1$", marker="o")
+plt.plot(time_lags, mi["x2"], label="$x_2$", marker="^")
+plt.plot(time_lags, mi["x3"], label="$x_3$", marker="s")
 plt.legend()
 plt.xlabel("Time lag (steps)")
-plt.ylabel("Mutual information (nats)")
+plt.ylabel("MI correlation")
 plt.title("Mutual information between $y$ and...")
 plt.show() # or plt.savefig(...)
 ```
@@ -253,15 +249,15 @@ The returned array is also a Pandas data frame, with
 column names matching variable names and indices matching lag values:
 ```
           x1        x2        x3
--3 -0.018175 -0.001715  0.026281
--2 -0.038831  0.104613  0.060727
--1 -0.039366  0.000975 -0.049848
- 0  0.041131 -0.057329  1.223317
- 1  3.017365 -0.021007  0.073804
- 2 -0.003052 -0.020242 -0.006757
- 3  0.010387  2.201044  0.047242
- 4 -0.040087  0.067558 -0.063396
- 5 -0.005595 -0.063550  0.025323
+-3 -0.017814 -0.005630 -0.006186
+-2 -0.039053  0.391237  0.311316
+-1 -0.039403 -0.003894 -0.037381
+ 0  0.280384 -0.028118  0.958259
+ 1  0.998803 -0.012764  0.349852
+ 2 -0.002487 -0.003956  0.150416
+ 3  0.137114  0.993299  0.275532
+ 4 -0.038925  0.368778 -0.041505
+ 5 -0.006512 -0.074845 -0.000150
 ```
 ![The mutual information for x1 peaks at lag 1, for x2 at lag 3 and for x3 stays near zero.](example_mi_plot.png)
 
@@ -279,11 +275,6 @@ the peaks will not be nearly as sharp.
 
 Suppose that in our previous example, we know that there is a connection
 between $X_1$ and $X_2$.
-We may know this from theory, or maybe by running
-```python
-estimate_mi(data[2], data[1], lag=2)
-```
-recognizing the high value, and then plotting the two variables.
 
 Now the question is: how much additional information does $X_1$ provide when
 $X_2$ is already known?
@@ -299,12 +290,12 @@ data = pd.read_csv("mi_example.csv")
 time_lags = np.arange(-3, 6)
 
 mi = estimate_mi(data["y"], data[["x1", "x3"]], lag=time_lags,
-                 cond=data["x2"], cond_lag=time_lags+2)
+                 cond=data["x2"], cond_lag=time_lags+2, normalize=True)
 print(mi)
 
-plt.plot(time_lags, mi["x1"], label="$x_1$")
+plt.plot(time_lags, mi["x1"], label="$x_1$", marker="o")
 plt.plot([], []) # Keep the colors comparable
-plt.plot(time_lags, mi["x3"], label="$x_3$")
+plt.plot(time_lags, mi["x3"], label="$x_3$", marker="s")
 plt.legend()
 plt.xlabel("Time lag (steps)")
 plt.ylabel("Mutual information (nats)")
@@ -314,19 +305,19 @@ plt.show()
 
 ```
           x1        x3
--3 -0.012983 -0.034058
--2 -0.047933 -0.003288
--1 -0.020685 -0.006188
- 0 -0.048229  0.615541
- 1  0.493758 -0.014698
- 2 -0.043362 -0.017642
- 3 -0.032567 -0.010353
- 4 -0.022203 -0.021783
- 5 -0.027794 -0.036999
+-3 -0.034824  0.088609
+-2 -0.086125 -0.015640
+-1 -0.038222 -0.025096
+ 0 -0.096564  0.885572
+ 1  0.839362 -0.055681
+ 2 -0.067587 -0.014683
+ 3 -0.034984  0.101320
+ 4 -0.022871 -0.000989
+ 5 -0.047365 -0.045094
 ```
 ![The conditional MI for x1 peaks at lag 1, but x3 has even larger peak at lag 0.](example_cmi_plot.png)
 
-Now we can see that $X_3$ is actually more significant in determining $Y$ than $X_1$!
+Now we can see that $X_3$ is actually slightly more significant in determining $Y$ than $X_1$!
 The dependence between $X_1$ and $X_2$ resulted in $X_1$ "borrowing"
 some explanative power from $X_2$.
 
@@ -380,28 +371,35 @@ import numpy as np
 # One observation every 30 minutes
 t = np.arange(4*48) / 2
 rng = np.random.default_rng(1234)
-x = -0.3 * np.cos(2 * np.pi * t / 24) + rng.normal(0, 0.001, len(t))
-y = np.sqrt(np.maximum(0, -np.cos(2 * np.pi * (t-3) / 24))) + rng.normal(0, 0.001, len(t))
+x = -0.3 * np.cos(2 * np.pi * t / 24) + rng.normal(0, 0.01, len(t))
+y = np.sqrt(np.maximum(0, -np.cos(2 * np.pi * (t-3) / 24)))\
+                          + rng.normal(0, 0.01, len(t))
 
-print(estimate_mi(y, x, lag=[0, 1, 2, 3]))
+print(estimate_mi(y, x, lag=[0, 1, 2, 3], normalize=True))
 ```
 The result is:
 ```
-[[1.36065339]
- [1.38213486]
- [1.45658645]
- [1.46549623]]
+[[0.91572684]
+ [0.92111013]
+ [0.91883495]
+ [0.93652557]]
 ```
 
 To constrain to daytime observations of $Y$ only, replace the last line with
 ```python
-mask = np.logical_and(t % 24 > 6, t % 24 < 18)
-print(estimate_mi(y, x, lag=[0, 1, 2, 3], mask=mask))
+mask = (t % 24 > 6) & (t % 24 < 18)
+print(estimate_mi(y, x, lag=[0, 1, 2, 3], mask=mask, normalize=True))
 ```
-This produces slightly larger MI values:
+This produces slightly different MI values:
 ```
-[[1.6303343 ]
- [1.72073981]
- [1.81418762]
- [1.88527594]]
+[[0.84804286]
+ [0.88699323]
+ [0.90550901]
+ [0.94374136]]
 ```
+The three first correlations indicate that we actually had some information there:
+if $X &lt; 0$, then $Y$ is probably zero.
+The MI at the correct lag term increased a bit.
+
+If some observations were missing altogether, indicated by a `NaN` value,
+we could pass the `drop_nan` parameter to `estimate_mi()` and get the same results.
