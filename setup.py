@@ -11,7 +11,7 @@ with open(description_file, encoding="utf-8") as f:
 setup(
     name = "ennemi",
     version = "1.0.0beta1",
-    description = "Easy-to-use Nearest Neighbor Estimation of Mutual Information",
+    description = "Non-linear correlation detection with mutual information",
     long_description = long_description,
     long_description_content_type = "text/markdown",
     url = "https://polsys.github.io/ennemi/",
