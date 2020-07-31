@@ -49,3 +49,13 @@ def get_pairwise_mi_callback(x, factor=1):
 
     return callback
 ```
+
+To use the callback, pass the returned value to `estimate_mi`/`pairwise_mi`
+as the optional `callback` keyword parameter:
+```python
+y, covariates = ...
+lags = [0, 1, 2, 3]
+callback = get_estimate_mi_callback(covariates, lags)
+
+mi = estimate_mi(y, covariates, lags, callback=callback)
+```
