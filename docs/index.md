@@ -4,18 +4,21 @@ title: Documentation
 
 ## In brief
 
-`ennemi` is a Python 3 package for estimating Mutual Information and other
+`ennemi` is a Python 3 package for estimating mutual information and other
 information-theoretic measures of continuous variables.
-It is aimed at practical data analysis, with simple one-method interface
-and built-in support for time lags.
+These measures can be used for non-linear correlation analysis.
+The package is designed for practical data analysis
+with no theoretical background required.
 
 **Features:**
-
-- Mutual information between two variables
-- Conditional mutual information with arbitrary-dimensional conditioning variables
-- Interface for evaluating multiple variable pairs and time lags with one call
-- Integrated with `pandas` data frames (optional, `pandas` not required)
-- Automatically parallelized estimation
+- Non-linear correlation detection:
+  - Mutual information between two variables
+  - Conditional MI with arbitrary-dimensional conditioning variables
+  - Discrete-continuous MI
+- Practical data analysis:
+  - Interface for evaluating multiple variable pairs and time lags with one call
+  - Integrated with `pandas` data frames (optional)
+  - Optimized and automatically parallelized estimation
 
 `ennemi` is currently developed by Petri Laarne ([@polsys](https://github.com/polsys)) at
 [Institute for Atmospheric and Earth System Research (INAR)](https://www.helsinki.fi/en/inar-institute-for-atmospheric-and-earth-system-research),
@@ -25,8 +28,9 @@ The package is published under the MIT License.
 
 ## Installation
 
-This package is **alpha** quality.
-Breaking changes may still occur, although the algorithm is already reliable.
+This package is **beta** quality.
+The algorithm is fairly stable
+but breaking changes to the interface are still possible (if unlikely).
 
 This package is available on PyPI:
 ```sh

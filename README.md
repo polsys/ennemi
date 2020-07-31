@@ -1,5 +1,5 @@
 # ennemi
-_Easy-to-use Nearest Neighbor Estimation of Mutual Information_
+_(Easy Nearest Neighbor Estimation of Mutual Information)_
 
 [![Continuous Integration](https://github.com/polsys/ennemi/workflows/Continuous%20Integration/badge.svg?event=push)](https://github.com/polsys/ennemi/actions)
 [![Integration Tests](https://github.com/polsys/ennemi/workflows/Integration%20Tests/badge.svg)](https://github.com/polsys/ennemi/actions)
@@ -9,14 +9,17 @@ _Easy-to-use Nearest Neighbor Estimation of Mutual Information_
 This Python 3 package provides simple methods for estimating mutual information of continuous variables.
 With one method call, you can estimate several variable pairs and time lags at once.
 Both unconditional and conditional MI (including multivariate condition) are supported.
+The interface is aimed at non-linear correlation analysis.
 
-The package uses the nearest neighbor method as described by Kraskov et al. in
-_Estimating Mutual Information_, Physical Review E **69**:6 (2004),
-[doi:10.1103/PhysRevE.69.066138](https://dx.doi.org/10.1103/PhysRevE.69.066138).
-The variant for conditional mutual information is described in Frenzel & Pompe,
-_Partial Mutual Information for Coupling Analysis of Multivariate Time Series_,
-Physical Review Letters **99**:20 (2007),
-[doi:10.1103/PhysRevLett.99.204101](https://dx.doi.org/10.1103/PhysRevLett.99.204101).
+The package uses the nearest neighbor methods decscribed in:
+- Kraskov et al. (2004): Estimating mutual information. Physical Review E 69.
+  [doi:10.1103/PhysRevE.69.066138](https://dx.doi.org/10.1103/PhysRevE.69.066138).
+- Frenzel & Pompe (2007): Partial Mutual Information for Coupling Analysis of
+  Multivariate Time Series. Physical Review Letters 99.
+  [doi:10.1103/PhysRevLett.99.204101](https://dx.doi.org/10.1103/PhysRevLett.99.204101).
+- Ross (2014): Mutual Information between Discrete and Continuous Data Sets.
+  PLoS ONE 9.
+  [doi:10.1371/journal.pone.0087357](https://dx.doi.org/10.1371/journal.pone.0087357).
 
 **NOTE:** The package is **beta** quality.
 We are not planning major changes to the API, but breakages are still possible.
@@ -29,7 +32,7 @@ You can see the roadmap of planned additions on the
 
 This package requires Python 3.6 or higher,
 and it is tested to work on the latest versions of Ubuntu, macOS and Windows.
-The only hard dependency is a reasonably recent version of NumPy;
+The only hard dependencies are reasonably recent versions of NumPy and SciPy;
 Pandas is strongly suggested for more enjoyable data analysis.
 
 This package is available on PyPI:
@@ -43,7 +46,7 @@ For documentation, please see https://polsys.github.io/ennemi.
 
 ## Building
 
-The tests depend on SciPy and pandas, so you need those installed in addition to NumPy.
+The tests depend on pandas, so you need that installed in addition.
 Additionally, `pytest` and `mypy` are required for building the project.
 All of these are installed by the "extras" syntax of `pip`.
 
