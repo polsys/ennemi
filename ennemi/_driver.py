@@ -512,9 +512,8 @@ def _pairwise_mi(data: np.ndarray, k: int, cond: Optional[np.ndarray], preproces
 def _get_mi_time_estimate(n: int, cond: Optional[np.ndarray], k: int) -> float:
     if cond is None:
         n_cond = 0
-    elif cond.ndim == 1:
-        n_cond = 1
     else:
+        # cond is guaranteed to be two-dimensional
         n_cond = cond.shape[1]
 
     # These are determined pretty experimentally on a laptop computer
