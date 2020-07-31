@@ -181,6 +181,8 @@ matching mask element set to `True` are used for estimation.
   This method should be very short. Because Python code is not executed
   concurrently, the callback may slow down other estimation tasks.
 
+  See also: [Example progress reporter](snippets.md).
+
 
 
 # `normalize_mi`
@@ -271,3 +273,5 @@ $\infty$ nats or correlation $1$).
 
   This method should be very short. Because Python code is not executed
   concurrently, the callback may slow down other estimation tasks.
+
+  See also: [Example progress reporter](snippets.md).
