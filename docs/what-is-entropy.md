@@ -5,7 +5,7 @@ title: What is entropy?
 There are many textbooks and articles on entropy and mutual information,
 not to forget Wikipedia.
 Because of that, this page does not go into the details.
-Instead, we only build/revise enough intuition necessary for using `ennemi`.
+Instead, we only build enough intuition necessary for using `ennemi`.
 
 
 
@@ -94,9 +94,11 @@ $$
 $$
 Intuitively, if you drew a Venn diagram of the two random variables,
 the mutual information would give the size of their intersection.
-MI is a relative measure, and it is not affected by typical transformations
+MI is a relative measure, and it is not affected by monotonic transformations
 of the variables $X$ and $Y$.
-(In technical terms, it is invariant on homeomorphisms.)
+
+(In technical terms, it is invariant under measurable bijections with measurable inverse.
+Under sufficient symmetry, piecewise bijectivity is enough.)
 
 If, and only if, the variables $X$ and $Y$ are independent, their
 mutual information is zero.
@@ -107,6 +109,7 @@ and $\mathrm{MI}(X; Y) = \mathrm{MI}(Y; X)$.
 MI is useful because it describes the strength of relation between two variables,
 regardless of the type of relation.
 For example, consider the below scatter plot:
+
 ![Y is the absolute value of X plus some random noise.](example_scatter_plot.png)
 
 It is pretty obvious that the $X$ and $Y$ variables are related.
@@ -149,6 +152,39 @@ If the conditional MI is zero, the correlation is fully explained by temperature
 
 
 
+## Correlation coefficient
+Because MI gets values in the interval ${[{0},{\infty})}$, it might be hard to interpret.
+Luckily, there is a way to convert the values to the scale ${[{0},{1}]}$
+just like with classical correlation methods.
+
+The MI between two normally distributed variables $(X, Y)$
+with correlation coefficient $\rho$ is
+$$
+\mathrm{MI}(X;Y) = -\frac 1 2 \log (1 - \rho^2).
+$$
+This can be solved to give
+$$
+\rho = \sqrt{1 - \exp(-2\, \mathrm{MI}(X;Y))}.
+$$
+
+Do note that this coefficient is **exactly equal** to the Pearson correlation
+coefficient in a linear model.
+However, this gets even better.
+Remember that MI does not change when the variables are transformed monotonically.
+This coefficient is equal to the Pearson correlation of the **linearized model**!
+
+For example, let's assume that $Y = |X| + \varepsilon$ as in the plot above.
+The Pearson correlation between $X$ and $Y$ is really low,
+whereas the correlation between $|X|$ and $Y = |X| + \varepsilon$ is really high.
+The MI correlation coefficient is the same in both cases,
+correctly suggesting that there is a strong dependency.
+
+The same normalization formula works with conditional MI too,
+and is equivalent to the partial correlation coefficient.
+`ennemi` outputs correlation scale values when the `normalize` parameter is set.
+
+
+
 ## The ways of estimation
 The most accurate way of estimating entropy or mutual information
 is to use the definition.
@@ -161,11 +197,10 @@ $$
 \mathrm{MI}(\mathrm{Normal}(\mu, \Sigma)) = -\frac 1 2 \log(\det\Sigma).
 $$
 
-Another option is to use a discrete approximation.
-Dividing the space into successively finer grids,
-you should get increasingly accurate estimates of entropy and MI.
-However, this method is highly dependent on the selection of the grid,
-unless you have infinitely many observations.
+A common method is to approximate the distribution as a sum of normal distributions.
+This is called *kernel density estimation*.
+However, the accuracy is very sensitive to the bandwidth parameter.
+Finding the best value might not be an easy task.
 
 Instead, `ennemi` uses a more reliable method.
 It uses nearest-neighbor estimation of entropy, adapted for MI by
@@ -185,9 +220,11 @@ $$
 \approx \psi(N_{points}) + \psi(k) - \langle \psi(n_x) + \psi(n_y) \rangle.
 $$
 
-Low values of the parameter $k$ give lower systematic error
-whereas high values of $k$ give lower statistical error.
-In practice, the effect is fairly small.
+Small values of the parameter $k$ give lower systematic error
+whereas large values of $k$ give lower statistical error.
+In practice, high MI values are more accurate with small $k$ and vice versa;
+however, the effect may be fairly small.
+
 Kraskov et al. suggest values between 2 and 4,
 and up to $N/2$ when testing for independence.
 The default value in `ennemi` is $k=3$.
