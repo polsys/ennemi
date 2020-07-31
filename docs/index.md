@@ -45,3 +45,5 @@ pip install ennemi
   An example workflow with real data.
 - **[Potential issues](potential-issues.md).**
   Common issues and how to solve them.
+- **[Code snippets](snippets.md).**
+  Example utilities that may be useful.
