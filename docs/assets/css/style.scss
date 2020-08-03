@@ -1,0 +1,13 @@
+---
+---
+
+@import "{{ site.theme }}";
+
+.inner {
+    max-width: 800px;
+}
+
+p img {
+    display: block;
+    margin: 0 auto;
+}
