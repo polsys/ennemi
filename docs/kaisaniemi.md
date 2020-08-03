@@ -221,7 +221,7 @@ It seems more plausible that the temperature really is independent of the wind s
 
 By some statistical theory, averaging 3 estimations should reduce the uncertainty
 to $1/\sqrt{3} \approx 0.6$ of the original,
-given that the distributions are approximately equal.
+assuming that the distributions are approximately equal.
 
 Given this result, it would probably make sense to update the pairwise MI plots
 with averaging as well.
