@@ -114,8 +114,7 @@ For example, consider the below scatter plot:
 
 It is pretty obvious that the $X$ and $Y$ variables are related.
 Specifically, $Y$ seems to be the absolute value of $X$ added with some noise.
-Yet the correlation coefficient between the two is barely 0.1,
-and even that is due to random error.
+Yet the correlation coefficient between the two is close to 0.
 This is because the Pearson coefficient is designed
 only to detect linear correlations.
 
@@ -171,7 +170,7 @@ Do note that this coefficient is **exactly equal** to the Pearson correlation
 coefficient in a linear model.
 However, this gets even better.
 Remember that MI does not change when the variables are transformed monotonically.
-This coefficient is equal to the Pearson correlation of the **linearized model**!
+This coefficient is equal to the Pearson correlation of the **linearized model**.
 
 For example, let's assume that $Y = |X| + \varepsilon$ as in the plot above.
 The Pearson correlation between $X$ and $Y$ is really low,

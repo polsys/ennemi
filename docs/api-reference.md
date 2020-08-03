@@ -37,6 +37,8 @@ Highly autocorrelated time series data will produce unrealistically high MI valu
 
 
 
+<hr style="margin: 4rem 0;">
+
 # `estimate_entropy`
 Estimate the entropy of one or more continuous random variables.
 
@@ -48,13 +50,13 @@ the array is interpreted as a single $m$-dimensional random variable.
 If `x` is a pandas `DataFrame` or `Series`, the result is a `DataFrame`
 with column names matching `x`.
 
-## Parameters
+### Parameters
 - `x: array_like`.
   
   A 1D or 2D array of observations. The interpretation of columns
   depends on the `multidim` parameter.
 
-## Optional keyword parameters
+### Optional keyword parameters
 - `k: int`, default 3.
   
   The number of neighbors to consider.
@@ -86,6 +88,8 @@ with column names matching `x`.
 
 
 
+<hr style="margin: 4rem 0;">
+
 # `estimate_mi`
 Estimate the mutual information between `y` and each `x` variable.
 
@@ -109,7 +113,7 @@ from the `x` lag.
 If the `mask` parameter is set, only those `y` observations with the
 matching mask element set to `True` are used for estimation.
 
-## Positional or keyword parameters:
+### Positional or keyword parameters:
 - `y: array_like`.
   
   A 1D array of observations. If `discrete_y` is True, the values may be
@@ -125,7 +129,7 @@ matching mask element set to `True` are used for estimation.
   A time lag or 1D array of time lags to apply.
   A positive lag means that `y` depends on earlier `x` values and vice versa.
 
-## Optional keyword parameters:
+### Optional keyword parameters:
 - `k: int`, default 3.
   
   The number of neighbors to consider.
@@ -185,6 +189,8 @@ matching mask element set to `True` are used for estimation.
 
 
 
+<hr style="margin: 4rem 0;">
+
 # `normalize_mi`
 Normalize mutual information values to the unit interval.
 Equivalent to passing `normalize=True` to the estimation methods.
@@ -204,7 +210,7 @@ This is because mutual information is always
 non-negative, but `estimate_mi` may produce negative values.
 Large negative values may indicate that the data does not satisfy assumptions.
 
-## Parameters
+### Parameters
 - `mi: array_like`.
   
   One or more mutual information values in nats.
@@ -212,6 +218,8 @@ Large negative values may indicate that the data does not satisfy assumptions.
   are preserved.
 
 
+
+<hr style="margin: 4rem 0;">
 
 # `pairwise_mi`
 Estimate the pairwise MI between each variable.
@@ -226,12 +234,12 @@ The values are in nats or in the normalized scale depending on the `normalize` p
 The diagonal contains NaNs (for better visualization, as the auto-MI should be
 $\infty$ nats or correlation $1$).
 
-## Positional or keyword parameters:
+### Positional or keyword parameters:
 - `data: array_like`.
   
   A 2D array where the columns represent variables.
 
-## Optional keyword parameters:
+### Optional keyword parameters:
 - `k: int`, default 3.
   
   The number of neighbors to consider.
