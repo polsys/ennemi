@@ -41,11 +41,6 @@ pip install ennemi
 
 ## Documentation topics
 
-> **Note:** This documentation refers to the still-unreleased 1.0.0beta1 version.
-> There are some minor API changes, as seen in the
-> [draft release notes](https://gist.github.com/polsys/f0757723b73194a0bccb9043e7c75e47).
-> We aim to publish the version in early August.
-
 - **[What is entropy?](what-is-entropy.md)**
   A quick overview of the theory and terminology.
 - **[Getting started](tutorial.md).**
