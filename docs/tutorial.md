@@ -8,12 +8,9 @@ Before starting with your own projects, I strongly encourage you to still
 read the [chapter on potential issues](potential-issues.md),
 lest you want to discover those the hard way!
 
-In all the examples, the method of interest is `ennemi.estimate_mi()`.
-The use cases only differ in the input parameters.
-
 **Note:**
 You may get slightly different results when running the examples.
-The processor model, operating system and Python/NumPy version
+The processor model, operating system and software versions
 have subtle effects on floating point calculations.
 The results should still be the same to several significant digits.
 
@@ -67,17 +64,15 @@ This will be discussed more below.
 
 ## Correlation coefficient
 Mutual information may have any non-negative value.
-For easier interpretation, the `normalize_mi()` method converts MI to
-match correlation coefficient.
+For easier interpretation, the MI can be converted to correlation coefficient scale.
 To continue the above example, we could execute
 ```python
 print(estimate_mi(y, x, normalize=True))
 ```
 to get the estimated correlation coefficient (`0.79980729`).
 
-The returned coefficient approximately matches the _absolute value_
+The returned coefficient approximately matches the **absolute value**
 of the linear correlation coefficient after suitable transformations.
-(Note: it is positive also for anticorrelations!)
 For example, consider the model $y = \sin(x) + \varepsilon$.
 We calculate both the linear correlation and correlation from MI:
 ```python
@@ -113,8 +108,8 @@ Therefore, the returned coefficient **should be considered only approximate**.
 
 ## More variables
 
-Let's extend the above example by adding another variable.
-As you remember, the mutual information between independent variables is 0.
+Let's extend the above example by adding another, unrelated variable.
+The mutual information between independent variables is 0.
 
 The `estimate_mi()` method accepts a 2D array for the `x` parameter.
 In that case, it splits the array into columns $X_1$ to $X_m$,
@@ -122,11 +117,14 @@ and calculates $\mathrm{MI}(X_i, Y)$ for each $i = 1, \ldots, m$.
 
 This interface is a shorter way of calculating the MI between several
 $X$ variables and $Y$.
-It may also be slightly faster, because `ennemi` computes the estimates
+It is also much faster, because `ennemi` computes the estimates
 in parallel whenever it is beneficial.
-However, this should not be confused with _multivariate mutual information_,
-the MI between a set of variables.
-As of this writing, `ennemi` does not support computing multivariate MI.
+
+**Note:**
+This should not be confused with _multivariate mutual information_,
+a measure of interdependency between three or more variables together.
+`ennemi` does not currently support multivariate MI,
+as the results would be difficult to interpret.
 
 Here's the above example updated with a new, independent variable $Z$:
 ```python
@@ -155,8 +153,8 @@ The first column gives the correlation between $(X, Y)$ and the second column be
 As expected, the latter is very close to $0$.
 Due to random uncertainty and properties of the estimation algorithm,
 the result will not be exactly 0, and may even be negative.
-(Negative values far from zero, including $-\infty$, are discussed in the chapter
-on potential issues.)
+(Negative values far from zero, including $-\infty$, are discussed in the
+[chapter on potential issues](potential-issues.md).)
 
 The `x` parameter is interpreted as `x[observation index, variable index]`.
 This matches the order used by NumPy and Pandas libraries.
@@ -166,7 +164,7 @@ See below for an example of using Pandas for data import.
 
 ## Time lag
 
-In many systems, variables are coupled with a time lag.
+In many systems, variables are coupled with a time delay.
 There may be a clear dependence between $Y(t)$ and $X(t-\Delta)$,
 whereas the apparent link between $Y(t)$ and $X(t)$ may be weaker or nonexistent.
 
@@ -210,14 +208,15 @@ The code prints:
  [-0.04579946]
  [-0.00918085]]
 ```
-which means that there is a strong link between $Y(t)$ and $X(t-1)$, but not
-between $Y(t)$ and $X(t)$ or $X(t+1)$.
+which means that $Y(t)$ depends strongly on $X(t-1)$, but not
+at all on $X(t)$ or $X(t+1)$.
+The rows of the result array correspond to the `lag` parameter.
 
 
 
-## Combining the above
+## Combining the above with Pandas
 
-In this example, we import the data set from a file using Pandas
+In this example, we import the data set from a file using the Pandas package
 and pass the imported data straight to `estimate_mi()`.
 We calculate the MI for several time lags and plot the results with Matplotlib.
 
@@ -263,8 +262,9 @@ column names matching variable names and indices matching lag values:
 
 From this plot we can deduce that:
 - there is a connection between $Y$ and $X_1$, but only with lag 1,
-- and a slightly weaker connection between $Y$ and $X_2$, but only with lag 3,
-- and a connection between $Y$ and $X_3$ without any lag.
+- a slightly weaker connection between $Y$ and $X_2$, but only with lag 3,
+- a connection between $Y$ and $X_3$ without any lag,
+- and a weak connection with lag -2.
 
 A word of warning: in a real time series, where the data is often autocorrelated,
 the peaks will not be nearly as sharp.
@@ -274,11 +274,13 @@ the peaks will not be nearly as sharp.
 ## Conditional mutual information
 
 Suppose that in our previous example, we know that there is a connection
-between $X_1$ and $X_2$.
+between $X_1(t)$ and $X_2(t-2)$.
 
 Now the question is: how much additional information does $X_1$ provide when
 $X_2$ is already known?
 We get this by calculating the conditional mutual information.
+We pass the $X_2$ column as the `cond` parameter,
+and specify that the condition should be lagged by additional two steps:
 
 ```python
 from ennemi import estimate_mi
@@ -333,7 +335,7 @@ $$
 The reason for our result is that $X_3$ contains the full difference between
 $Y$ and $X_2$ whereas there is still some random variation between $X_1$ and $Y$.
 
-`ennemi` also supports multidimensional condition.
+`ennemi` also supports multidimensional conditions.
 This is useful when there are several common explanative variables.
 To specify a multivariate condition, pass a two-dimensional array as the `cond`
 parameter similarly to `x`.
@@ -345,15 +347,15 @@ variables will be evaluated together.
 ## Masking observations
 
 Sometimes, you want to use only a subset of the observations.
-This is easy to do with some array slicing unless some variables are time lagged.
+This is easy to do unless some variables are time lagged.
 The time lags are easy to get the wrong way around, and
-if the subset consists of several separate parts,
-the resulting array is no longer evenly spaced in time.
+the calculation must be repeated for each lag value.
 
 To make subsetting with time lags easier, `estimate_mi()` accepts a `mask` parameter.
 The mask is an array (or list) of boolean values.
-A observation is only used if the corresponding `mask` element is `True`.
-Time lags are applied as usual to `x` and `cond` arrays.
+An `y` observation,
+and the relevant `x` and `cond` observations after lagging,
+is only used if the corresponding `mask` element is `True`.
 
 Consider a model of two variables.
 The first variable has a daily cycle.

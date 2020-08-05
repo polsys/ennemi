@@ -5,7 +5,7 @@ title: What is entropy?
 There are many textbooks and articles on entropy and mutual information,
 not to forget Wikipedia.
 Because of that, this page does not go into the details.
-Instead, we only build enough intuition necessary for using `ennemi`.
+Instead, we only build enough intuition to understand the internals of `ennemi`.
 
 
 
@@ -40,7 +40,7 @@ further reducing the entropy.
 
 Mathematically, the entropy of a random variable $X$ is defined as
 $$
-H(X) = \mathbb E \log_2 p(x) = \sum_{x \in \Omega} p(x) \log_2 p(x).
+H(X) = \mathbb E \log_2 p(x) = \sum_{x} p(x) \log_2 p(x).
 $$
 
 Sometimes, the natural logarithm is used instead of binary logarithm.
@@ -59,7 +59,7 @@ $$
 H(X) = \mathbb E \log p(x) = \int_\Omega p(x) \log p(x) \,dx.
 $$
 However, this definition leads to one significant difference.
-Remember that continuous random variables always take on infinitely many values.
+Continuous random variables always take on infinitely many values.
 Therefore you always need an infinite number of bits to express the value.
 
 As an example, it is easy to calculate that the uniform distribution on
@@ -94,17 +94,7 @@ $$
 $$
 Intuitively, if you drew a Venn diagram of the two random variables,
 the mutual information would give the size of their intersection.
-MI is a relative measure, and it is not affected by monotonic transformations
-of the variables $X$ and $Y$.
-
-(In technical terms, it is invariant under measurable bijections with measurable inverse.
-Under sufficient symmetry, piecewise bijectivity is enough.)
-
-If, and only if, the variables $X$ and $Y$ are independent, their
-mutual information is zero.
-This makes MI a test for independence.
-Additionally, MI is always non-negative (save for estimation errors)
-and $\mathrm{MI}(X; Y) = \mathrm{MI}(Y; X)$.
+MI is a relative measure.
 
 MI is useful because it describes the strength of relation between two variables,
 regardless of the type of relation.
@@ -114,9 +104,19 @@ For example, consider the below scatter plot:
 
 It is pretty obvious that the $X$ and $Y$ variables are related.
 Specifically, $Y$ seems to be the absolute value of $X$ added with some noise.
-Yet the correlation coefficient between the two is close to 0.
-This is because the Pearson coefficient is designed
-only to detect linear correlations.
+Yet the classical Pearson correlation coefficient between the two is close to 0.
+This is because it is designed only to detect linear correlations.
+
+If, and only if, the variables $X$ and $Y$ are independent, their
+mutual information is zero.
+This makes MI a test for independence.
+
+MI is not affected by monotonic transformations of the variables $X$ and $Y$.
+(In technical terms, it is invariant under measurable bijections with measurable inverse.
+Under sufficient symmetry, piecewise bijectivity is enough.)
+
+Additionally, MI is always non-negative (save for estimation errors)
+and $\mathrm{MI}(X; Y) = \mathrm{MI}(Y; X)$.
 
 Because MI does not depend on the type of correlation, it is very suitable
 for exploring the dependencies between variables.
@@ -124,7 +124,7 @@ The `ennemi` package is designed for this workflow:
 
 1. Calculate the MI between $Y$ and many candidate variables.
    With time series data, various time lags may be tried.
-   The methods to use are `pairwise_mi()` and then `estimate_mi()`.
+   The methods to use are `pairwise_mi()` and `estimate_mi()`.
 2. Select the variables with highest MI for further evaluation.
 3. Using MI and conditional MI, further narrow the set of variables.
 4. Analyze the dependencies with scatter plots and theoretical knowledge.
@@ -152,8 +152,8 @@ If the conditional MI is zero, the correlation is fully explained by temperature
 
 
 ## Correlation coefficient
-Because MI gets values in the interval ${[{0},{\infty})}$, it might be hard to interpret.
-Luckily, there is a way to convert the values to the scale ${[{0},{1}]}$
+Because MI has values in the interval ${[{0},{\infty})}$, it might be hard to interpret.
+Luckily, there is a way to convert the values to the scale ${[{0},{1})}$
 just like with classical correlation methods.
 
 The MI between two normally distributed variables $(X, Y)$
@@ -174,13 +174,13 @@ This coefficient is equal to the Pearson correlation of the **linearized model**
 
 For example, let's assume that $Y = |X| + \varepsilon$ as in the plot above.
 The Pearson correlation between $X$ and $Y$ is really low,
-whereas the correlation between $|X|$ and $Y = |X| + \varepsilon$ is really high.
-The MI correlation coefficient is the same in both cases,
+whereas the correlation between $|X|$ and $Y$ is really high.
+The MI correlation coefficient is equal to the latter in both cases,
 correctly suggesting that there is a strong dependency.
 
 The same normalization formula works with conditional MI too,
 and is equivalent to the partial correlation coefficient.
-`ennemi` outputs correlation scale values when the `normalize` parameter is set.
+`ennemi` outputs correlation scale values when the `normalize` parameter is set to True.
 
 
 
@@ -189,7 +189,7 @@ The most accurate way of estimating entropy or mutual information
 is to use the definition.
 This gives the exact value.
 Unfortunately, for this you need to know the distributions of the variables,
-which is rarely the case with real-world data.
+which rarely is the case with real-world data.
 Additionally, closed-form expressions for MI are available only for some
 well-behaved distributions, such as the multivariate normal distribution:
 $$
@@ -209,7 +209,7 @@ The idea is to, for each point:
 1. Find the distance to the $k$'th closest neighbor.
    This distance is calculated with the $L^\infty$ norm
    (maximum of distances along each axis).
-2. Find the number of neighbors within this distance along each axis.
+2. Find the number of neighbors $n_x$, $n_y$ within this distance along each axis.
 3. Compute $\psi(n_x) + \psi(n_y)$, where $\psi$ is the digamma function.
 
 Averaging over all the points, denoted $\langle\cdots\rangle$,

@@ -15,6 +15,7 @@ Python lists and tuples are array-like.
 Two-dimensional arrays are created by nesting sequences:
 `[(1, 2), (3, 4), (5, 6)]` is equivalent to an array with 3 rows and 2 columns.
 Numbers are interpreted as zero-dimensional arrays.
+Arrays can be automatically extended to higher dimensions if the shapes match.
 
 
 The calculation algorithms are described in
@@ -66,7 +67,7 @@ with column names matching `x`.
   If False, each column of `x` is considered a separate variable.
   If True, the $(n \times m)$ array is considered a single $m$-dimensional variable.
 
-- `mask: array_like` or `None`.
+- `mask: array_like` or None.
   
   If specified, an array of booleans that gives the input elements to use for
   estimation. Use this to exclude some observations from consideration.
@@ -74,7 +75,7 @@ with column names matching `x`.
   Currently, the mask must be one-dimensional.
   (Issue [#37](https://github.com/polsys/ennemi/issues/37))
 
-- `cond: array_like` or `None`.
+- `cond: array_like` or None.
   
   Optional 1D or 2D array of observations used for conditioning.
   A $(n \times m)$ array is interpreted as a single $m$-dimensional variable.
@@ -113,7 +114,7 @@ from the `x` lag.
 If the `mask` parameter is set, only those `y` observations with the
 matching mask element set to `True` are used for estimation.
 
-### Positional or keyword parameters:
+### Positional or keyword parameters
 - `y: array_like`.
   
   A 1D array of observations. If `discrete_y` is True, the values may be
@@ -129,12 +130,12 @@ matching mask element set to `True` are used for estimation.
   A time lag or 1D array of time lags to apply.
   A positive lag means that `y` depends on earlier `x` values and vice versa.
 
-### Optional keyword parameters:
+### Optional keyword parameters
 - `k: int`, default 3.
   
   The number of neighbors to consider.
 
-- `cond: array_like`, default `None`.
+- `cond: array_like`, default None.
   
   Optional 1D or 2D array of observations used for conditioning.
   Must have as many observations as `y`.
@@ -145,7 +146,7 @@ matching mask element set to `True` are used for estimation.
   Lag applied to the cond array. Must be broadcastable to the size of `lag`.
   Can be two-dimensional to lag each conditioning variable separately.
 
-- `mask: array_like` or `None`.
+- `mask: array_like` or None.
 
   If specified, an array of booleans that gives the `y` elements to use for
   estimation. Use this to exclude some observations from consideration
@@ -171,13 +172,13 @@ matching mask element set to `True` are used for estimation.
   If True, the results will be normalized to correlation coefficient scale.
   Same as calling `normalize_mi` on the results.
 
-- `max_threads: int` or `None`.
+- `max_threads: int` or None.
   
   The maximum number of threads to use for estimation.
   By default, the number of CPU cores is used.
   Because the calculation is CPU-bound, more threads should not be used.
 
-- `callback: method` or `None`.
+- `callback: method` or None.
   
   A method to call when each estimation task is completed. The method
   must take two integer parameters: `x` variable index and lag value.
@@ -234,23 +235,23 @@ The values are in nats or in the normalized scale depending on the `normalize` p
 The diagonal contains NaNs (for better visualization, as the auto-MI should be
 $\infty$ nats or correlation $1$).
 
-### Positional or keyword parameters:
+### Positional or keyword parameters
 - `data: array_like`.
   
   A 2D array where the columns represent variables.
 
-### Optional keyword parameters:
+### Optional keyword parameters
 - `k: int`, default 3.
   
   The number of neighbors to consider.
 
-- `cond: array_like` or `None`.
+- `cond: array_like` or None.
   
   Optional 1D or 2D array of observations used for conditioning.
   Must have as many observations as the data.
   A $(n \times m)$ array is interpreted as a single $m$-dimensional variable.
 
-- `mask: array_like` or `None`.
+- `mask: array_like` or None.
     
   If specified, an array of booleans that gives the data elements to use for
   estimation. Use this to exclude some observations from consideration.
@@ -268,13 +269,13 @@ $\infty$ nats or correlation $1$).
 
   If True, the MI values will be normalized to correlation coefficient scale.
 
-- `max_threads: int` or `None`.
+- `max_threads: int` or None.
   
   The maximum number of threads to use for estimation.
   By default, the number of CPU cores is used.
   Because the calculation is CPU-bound, more threads should not be used.
 
-- `callback: method` or `None`.
+- `callback: method` or None.
   
   A method to call when each estimation task is completed. The method
   must take two integer parameters, representing the variable indices.
