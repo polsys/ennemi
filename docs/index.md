@@ -52,9 +52,9 @@ pip install ennemi
   This tutorial covers the basic use cases through examples.
 - **[Case study](kaisaniemi.md).**
   An example workflow with real data.
-- **[API reference](api-reference.md).**
-  All methods and their parameters.
 - **[Potential issues](potential-issues.md).**
   Common issues and how to solve them.
+- **[API reference](api-reference.md).**
+  All methods and their parameters.
 - **[Code snippets](snippets.md).**
   Example utilities that may be useful.

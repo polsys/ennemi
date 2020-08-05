@@ -105,13 +105,15 @@ plt.savefig("casestudy_lags.png", transparent=True)
 # STEP 7: Averaging
 #
 
-# Do two more estimations and average the three runs
-temp_12 = estimate_mi(data["Temperature"], data[covariates], lags,
+# Use two more masks, higher k, and average of the three runs
+temp_12 = estimate_mi(data["Temperature"], data[covariates], lags, k=8,
     cond=data["DayOfYear"], mask=(data.index.hour == 12), normalize=True)
-temp_14 = estimate_mi(data["Temperature"], data[covariates], lags,
+temp_13 = estimate_mi(data["Temperature"], data[covariates], lags, k=8,
+    cond=data["DayOfYear"], mask=afternoon_mask, normalize=True)
+temp_14 = estimate_mi(data["Temperature"], data[covariates], lags, k=8,
     cond=data["DayOfYear"], mask=(data.index.hour == 14), normalize=True)
 
-temp_avg = (temp_12 + temp + temp_14) / 3
+temp_avg = (temp_12 + temp_13 + temp_14) / 3
 
 # The same plotting code as above
 fig, ax = plt.subplots(figsize=(8,6))

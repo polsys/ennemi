@@ -24,11 +24,8 @@ This assumption can be violated in two ways:
 - The distribution is neither discrete nor continuous.
   Censored distributions fall into this category.
 
-As of this writing, `ennemi` does not yet support discrete distributions.
-For discrete-discrete MI, other packages are available.
-The discrete-continuous case may be implemented in the future, as
-[Ross (2014)](https://dx.plos.org/10.1371/journal.pone.0087357)
-has derived a suitable version of the algorithm.
+`ennemi` supports the case where one variable is discrete and the other is continuous.
+For discrete-discrete MI, other packages are available or the algorithm is easy to implement.
 
 For low-resolution or censored data, the suggestion of
 [Kraskov et al. (2004)](https://link.aps.org/doi/10.1103/PhysRevE.69.066138)
@@ -47,14 +44,14 @@ x = np.maximum(0, data[:,0])
 y = np.maximum(0, data[:,1])
 
 print("MI:", estimate_mi(y, x, preprocess=False))
-print("On one or both axes:", np.mean((x == 0) | (y == 0)))
-print("At origin:", np.mean((x == 0) & (y == 0)))
+print("On one or both axes:", np.mean((x == 0) | (y == 0))*100, "%")
+print("At origin:", np.mean((x == 0) & (y == 0))*100, "%")
 ```
 This code prints
 ```
 MI: [[-inf]]
-On one or both axes: 0.4025
-At origin: 0.22
+On one or both axes: 40.25 %
+At origin: 22 %
 ```
 As many of the observations lie on the x or y axis, and most of those at $(0, 0)$,
 the algorithm produces a clearly incorrect result.
@@ -116,8 +113,9 @@ Running the code outputs
 [[0.28671063]]
 ```
 
-This demonstrates that you should make all variables symmetric before running
-the estimation.
+This demonstrates that you should make all variables symmetric,
+here by taking logarithms and rescaling,
+before running the estimation.
 The rescaling is done by default (disabled by setting `preprocess=False`).
 Entropy is not transformation-invariant, and therefore this guidance
 does not apply to `estimate_entropy()`.
@@ -195,7 +193,7 @@ They also present a correction term.
 
 Because the primary goal of `ennemi` is general correlation detection,
 and the affected MI values are equivalent to correlation coefficients
-above 0.97, we do not consider this issue to be severe.
+above 0.97, we do not consider this issue to be significant.
 
 
 
@@ -219,6 +217,8 @@ There are still some things to keep in mind to get the most out of your resource
 If you call `estimate_mi()` with several variables and/or time lags,
 the calculation will be split into as many concurrent tasks
 as you have processor cores (except if the tasks are very small).
+The efficiency improves with sample size;
+with large data sets, most of the time is spent in compiled algorithms.
 
 This means that instead of writing
 ```python

@@ -4,7 +4,8 @@ title: Case study
 
 This example demonstrates the steps of one possible analysis workflow with `ennemi`.
 We analyze meteorological data from the Kaisaniemi measurement station in Helsinki, Finland.
-This data is available from Finnish Meteorological Institure under the CC-BY&nbsp;4.0 license.
+This data is available from Finnish Meteorological Institute under the CC-BY&nbsp;4.0 license.
+([Original data source](https://en.ilmatieteenlaitos.fi/download-observations).)
 
 To follow this example, please download the [kaisaniemi.csv](kaisaniemi.csv) data set.
 This file is already tidied up, and contains measurements of five variables between 2015 and 2019
@@ -44,13 +45,12 @@ To make the MI estimation more accurate, we should ensure that the variables hav
 roughly symmetric distributions.
 By visual inspection (not shown here), we don't need to transform anything.
 `ennemi` automatically rescales the variables to unit variance and
-adds low-amplitude noise (with fixed random seed) as long as we don't
-override the `preprocess` parameter.
+adds low-amplitude noise (with fixed random seed) by default.
 The reasons for these steps are discussed on the [Potential issues page](potential-issues.md).
 
 As a final preprocessing step, we create a mask that selects only the observations
 at 15:00 local time (13:00 UTC).
-This is necessary to focus the investigation and to avoid issues with autocorrelation.
+This is necessary to both focus the investigation and to avoid issues with autocorrelation.
 
 ```python
 afternoon_mask = (data.index.hour == 13)
@@ -89,7 +89,7 @@ plt.show()
 and between day of year and the two.](casestudy_pairwise.png)
 
 Obviously, the day of year correlates strongly with temperature.
-What if we deseasonalized the data, and only looked at differences to the ordinary cycle?
+What if we deseasonalized the data and only looked at differences to the ordinary cycle?
 With MI, this is done by conditioning on one or more variables;
 in our case this variable is DayOfYear.
 
@@ -119,19 +119,22 @@ As a consistency check, the correlations with day of year are now zero.
 (With unscaled data, there would actually remain quite significant noise.)
 The correlation between air pressure and temperature is now weaker,
 suggesting that it was partly caused by seasonal cycles of the two variables.
+
 On the other hand, the correlation between wind direction and temperature is stronger
 &ndash; this suggests that the wind explains variation within a season.
+If you want to see why, try drawing a scatter plot of the two variables
+restricted to January and July.
 
 The lowest correlation values may contain random noise.
 The transformation from raw MI to correlation coefficient scale is non-linear
-and noise has stronger effect in the low correlation values.
+and therefore noise has stronger effect in the low correlation values.
 This is demonstrated more in the next steps.
 
 
 ## Time dependency
 
 How does temperature depend on past observations of the variables?
-We can answer this question with the time lag feature of `ennemi.estimate_mi()`.
+We can answer this question with the time lag feature of `estimate_mi()`.
 We calculate the correlation between "temperature now" and
 "[other variable] [0, 2, ..., 48] hours ago".
 Again, the temperature observations are fixed at 15:00.
@@ -180,21 +183,28 @@ The 1826 days of observations in the data set are not sufficient
 for reliable estimation of low correlations (coefficient roughly 0 to 0.2).
 
 
-## Averaging multiple runs
+## Improving accuracy
 
-In our case, the low correlation issue can be solved by averaging several runs.
-Because the variables are so strongly autocorrelated, we can assume that
+To increase accuracy of low correlations, the `k` parameter should be increased.
+This might cause a slightly larger error in larger correlations.
+Another way is to increase the effective sample size by averaging several runs.
+
+Because the variables are so strongly autocorrelated,
+successive observations cannot be used together.
+However, it also allows us to assume that
 the temperatures at 14:00, 15:00 and 16:00 (local time) follow the same distribution.
-We can then repeat the estimation with two more masks.
+We can therefore repeat the estimation with two more masks.
 
 ```python
-# Do two more estimations and average the three runs
-temp_12 = estimate_mi(data["Temperature"], data[covariates], lags,
+# Use two more masks, higher k, and average of the three runs
+temp_12 = estimate_mi(data["Temperature"], data[covariates], lags, k=8,
     cond=data["DayOfYear"], mask=(data.index.hour == 12), normalize=True)
-temp_14 = estimate_mi(data["Temperature"], data[covariates], lags,
+temp_13 = estimate_mi(data["Temperature"], data[covariates], lags, k=8,
+    cond=data["DayOfYear"], mask=afternoon_mask, normalize=True)
+temp_14 = estimate_mi(data["Temperature"], data[covariates], lags, k=8,
     cond=data["DayOfYear"], mask=(data.index.hour == 14), normalize=True)
 
-temp_avg = (temp_12 + temp + temp_14) / 3
+temp_avg = (temp_12 + temp_13 + temp_14) / 3
 
 # The same plotting code as above
 fig, ax = plt.subplots(figsize=(8,6))
