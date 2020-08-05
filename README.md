@@ -87,4 +87,5 @@ You should still also cite the package version you have used.
 This package is maintained by Petri Laarne at
 [Institute for Atmospheric and Earth System Research (INAR)](https://www.helsinki.fi/en/inar-institute-for-atmospheric-and-earth-system-research),
 University of Helsinki.
-Please feel free to contact me about any questions or suggestions related to this project.
+Please feel free to contact me at `firstname.lastname@helsinki.fi`
+about any questions or suggestions related to this project.
