@@ -16,6 +16,7 @@ Feel free to contact me on anything related to using or contributing to this pro
 As the project maintainer, I pledge to follow
 [Contributor Covenant 2.0](https://www.contributor-covenant.org/version/2/0/code_of_conduct/)
 and expect other contributors to do the same.
+To quote the part on positive behavior:
 
 > Examples of behavior that contributes to a positive environment for our community include:
 > 
@@ -27,14 +28,14 @@ and expect other contributors to do the same.
 
 The citation for `ennemi` is "Petri Laarne and contributors" starting from 1.0.0beta1.
 Contributors to a release will be acknowledged in the release notes,
-unless they do not want to be mentioned.
+unless they want to be not mentioned.
 This policy may be updated.
 
 
 ## Submitting issues
 All feedback is much appreciated, no matter how big or small.
-Especially in the current alpha/beta phase it is easy to make the package more ergonomic to use.
-Comments on documentation and small pain points ("papercut issues") are really useful there.
+It is important to make the package as ergonomic to use as possible.
+Comments on documentation and small pain points ("papercut issues") are really useful.
 
 To make problems easier to investigate:
 
@@ -46,7 +47,7 @@ To make problems easier to investigate:
 
 
 ## Submitting Pull Requests
-Code changes are welcomed as well.
+Code changes are welcome as well.
 Before submitting larger changes, please comment on or create an issue
 for discussion on the direction to take.
 You don't need to create an issue for a simple bug fix,
@@ -70,7 +71,7 @@ preferably less than 80.
 Try to preserve the existing style of files.
 General Python style should be followed.
 
-For Markdown files, the same line length should be followed.
+For Markdown files, the same line length rule should be followed.
 Prefer starting each sentence on its own line.
 This makes Git diffs easier to read.
 
@@ -82,13 +83,13 @@ For example:
 - BAD: "updated release script to point to live PyPI" (past tense, small letter)
 - BAD: "Release script now points to live PyPI" (not imperative mood)
 
-Commit descriptions are not currently used, but are certainly allowed
-to give more information.
+Commit descriptions are currently not used, but are certainly allowed
+for giving more information.
 For more information on good Git commit messages, see the excellent article
 [How to Write a Git Commit Message](https://chris.beams.io/posts/git-commit/).
 
 
-### Unit tests
+### Automated tests
 The package has an extensive unit test suite guarding against regressions.
 Test-driven development is strongly encouraged.
 This means that the process of fixing a bug or creating a new feature is:
@@ -107,6 +108,10 @@ and too low coverage fails the build.
 The goal is that the tests fully document the package.
 When reviewing a Pull Request, the code changes should be obvious from the new/modified tests.
 If the tests haven't changed, the assumption is that the behavior hasn't changed either.
+
+Integration tests simulate realistic workflows.
+It is a goal to have as many different use cases represented,
+preferably covering all features of the package.
 
 
 ### Type checking
