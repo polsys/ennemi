@@ -53,3 +53,5 @@ pip install ennemi
   All methods and their parameters.
 - **[Code snippets](snippets.md).**
   Example utilities that may be useful.
+- **[Future support](support.md).**
+  What to expect from the maintenance.
