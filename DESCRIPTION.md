@@ -16,9 +16,8 @@ with no theoretical background required.
 This package depends only on NumPy and SciPy;
 Pandas is suggested for more enjoyable data analysis.
 Python 3.6+ on the latest macOS, Ubuntu and Windows versions
-are officially supported.
+is officially supported.
 
-This project is still in **beta** status: breaking changes are unlikely but possible.
 For more information on theoretical background and usage, please see the
 [documentation](https://polsys.github.io/ennemi).
 If you encounter any problems or have suggestions, please file an issue!
