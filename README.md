@@ -21,8 +21,6 @@ The package uses the nearest neighbor methods decscribed in:
   PLoS ONE 9.
   [doi:10.1371/journal.pone.0087357](https://dx.doi.org/10.1371/journal.pone.0087357).
 
-**NOTE:** The package is **beta** quality.
-We are not planning major changes to the API, but breakages are still possible.
 The latest source code on GitHub might be more unstable than the released version on PyPI.
 You can see the roadmap of planned additions on the
 [Milestones page](https://github.com/polsys/ennemi/milestones).
