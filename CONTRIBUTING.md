@@ -112,6 +112,8 @@ If the tests haven't changed, the assumption is that the behavior hasn't changed
 Integration tests simulate realistic workflows.
 It is a goal to have as many different use cases represented,
 preferably covering all features of the package.
+These tests are split into two sets: those that use `pandas` and those that do not.
+This is because `pandas` is an optional dependency.
 
 
 ### Type checking
