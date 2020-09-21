@@ -74,7 +74,7 @@ def _estimate_single_mi(x: np.ndarray, y: np.ndarray, k: int = 3) -> float:
     # We have to subtract a small value from the radius
     # because the algorithm expects strict inequality but cKDTree also allows equality.
     # This assumes that the radius is of roughly unit magnitude.
-    # TODO: Try to get Kraskov et al. estimator 2 working.
+    # See https://github.com/polsys/ennemi/issues/76 for justification.
     eps = grid.query(xy, k=[k+1], p=np.inf)[0].flatten()
     nx = x_grid.query_ball_point(x, eps - 1e-12, p=np.inf, return_length=True)
     ny = y_grid.query_ball_point(y, eps - 1e-12, p=np.inf, return_length=True)
@@ -118,7 +118,7 @@ def _estimate_conditional_mi(x: np.ndarray, y: np.ndarray, cond: np.ndarray,
     # We have to subtract a small value from the radius
     # because the algorithm expects strict inequality but cKDTree also allows equality.
     # This assumes that the radius is of roughly unit magnitude.
-    # TODO: Try to get Kraskov et al. estimator 2 adapted to this case.
+    # See https://github.com/polsys/ennemi/issues/76 for justification.
     nxz = xz_grid.query_ball_point(xz_proj, eps - 1e-12, p=np.inf, return_length=True)
     nyz = yz_grid.query_ball_point(yz_proj, eps - 1e-12, p=np.inf, return_length=True)
     nz = z_grid.query_ball_point(cond, eps - 1e-12, p=np.inf, return_length=True)
@@ -157,6 +157,7 @@ def _estimate_semidiscrete_mi(x: np.ndarray, y: np.ndarray, k: int = 3) -> float
     # For each y value:
     # - Find the distance to the k'th neighbor sharing the y value
     # - Find the number of neighbors within that distance in the marginal x space
+    # See https://github.com/polsys/ennemi/issues/76 for (eps - 1e-12) tweak.
     n_full = np.empty(N)
     for i, val in enumerate(y_values):
         subset = x[y==val]
@@ -211,6 +212,7 @@ def _estimate_conditional_semidiscrete_mi(x: np.ndarray, y: np.ndarray, cond: np
         subset = y==val
         eps = full_grids[i].query(xz[subset], k=[k+1], p=np.inf)[0].flatten()
 
+        # See https://github.com/polsys/ennemi/issues/76 for (eps - 1e-12) tweak.
         nxz[subset] = xz_grid.query_ball_point(xz_proj[subset], eps - 1e-12, p=np.inf, return_length=True)
         nyz[subset] = yz_grids[i].query_ball_point(cond[subset], eps - 1e-12, p=np.inf, return_length=True)
         nz[subset] = z_grid.query_ball_point(cond[subset], eps - 1e-12, p=np.inf, return_length=True)
