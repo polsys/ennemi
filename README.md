@@ -58,7 +58,7 @@ All methods, including tests, are type annotated and checked with `mypy`.
 The CI script runs the check automatically on each pushed commit.
 To run the check yourself, execute
 ```sh
-python -m mypy ennemi/ tests/unit tests/integration
+python -m mypy ennemi/ tests/unit tests/integration tests/pandas
 ```
 in the repository root (configuration is stored in `mypy.ini` file).
 
