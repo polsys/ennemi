@@ -24,6 +24,7 @@ The package uses the nearest neighbor methods decscribed in:
 The latest source code on GitHub might be more unstable than the released version on PyPI.
 You can see the roadmap of planned additions on the
 [Milestones page](https://github.com/polsys/ennemi/milestones).
+LinSee also the [support statement](docs/support.md).
 
 
 ## Getting started
