@@ -21,10 +21,10 @@ The package uses the nearest neighbor methods decscribed in:
   PLoS ONE 9.
   [doi:10.1371/journal.pone.0087357](https://dx.doi.org/10.1371/journal.pone.0087357).
 
-The latest source code on GitHub might be more unstable than the released version on PyPI.
+The latest source code on GitHub might be less stable than the released version on PyPI.
 You can see the roadmap of planned additions on the
 [Milestones page](https://github.com/polsys/ennemi/milestones).
-LinSee also the [support statement](docs/support.md).
+See also the [support statement](docs/support.md).
 
 
 ## Getting started
@@ -83,7 +83,7 @@ To do so, use the DOI given on the [Releases](https://github.com/polsys/ennemi/r
 In the future, a journal article may become the canonical reference for this package.
 You should still also cite the package version you have used.
 
-This package is maintained by Petri Laarne at
+This package is maintained by Petri Laarne, and was initially developed at
 [Institute for Atmospheric and Earth System Research (INAR)](https://www.helsinki.fi/en/inar-institute-for-atmospheric-and-earth-system-research),
 University of Helsinki.
 Please feel free to contact me at `firstname.lastname@helsinki.fi`
