@@ -20,9 +20,9 @@ jobs:
       fail-fast: false
       matrix:
         os: [ ubuntu-latest, macos-latest, windows-latest ]
-        python-version: [ 3.6, 3.7, 3.8 ]
+        python-version: [ 3.6, 3.7, 3.8, 3.9 ]
         # Save a bit of resources by running only some combinations:
-        # Windows 3.6, macOS 3.7 and Ubuntu 3.8
+        # Windows 3.6 and 3.9; macOS 3.7; Ubuntu 3.8 and 3.9
         exclude:
           - os: windows-latest
             python-version: 3.7
@@ -32,6 +32,8 @@ jobs:
             python-version: 3.6
           - os: macos-latest
             python-version: 3.8
+          - os: macos-latest
+            python-version: 3.9
           - os: ubuntu-latest
             python-version: 3.6
           - os: ubuntu-latest
@@ -51,7 +53,7 @@ jobs:
           pip install -e .[dev]
       
       - name: Run unit tests (with coverage)
-        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.8'
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.9'
         # We have to rename the path in coverage.xml since Sonar is run in Docker
         # and has a different view of the file system
         run: |
@@ -60,7 +62,7 @@ jobs:
           sed 's/\/home\/runner\/work\/ennemi\/ennemi/\/github\/workspace/g' coverage.xml > coverage-mod.xml
       
       - name: Run unit tests (no coverage)
-        if: matrix.os != 'ubuntu-latest' || matrix.python-version != '3.8'
+        if: matrix.os != 'ubuntu-latest' || matrix.python-version != '3.9'
         run: |
           python -m pytest tests/unit/ --junit-xml=test-results.xml
 
@@ -69,13 +71,13 @@ jobs:
           python -m mypy ennemi/ tests/unit tests/integration tests/pandas
 
       - name: Try building the package
-        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.8'
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.9'
         run: |
           pip install setuptools wheel
           python setup.py sdist bdist_wheel
       
       - name: Run Sonar code analysis
-        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.8'
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.9'
         uses: sonarsource/sonarcloud-github-action@master
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
