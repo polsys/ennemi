@@ -7,7 +7,7 @@ Do not import this module directly, but rather import the main ennemi module.
 """
 
 import concurrent.futures
-from typing import Callable, Iterable, List, Optional, Sequence, Tuple, TypeVar, Union
+from typing import Callable, Iterable, Optional, Sequence, Tuple, TypeVar, Union
 import itertools
 import math
 import numpy as np
@@ -16,11 +16,11 @@ import sys
 from ._entropy_estimators import _estimate_single_mi, _estimate_conditional_mi,\
     _estimate_semidiscrete_mi, _estimate_conditional_semidiscrete_mi, _estimate_single_entropy
 
-ArrayLike = Union[List[float], List[Tuple[float, ...]], np.ndarray]
-GenArrayLike = TypeVar("GenArrayLike", List[float], List[Tuple[float, ...]], np.ndarray)
+ArrayLike = Union[Sequence[float], Sequence[Sequence[float]], np.ndarray]
+GenArrayLike = TypeVar("GenArrayLike", Sequence[float], Sequence[Sequence[float]], np.ndarray)
 T = TypeVar("T")
 
-def normalize_mi(mi: GenArrayLike) -> GenArrayLike:
+def normalize_mi(mi: Union[float, GenArrayLike]) -> GenArrayLike:
     """Normalize mutual information values to the unit interval.
 
     Equivalent to passing `normalize=True` to the estimation methods.
@@ -47,9 +47,9 @@ def normalize_mi(mi: GenArrayLike) -> GenArrayLike:
         if isinstance(mi, (pandas.DataFrame, pandas.Series)):
             return mi.applymap(_normalize)
     
-    return np.vectorize(_normalize, otypes=[np.float])(mi)
+    return np.vectorize(_normalize, otypes=[float])(mi)
 
-def _normalize(mi: np.float) -> np.float:
+def _normalize(mi: float) -> float:
     if mi <= 0.0:
         return mi
     else:
@@ -191,7 +191,7 @@ def estimate_mi(y: ArrayLike, x: ArrayLike,
                 lag: Union[Sequence[int], np.ndarray, int] = 0,
                 *, k: int = 3,
                 cond: Optional[ArrayLike] = None,
-                cond_lag: Union[Sequence[int], np.ndarray, int] = 0,
+                cond_lag: Union[Sequence[int], Sequence[Sequence[int]], np.ndarray, int] = 0,
                 mask: Optional[ArrayLike] = None,
                 discrete_y: bool = False,
                 preprocess: bool = True,
@@ -288,8 +288,8 @@ def estimate_mi(y: ArrayLike, x: ArrayLike,
     else:
         cond_arr = None
         ncond = 1
+    mask_arr = None # type: Optional[np.ndarray]
     if mask is not None: mask_arr = np.asarray(mask)
-    else: mask_arr = None
 
     # Broadcast cond_lag to be (#lags, #cond vars) in shape
     lag_arr = np.atleast_1d(lag)
@@ -389,7 +389,7 @@ def _validate_mask(mask: np.ndarray, input_len: int) -> None:
         raise ValueError("mask must be one-dimensional")
     if len(mask) != input_len:
         raise ValueError("mask length does not match input length")
-    if mask.dtype != np.bool:
+    if mask.dtype != bool:
         raise TypeError("mask must contain only booleans")
 
 def _validate_cond(cond: np.ndarray, input_len: int) -> None:
@@ -450,10 +450,10 @@ def pairwise_mi(data: ArrayLike,
 
     # Convert arrays to consistent type; _lagged_mi assumes cond to be 2D
     data_arr = np.asarray(data)
+    cond_arr = None # type: Optional[np.ndarray]
+    mask_arr = None # type: Optional[np.ndarray]
     if cond is not None: cond_arr = np.column_stack((np.asarray(cond),))
-    else: cond_arr = None
     if mask is not None: mask_arr = np.asarray(mask)
-    else: mask_arr = None
 
     # If there is just one variable, return the trivial result
     if data_arr.ndim == 1 or data_arr.shape[1] == 1:
@@ -523,7 +523,7 @@ def _get_mi_time_estimate(n: int, cond: Optional[np.ndarray], k: int) -> float:
     # These are determined pretty experimentally on a laptop computer
     return n**(1.0 + 0.05*n_cond) * (0.9 + 0.1*math.sqrt(k)) * 1e-5
 
-def _map_maybe_parallel(func: Callable[[T], float], params: List[T],
+def _map_maybe_parallel(func: Callable[[T], float], params: Sequence[T],
     max_threads: Optional[int], time_estimate: float,
     callback: Callable[[int], None]) -> Iterable[float]:
     # If there is benefit in doing so, and the user has not overridden the
@@ -613,7 +613,7 @@ def _lagged_mi(param_tuple: Tuple[np.ndarray, np.ndarray, int, int, int, int,
             return _estimate_conditional_mi(xs, ys, zs, k)
 
 def _apply_masks(xs: np.ndarray, ys: np.ndarray, zs: Optional[np.ndarray],
-        mask: np.ndarray, min_lag: int, max_lag: int, drop_nan: bool)\
+        mask: Optional[np.ndarray], min_lag: int, max_lag: int, drop_nan: bool)\
         -> Tuple[np.ndarray, np.ndarray, Optional[np.ndarray]]:
     # Apply the mask
     if mask is not None:
@@ -664,6 +664,6 @@ def _rescale_data(xs: np.ndarray, ys: np.ndarray, zs: Optional[np.ndarray], disc
     
     if zs is not None:
         zs = (zs - zs.mean(axis=0)) / zs.std(axis=0)
-        zs += rng.normal(0.0, 1e-10, zs.shape)
+        zs += rng.normal(0.0, 1e-10, zs.shape) # type: ignore # mypy does not realize this is ndarray
 
     return xs, ys, zs

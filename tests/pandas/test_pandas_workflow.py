@@ -24,9 +24,9 @@ class TestPandasWorkflow(unittest.TestCase):
         columns = ["Temperature", "WindDir", "DayOfYear"]
         afternoon_mask = (self.data.index.hour == 13)
 
-        uncond = pairwise_mi(self.data[columns], mask=afternoon_mask, normalize=True)
+        uncond = pairwise_mi(self.data[columns], mask=afternoon_mask, normalize=True) # type: pd.DataFrame
         cond_doy = pairwise_mi(self.data[columns], mask=afternoon_mask, normalize=True,
-            cond=self.data["DayOfYear"])
+            cond=self.data["DayOfYear"]) # type: pd.DataFrame
 
         # The result is a 3x3 data frame
         self.assertEqual(uncond.shape, (3,3))
@@ -55,7 +55,7 @@ class TestPandasWorkflow(unittest.TestCase):
         afternoon_mask = (self.data.index.hour == 13)
         result = estimate_mi(self.data["Temperature"], self.data["Temperature"],
             lag=[0, -24, -10*24], cond=self.data["DayOfYear"], mask=afternoon_mask,
-            normalize=True)
+            normalize=True) # type: pd.DataFrame
 
         # The result is a 3x1 data frame
         self.assertEqual(result.shape, (3,1))

@@ -9,7 +9,7 @@ import numpy as np
 import os.path
 import pandas as pd
 import random
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 import unittest
 from ennemi import estimate_entropy, estimate_mi, normalize_mi, pairwise_mi
 
@@ -122,7 +122,7 @@ class TestEstimateEntropy(unittest.TestCase):
             "Exp": rng.exponential(1/2.0, size=500)
         })
 
-        marginal = estimate_entropy(data)
+        marginal = estimate_entropy(data) # type: pd.DataFrame
         multidim = estimate_entropy(data, multidim=True)
 
         # multidim=False results in a DataFrame
@@ -141,7 +141,7 @@ class TestEstimateEntropy(unittest.TestCase):
         rng = np.random.default_rng(2)
         data = pd.Series(rng.normal(0.0, 1.0, size=500), name="N")
 
-        result = estimate_entropy(data)
+        result = estimate_entropy(data) # type: pd.DataFrame
 
         self.assertIsInstance(result, pd.DataFrame)
         self.assertEqual(result.shape, (1,1))
@@ -404,7 +404,7 @@ class TestEstimateMi(unittest.TestCase):
         y = [5, 6, 7, 8]
 
         with self.assertRaises(TypeError):
-            estimate_mi(y, x, lag=1.2)
+            estimate_mi(y, x, lag=1.2) # type: ignore
 
     def test_x_and_cond_different_length(self) -> None:
         x = np.zeros(10)
@@ -441,7 +441,7 @@ class TestEstimateMi(unittest.TestCase):
     def test_mask_with_wrong_dimension(self) -> None:
         x = np.zeros(10)
         y = np.zeros(10)
-        mask = np.zeros((10, 2), dtype=np.bool)
+        mask = np.zeros((10, 2), dtype=bool)
 
         with self.assertRaises(ValueError) as cm:
             estimate_mi(y, x, mask=mask)
@@ -596,7 +596,7 @@ class TestEstimateMi(unittest.TestCase):
         data_path = os.path.join(script_path, "example_data.csv")
         data = pd.read_csv(data_path)
 
-        actual = estimate_mi(data["y"], data[["x1", "x2", "x3"]], lag=[0, 1, 3], k=5)
+        actual = estimate_mi(data["y"], data[["x1", "x2", "x3"]], lag=[0, 1, 3], k=5) # type: pd.DataFrame
 
         # The returned object is a Pandas data frame, with row and column names!
         self.assertIsInstance(actual, pd.DataFrame)
@@ -630,7 +630,7 @@ class TestEstimateMi(unittest.TestCase):
                           index=range(2000, 3000))
 
         expected = -0.5 * math.log(1 - 0.8**2)
-        masked = estimate_mi(df["y"], df["x"], mask=df["mask"])
+        masked = estimate_mi(df["y"], df["x"], mask=df["mask"]) # type: pd.DataFrame
         self.assertAlmostEqual(masked.loc[0,"x"], expected, delta=0.03)
 
     def test_mask_without_lag(self) -> None:
@@ -747,7 +747,7 @@ class TestEstimateMi(unittest.TestCase):
         data = pd.read_csv(data_path)
 
         actual = estimate_mi(data["y"], data["x1"], lag=-1, k=5,
-                             cond=data["x2"], cond_lag=0)
+                             cond=data["x2"], cond_lag=0) # type: pd.DataFrame
 
         self.assertIsInstance(actual, pd.DataFrame)
         self.assertEqual(actual.shape, (1, 1))
@@ -815,11 +815,10 @@ class TestEstimateMi(unittest.TestCase):
                 y = np.zeros(100)
                 if ynan: y[25] = np.nan
 
+                cond = None # type: Optional[np.ndarray]
                 if condnan is not None:
                     cond = np.zeros(100)
                     if condnan: cond[37] = np.nan
-                else:
-                    cond = None
 
                 with self.assertRaises(ValueError) as cm:
                     # Pass preprocess=False to avoid warnings with the zero data
@@ -986,7 +985,7 @@ class TestNormalizeMi(unittest.TestCase):
         mi = [-1, 0, 1]
         cor = normalize_mi(mi)
 
-        self.assertEqual(cor.shape, (3,))
+        self.assertEqual(cor.shape, (3,)) # type: ignore
         self.assertAlmostEqual(cor[0], -1.0, delta=0.001)
         self.assertAlmostEqual(cor[1], 0.0, delta=0.001)
         self.assertAlmostEqual(cor[2], 0.93, delta=0.03)
@@ -995,7 +994,7 @@ class TestNormalizeMi(unittest.TestCase):
         mi = np.asarray([[0.1, 0.5], [0, -1]])
         mi = pd.DataFrame(mi, columns=["A", "B"], index=[14, 52])
 
-        cor = normalize_mi(mi)
+        cor = normalize_mi(mi) # type: pd.DataFrame
         self.assertAlmostEqual(cor.loc[14,"A"], 0.4, delta=0.05)
         self.assertAlmostEqual(cor.loc[14,"B"], 0.8, delta=0.05)
         self.assertAlmostEqual(cor.loc[52,"A"], 0.0, delta=0.001)
@@ -1064,7 +1063,7 @@ class TestPairwiseMi(unittest.TestCase):
         expected = -0.5 * math.log(1 - 0.6**2)
 
         data = pd.DataFrame({"X": normal_data[:,0], "Y": normal_data[:,1], "Z": unif_data})
-        result = pairwise_mi(data)
+        result = pairwise_mi(data) # type: pd.DataFrame
 
         self.assertEqual(result.shape, (3,3))
         self.assertIsInstance(result, pd.DataFrame)

@@ -9,6 +9,7 @@ Use the `estimate_mi` method in the main ennemi module instead.
 
 import numpy as np
 from scipy.spatial import cKDTree
+from typing import Union
 from warnings import warn
 
 
@@ -224,7 +225,7 @@ def _estimate_conditional_semidiscrete_mi(x: np.ndarray, y: np.ndarray, cond: np
 # Digamma
 #
 
-def _psi(x: np.ndarray) -> np.ndarray:
+def _psi(x: Union[int, np.ndarray]) -> np.ndarray:
     """A replacement for scipy.special.psi, for non-negative integers only.
     
     This is slightly faster than the SciPy version (not that it's a bottleneck),
@@ -236,7 +237,7 @@ def _psi(x: np.ndarray) -> np.ndarray:
     # psi(0) = inf for SciPy compatibility
     # The shape of result does not matter as inf will propagate in mean()
     if np.any(x == 0):
-        return np.inf
+        return np.asarray(np.inf)
 
     # Use the SciPy value for psi(1), because the expansion is not good enough
     mask = (x != 1)
