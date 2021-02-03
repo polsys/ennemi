@@ -67,6 +67,8 @@ jobs:
           python -m pytest tests/unit/ --junit-xml=test-results.xml
 
       - name: Run type checker
+        # NumPy 1.20 with type annotations does not support Python 3.6
+        if: matrix.python-version != '3.6'
         run: |
           python -m mypy ennemi/ tests/unit tests/integration tests/pandas
 
