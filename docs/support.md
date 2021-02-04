@@ -71,12 +71,6 @@ Lower versions of `ennemi` will remain available for users of those.
 
 In the long term, we aim to follow the
 [NumPy deprecation policy](https://numpy.org/neps/nep-0029-deprecation_policy.html).
-However, there are some deviations:
-
-- `ennemi 1.0.0` requires at least NumPy 1.17.
-  This satisfies the "last three minor versions" rule, but not the
-  "all versions released in prior 24 months" rule.
-  Support for NumPy 1.17 will be kept long enough to satisfy both criteria.
-- `ennemi 1.0.0` supports Python 3.6, even though it would not be necessary.
-  There are still sufficiently many users on 3.6 to warrant the support.
-  The support will be dropped in a future minor release.
+However, `ennemi 1.0.0` supports Python 3.6, even though it would not be necessary.
+There are still sufficiently many users on 3.6 to warrant the support.
+The support will be dropped in a future minor release.
