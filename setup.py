@@ -20,7 +20,7 @@ setup(
     license = "MIT",
 
     classifiers = [
-        "Development Status :: 5 - Production / Stable",
+        "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Science/Research",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
