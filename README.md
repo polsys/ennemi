@@ -25,6 +25,7 @@ The latest source code on GitHub might be less stable than the released version 
 You can see the roadmap of planned additions on the
 [Milestones page](https://github.com/polsys/ennemi/milestones).
 See also the [support statement](docs/support.md).
+You can also follow the development by clicking `Watch releases` on the GitHub page.
 
 
 ## Getting started
