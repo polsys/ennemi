@@ -28,10 +28,6 @@ The package is published under the MIT License.
 
 ## Installation
 
-This package is **beta** quality.
-The algorithm is fairly stable
-but breaking changes to the interface are still possible (if unlikely).
-
 This package is available on PyPI:
 ```sh
 pip install ennemi
