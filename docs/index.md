@@ -20,7 +20,7 @@ with no theoretical background required.
   - Integrated with `pandas` data frames (optional)
   - Optimized and automatically parallelized estimation
 
-`ennemi` is currently developed by Petri Laarne ([@polsys](https://github.com/polsys)) at
+`ennemi` is has been developed by Petri Laarne ([@polsys](https://github.com/polsys)) at
 [Institute for Atmospheric and Earth System Research (INAR)](https://www.helsinki.fi/en/inar-institute-for-atmospheric-and-earth-system-research),
 University of Helsinki.
 The package is published under the MIT License.

@@ -52,10 +52,10 @@ This means that the version number is always of the format `X.Y.Z`.
 
 Some examples (not necessary real!):
 
-- `1.0.0 -> 1.0.1` would only contain bug fixes.
-- `1.0.1 -> 1.1.0` would contain new features and bug fixes.
-  It might also drop support for older Python or NumPy versions.
-  Users of older Python versions would remain on `1.0.1`.
+- `1.0.0 -> 1.0.1` (if it existed) would only contain bug fixes.
+- `1.0.1 -> 1.1.0` contains new features and bug fixes.
+  It also drops support for Python&nbsp;3.6.
+  Version `1.0.x` remains available for those using Python&nbsp;3.6.
 - `1.1.0 -> 2.0.0` would break some of your code.
   It might remove features, and therefore you should be careful when upgrading.
 
@@ -71,6 +71,3 @@ Lower versions of `ennemi` will remain available for users of those.
 
 In the long term, we aim to follow the
 [NumPy deprecation policy](https://numpy.org/neps/nep-0029-deprecation_policy.html).
-However, `ennemi 1.0.0` supports Python 3.6, even though it would not be necessary.
-There are still sufficiently many users on 3.6 to warrant the support.
-The support will be dropped in a future minor release.
