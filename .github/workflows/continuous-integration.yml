@@ -20,24 +20,18 @@ jobs:
       fail-fast: false
       matrix:
         os: [ ubuntu-latest, macos-latest, windows-latest ]
-        python-version: [ 3.6, 3.7, 3.8, 3.9 ]
+        python-version: [ 3.7, 3.8, 3.9 ]
         # Save a bit of resources by running only some combinations:
-        # Windows 3.6 and 3.9; macOS 3.7; Ubuntu 3.8 and 3.9
+        # Windows 3.7 and 3.9; macOS 3.8; Ubuntu 3.7 and 3.9
         exclude:
           - os: windows-latest
+            python-version: 3.8
+          - os: macos-latest
             python-version: 3.7
-          - os: windows-latest
-            python-version: 3.8
-          - os: macos-latest
-            python-version: 3.6
-          - os: macos-latest
-            python-version: 3.8
           - os: macos-latest
             python-version: 3.9
           - os: ubuntu-latest
-            python-version: 3.6
-          - os: ubuntu-latest
-            python-version: 3.7
+            python-version: 3.8
 
     steps:
       - name: Check out code

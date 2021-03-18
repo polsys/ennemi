@@ -7,6 +7,7 @@ There is no analytical expression for the MI, and the algorithm in ennemi
 expects a continuous distribution. Nevertheless, ennemi seems to work fine.
 """
 
+from __future__ import annotations
 from ennemi import estimate_mi
 from scipy.integrate import quad, dblquad
 from scipy.stats import norm, multivariate_normal as mvnorm

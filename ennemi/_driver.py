@@ -6,6 +6,7 @@
 Do not import this module directly, but rather import the main ennemi module.
 """
 
+from __future__ import annotations
 import concurrent.futures
 from typing import Callable, Iterable, Optional, Sequence, Tuple, TypeVar, Union
 import itertools

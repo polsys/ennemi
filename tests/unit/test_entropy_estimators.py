@@ -3,6 +3,7 @@
 
 """Tests for ennemi._estimate_single_mi() and friends."""
 
+from __future__ import annotations
 import math
 from math import log
 import numpy as np
