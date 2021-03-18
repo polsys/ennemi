@@ -3,6 +3,7 @@
 
 """Tests for ennemi.estimate_mi()."""
 
+from __future__ import annotations
 from itertools import product
 import math
 import numpy as np

@@ -11,6 +11,7 @@ This test exercises especially the conditional MI code path, as the condition
 is 7-dimensional. It also passes a two-dimensional cond_lag parameter.
 """
 
+from __future__ import annotations
 from ennemi import estimate_mi
 import numpy as np
 import unittest

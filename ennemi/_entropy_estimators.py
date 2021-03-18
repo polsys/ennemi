@@ -7,6 +7,7 @@ Do not import this module directly.
 Use the `estimate_mi` method in the main ennemi module instead.
 """
 
+from __future__ import annotations
 import numpy as np
 from scipy.spatial import cKDTree
 from typing import Union

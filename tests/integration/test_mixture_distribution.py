@@ -3,6 +3,7 @@
 
 """A mixture distribution that has no analytical expression for MI."""
 
+from __future__ import annotations
 from ennemi import estimate_mi
 from scipy.integrate import dblquad
 from scipy.stats import norm, multivariate_normal as mvnorm

@@ -3,6 +3,7 @@
 
 """A simplified version of the case study in the documentation."""
 
+from __future__ import annotations
 from ennemi import estimate_mi, pairwise_mi
 import numpy as np
 import pandas as pd

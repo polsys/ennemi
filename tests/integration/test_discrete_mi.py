@@ -8,6 +8,7 @@ in doi:10.1371/journal.pone.0087357, a set of MATLAB scripts.
 The results here were produced on unmodified scripts and R2019b Update 4.
 """
 
+from __future__ import annotations
 from ennemi import estimate_mi
 import numpy as np
 import unittest

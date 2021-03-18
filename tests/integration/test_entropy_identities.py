@@ -3,6 +3,7 @@
 
 """Mathematical identities for entropy and mutual information."""
 
+from __future__ import annotations
 from ennemi import estimate_entropy, estimate_mi
 import numpy as np
 import unittest

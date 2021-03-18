@@ -25,7 +25,6 @@ setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
@@ -46,7 +45,7 @@ setup(
 
     packages = [ "ennemi" ],
     package_data = { "ennemi": ["py.typed"] },
-    python_requires = "~=3.6",
+    python_requires = "~=3.7",
     # At least pandas requires numpy 1.17.3+ (security fixes), we should too
     install_requires = [ "numpy>=1.17.5", "numpy<2.0", "scipy~=1.4" ],
     extras_require = {

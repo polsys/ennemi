@@ -3,6 +3,7 @@
 
 """Verify that the MI and entropy estimates are unbiased."""
 
+from __future__ import annotations
 from ennemi import estimate_entropy, estimate_mi
 from math import log, pi, e
 import numpy as np
