@@ -81,8 +81,19 @@ always resolves to the latest version of `ennemi`.
 For reproducibility, you should cite the exact version of the package you have used.
 To do so, use the DOI given on the [Releases](https://github.com/polsys/ennemi/releases) page or on Zenodo.
 
-In the future, a journal article may become the canonical reference for this package.
-You should still also cite the package version you have used.
+If you want to cite an article
+(although you should still mention the version number you used), the reference is:
+```
+@article{ennemi,
+  title = {ennemi: Non-linear correlation detection with mutual information},
+  journal = {SoftwareX},
+  volume = {14},
+  pages = {100686},
+  year = {2021},
+  doi = {https://doi.org/10.1016/j.softx.2021.100686},
+  author = {Petri Laarne and Martha A. Zaidan and Tuomo Nieminen}
+}
+```
 
 This package is maintained by Petri Laarne, and was initially developed at
 [Institute for Atmospheric and Earth System Research (INAR)](https://www.helsinki.fi/en/inar-institute-for-atmospheric-and-earth-system-research),
