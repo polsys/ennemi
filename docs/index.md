@@ -25,6 +25,12 @@ with no theoretical background required.
 University of Helsinki.
 The package is published under the MIT License.
 
+This software is also described in the SoftwareX article
+[doi:10.1016/j.softx.2021.100686](https://dx.doi.org/10.1016/j.softx.2021.100686).
+If you use this software in scientific work, please mention also the exact version number for reproducibility.
+Archived versions of the source code are available on Zenodo
+([doi:10.5281/zenodo.3834018](https://doi.org/10.5281/zenodo.3834018)).
+
 
 ## Installation
 
