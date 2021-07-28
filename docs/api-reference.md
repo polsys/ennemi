@@ -153,15 +153,16 @@ matching mask element set to `True` are used for estimation.
   while preserving the time series structure of the data. Elements of
   `x` and `cond` are masked with the lags applied.
 
-- `discrete_y: bool`, default False.
+- `discrete_x, discrete_y: bool`, default False.
 
-  If True, the `y` variable is interpreted as a discrete variable. The `x`
-  variables are still continuous. The `y` values may be non-numeric.
+  If True, the respective variable is interpreted as a discrete variable.
+  Values of the variable may be non-numeric.
 
 - `preprocess: bool`, default True.
 
   By default, the variables are scaled to unit variance and
   added with low-amplitude noise. The noise uses a fixed random seed.
+  This is not applied to discrete variables.
 
 - `drop_nan: bool`, default False.
 

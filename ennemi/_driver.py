@@ -15,6 +15,7 @@ import numpy as np
 from os import cpu_count
 import sys
 from ._entropy_estimators import _estimate_single_mi, _estimate_conditional_mi,\
+    _estimate_discrete_mi,\
     _estimate_semidiscrete_mi, _estimate_conditional_semidiscrete_mi, _estimate_single_entropy
 
 try:
@@ -202,6 +203,7 @@ def estimate_mi(y: ArrayLike, x: ArrayLike,
                 cond_lag: Union[Sequence[int], Sequence[Sequence[int]], ArrayLike, int] = 0,
                 mask: Optional[ArrayLike] = None,
                 discrete_y: bool = False,
+                discrete_x: bool = False,
                 preprocess: bool = True,
                 drop_nan: bool = False,
                 normalize: bool = False,
@@ -264,9 +266,10 @@ def estimate_mi(y: ArrayLike, x: ArrayLike,
         estimation. Use this to exclude some observations from consideration
         while preserving the time series structure of the data. Elements of
         `x` and `cond` are masked with the lags applied.
+    discrete_x : bool, default False
     discrete_y : bool, default False
-        If True, the `y` variable is interpreted as a discrete variable. The `x`
-        variables are still continuous. The `y` values may be non-numeric.
+        If True, the respective variable is interpreted as a discrete variable.
+        Values of the variable may be non-numeric.
     preprocess : bool, default True
         By default, the variables are scaled to unit variance and
         added with low-amplitude noise. The noise uses a fixed random seed.
@@ -305,7 +308,7 @@ def estimate_mi(y: ArrayLike, x: ArrayLike,
 
     # Check the parameters and run the estimation
     result = _estimate_mi(y_arr, x_arr, lag_arr, k, cond_arr,
-        cond_lag_arr, mask_arr, discrete_y, preprocess, drop_nan, max_threads, callback)
+        cond_lag_arr, mask_arr, discrete_x, discrete_y, preprocess, drop_nan, max_threads, callback)
 
     # Normalize if requested
     if normalize:
@@ -322,7 +325,8 @@ def estimate_mi(y: ArrayLike, x: ArrayLike,
 
 def _estimate_mi(y: FloatArray, x: FloatArray, lag: FloatArray, k: int,
         cond: Optional[FloatArray], cond_lag: FloatArray,
-        mask: Optional[FloatArray], discrete_y: bool, preprocess: bool, drop_nan: bool,
+        mask: Optional[FloatArray], discrete_x: bool, discrete_y: bool,
+        preprocess: bool, drop_nan: bool,
         max_threads: Optional[int],
         callback: Optional[Callable[[int, int], None]]) -> FloatArray:
     """This method is strongly typed, estimate_mi() does necessary conversion."""
@@ -347,10 +351,10 @@ def _estimate_mi(y: FloatArray, x: FloatArray, lag: FloatArray, k: int,
     indices = list(itertools.product(range(len(lag)), range(nvar)))
     if x.ndim == 1:
         params = list(map(lambda i: (x, y, lag[i[0]], max_lag, min_lag, k,
-            mask, cond, cond_lag[i[0]], discrete_y, preprocess, drop_nan), indices))
+            mask, cond, cond_lag[i[0]], discrete_x, discrete_y, preprocess, drop_nan), indices))
     else:
         params = list(map(lambda i: (x[:,i[1]], y, lag[i[0]], max_lag, min_lag, k,
-            mask, cond, cond_lag[i[0]], discrete_y, preprocess, drop_nan), indices))
+            mask, cond, cond_lag[i[0]], discrete_x, discrete_y, preprocess, drop_nan), indices))
 
     # Run the estimation, possibly in parallel
     def wrapped_callback(i: int) -> None:
@@ -502,7 +506,8 @@ def _pairwise_mi(data: FloatArray, k: int, cond: Optional[FloatArray], preproces
     for i in range(nvar):
         for j in range(i+1, nvar):
             indices.append((i, j))
-            params.append((data[:,i], data[:,j], 0, 0, 0, k, mask, cond, cond_lag, False, preprocess, drop_nan))
+            # TODO: discrete
+            params.append((data[:,i], data[:,j], 0, 0, 0, k, mask, cond, cond_lag, False, False, preprocess, drop_nan))
 
     # Run the MI estimation for each pair, possibly in parallel
     def wrapped_callback(i: int) -> None:
@@ -586,7 +591,8 @@ def _map_maybe_parallel(func: Callable[[T], float], params: Sequence[T],
 def _lagged_mi(param_tuple: Tuple[FloatArray, FloatArray, int, int, int, int,
         Optional[FloatArray], Optional[FloatArray], FloatArray, bool, bool, bool]) -> float:
     # Unpack the param tuple used for possible cross-thread transfer
-    x, y, lag, max_lag, min_lag, k, mask, cond, cond_lag, discrete_y, preprocess, drop_nan = param_tuple
+    x, y, lag, max_lag, min_lag, k, mask, cond, cond_lag,\
+        discrete_x, discrete_y, preprocess, drop_nan = param_tuple
 
     # Handle negative lags correctly
     min_lag = min(min_lag, 0)
@@ -604,12 +610,16 @@ def _lagged_mi(param_tuple: Tuple[FloatArray, FloatArray, int, int, int, int,
 
     # Apply masks, validate and preprocess the data
     xs, ys, zs = _apply_masks(xs, ys, zs, mask, min_lag, max_lag, drop_nan)
-    _validate_masked_data(xs, ys, zs, k, discrete_y)
+    _validate_masked_data(xs, ys, zs, k, discrete_x, discrete_y)
     if preprocess:
-        xs, ys, zs = _rescale_data(xs, ys, zs, discrete_y)
+        xs, ys, zs = _rescale_data(xs, ys, zs, discrete_x, discrete_y)
     
     # Apply the relevant estimation method
     if cond is None:
+        if discrete_x and discrete_y:
+            return _estimate_discrete_mi(xs, ys, k)
+        elif discrete_x:
+            return _estimate_semidiscrete_mi(ys, xs, k)
         if discrete_y:
             return _estimate_semidiscrete_mi(xs, ys, k)
         else:
@@ -643,28 +653,29 @@ def _apply_masks(xs: FloatArray, ys: FloatArray, zs: Optional[FloatArray],
     return xs, ys, zs
 
 def _validate_masked_data(xs: FloatArray, ys: FloatArray, zs: Optional[FloatArray],
-        k: int, discrete_y: bool) -> None:
+        k: int, discrete_x: bool, discrete_y: bool) -> None:
     # Check that there are enough observations and no NaNs
     # Disable the check if y is discrete and non-numeric
     if (len(ys) <= k):
         raise ValueError("k must be smaller than number of observations (after lag and mask)")
 
     NAN_MSG = "input contains NaNs (after applying the mask), pass drop_nan=True to ignore"
-    if np.isnan(xs).any():
+    if (not discrete_x or xs.dtype.kind in "iufc") and np.isnan(xs).any():
         raise ValueError(NAN_MSG)
     if (not discrete_y or ys.dtype.kind in "iufc") and np.isnan(ys).any():
         raise ValueError(NAN_MSG)
     if zs is not None and np.isnan(zs).any():
         raise ValueError(NAN_MSG)
 
-def _rescale_data(xs: FloatArray, ys: FloatArray, zs: Optional[FloatArray], discrete_y: bool)\
-        -> Tuple[FloatArray, FloatArray, Optional[FloatArray]]:
+def _rescale_data(xs: FloatArray, ys: FloatArray, zs: Optional[FloatArray],
+        discrete_x: bool, discrete_y: bool) -> Tuple[FloatArray, FloatArray, Optional[FloatArray]]:
     # Digits of e for reproducibility
     rng = np.random.default_rng(2_718281828)
 
-    # This warns if the standard deviation is zero
-    xs = (xs - xs.mean()) / xs.std()
-    xs += rng.normal(0.0, 1e-10, xs.shape)
+    if not discrete_x:
+        # This warns if the standard deviation is zero
+        xs = (xs - xs.mean()) / xs.std()
+        xs += rng.normal(0.0, 1e-10, xs.shape)
 
     if not discrete_y:
         ys = (ys - ys.mean()) / ys.std()
