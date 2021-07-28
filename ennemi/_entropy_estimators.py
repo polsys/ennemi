@@ -9,12 +9,15 @@ Use the `estimate_mi` method in the main ennemi module instead.
 
 from __future__ import annotations
 import numpy as np
+import numpy.typing as npt
 from scipy.spatial import cKDTree
 from typing import Union
 from warnings import warn
 
+FloatArray = npt.NDArray[np.float64]
 
-def _estimate_single_entropy(x: np.ndarray, k: int = 3) -> float:
+
+def _estimate_single_entropy(x: FloatArray, k: int = 3) -> float:
     """Estimate the differential entropy of a n-dimensional random variable.
 
     `x` must be a 2D array with columns denoting the variable dimensions.
@@ -38,7 +41,7 @@ def _estimate_single_entropy(x: np.ndarray, k: int = 3) -> float:
     return _psi(N) - _psi(k) + ndim * (np.mean(np.log(distances)) + np.log(2))
 
 
-def _estimate_single_mi(x: np.ndarray, y: np.ndarray, k: int = 3) -> float:
+def _estimate_single_mi(x: FloatArray, y: FloatArray, k: int = 3) -> float:
     """Estimate the mutual information between two continuous variables.
 
     Returns the estimated mutual information (in nats).
@@ -85,7 +88,7 @@ def _estimate_single_mi(x: np.ndarray, y: np.ndarray, k: int = 3) -> float:
     return _psi(N) + _psi(k) - np.mean(_psi(nx) + _psi(ny))
 
 
-def _estimate_conditional_mi(x: np.ndarray, y: np.ndarray, cond: np.ndarray, 
+def _estimate_conditional_mi(x: FloatArray, y: FloatArray, cond: FloatArray, 
         k: int = 3) -> float:
     """Estimate conditional mutual information between two continuous variables.
 
@@ -128,7 +131,7 @@ def _estimate_conditional_mi(x: np.ndarray, y: np.ndarray, cond: np.ndarray,
     return _psi(k) - np.mean(_psi(nxz) + _psi(nyz) - _psi(nz))
 
 
-def _estimate_semidiscrete_mi(x: np.ndarray, y: np.ndarray, k: int = 3) -> float:
+def _estimate_semidiscrete_mi(x: FloatArray, y: FloatArray, k: int = 3) -> float:
     """Estimate unconditional MI between discrete y and continuous x.
     
     The calculation is based on Ross (2014): Mutual Information between
@@ -172,7 +175,7 @@ def _estimate_semidiscrete_mi(x: np.ndarray, y: np.ndarray, k: int = 3) -> float
     return _psi(N) + _psi(k) - np.mean(_psi(n_full)) - weighted_y_counts_mean
 
 
-def _estimate_conditional_semidiscrete_mi(x: np.ndarray, y: np.ndarray, cond: np.ndarray, 
+def _estimate_conditional_semidiscrete_mi(x: FloatArray, y: FloatArray, cond: FloatArray, 
         k: int = 3) -> float:
     """Estimate conditional MI between discrete y and continuous x and cond.
 
@@ -226,7 +229,7 @@ def _estimate_conditional_semidiscrete_mi(x: np.ndarray, y: np.ndarray, cond: np
 # Digamma
 #
 
-def _psi(x: Union[int, np.ndarray]) -> np.ndarray:
+def _psi(x: Union[int, FloatArray]) -> FloatArray:
     """A replacement for scipy.special.psi, for non-negative integers only.
     
     This is slightly faster than the SciPy version (not that it's a bottleneck),

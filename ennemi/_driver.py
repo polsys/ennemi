@@ -12,13 +12,15 @@ from typing import Callable, Iterable, Optional, Sequence, Tuple, TypeVar, Union
 import itertools
 import math
 import numpy as np
+import numpy.typing as npt
 from os import cpu_count
 import sys
 from ._entropy_estimators import _estimate_single_mi, _estimate_conditional_mi,\
     _estimate_semidiscrete_mi, _estimate_conditional_semidiscrete_mi, _estimate_single_entropy
 
-ArrayLike = Union[Sequence[float], Sequence[Sequence[float]], np.ndarray]
-GenArrayLike = TypeVar("GenArrayLike", Sequence[float], Sequence[Sequence[float]], np.ndarray)
+ArrayLike = npt.ArrayLike
+FloatArray = npt.NDArray[np.float64]
+GenArrayLike = TypeVar("GenArrayLike", Sequence[float], Sequence[Sequence[float]], FloatArray)
 T = TypeVar("T")
 
 def normalize_mi(mi: Union[float, GenArrayLike]) -> GenArrayLike:
@@ -62,7 +64,7 @@ def estimate_entropy(x: ArrayLike,
     multidim: bool = False,
     mask: Optional[ArrayLike] = None,
     cond: Optional[ArrayLike] = None,
-    drop_nan: bool = False) -> np.ndarray:
+    drop_nan: bool = False) -> FloatArray:
     """Estimate the entropy of one or more continuous random variables.
 
     Returns the estimated entropy in nats. If `x` is two-dimensional, each
@@ -132,8 +134,8 @@ def estimate_entropy(x: ArrayLike,
     return result
 
 
-def _estimate_entropy(x: np.ndarray, k: int, multidim: bool,
-        mask: Optional[np.ndarray], drop_nan: bool) -> np.ndarray:
+def _estimate_entropy(x: FloatArray, k: int, multidim: bool,
+        mask: Optional[ArrayLike], drop_nan: bool) -> FloatArray:
     """Strongly typed estimate_entropy()."""
 
     if multidim or x.ndim == 1:
@@ -147,8 +149,8 @@ def _estimate_entropy(x: np.ndarray, k: int, multidim: bool,
             result[i] = _estimate_single_entropy(xs, k)
         return result
 
-def _mask_and_validate_entropy(x: np.ndarray, mask: Optional[np.ndarray],
-        drop_nan: bool, k: int) -> np.ndarray:
+def _mask_and_validate_entropy(x: FloatArray, mask: Optional[ArrayLike],
+        drop_nan: bool, k: int) -> FloatArray:
     # Apply the mask and drop NaNs
     # TODO: Support 2D masks (https://github.com/polsys/ennemi/issues/37)
     if mask is not None:
@@ -167,8 +169,8 @@ def _mask_and_validate_entropy(x: np.ndarray, mask: Optional[np.ndarray],
 
     return x
 
-def _estimate_conditional_entropy(x: np.ndarray, cond: np.ndarray, k: int, multidim: bool,
-        mask: Optional[np.ndarray], drop_nan: bool) -> np.ndarray:
+def _estimate_conditional_entropy(x: FloatArray, cond: FloatArray, k: int, multidim: bool,
+        mask: Optional[ArrayLike], drop_nan: bool) -> FloatArray:
     """Conditional entropy by the chain rule: H(X|Y) = H(X,Y) - H(Y)."""
 
     # Estimate the entropy of cond by the method above (multidim=True)
@@ -181,7 +183,7 @@ def _estimate_conditional_entropy(x: np.ndarray, cond: np.ndarray, k: int, multi
         return np.asarray(_estimate_single_entropy(xs, k) - marginal)
     else:
         nvar = x.shape[1]
-        joint = np.empty(nvar) # type: np.ndarray
+        joint = np.empty(nvar) # type: npt.NDArray[np.float64]
         for i in range(nvar):
             xs = _mask_and_validate_entropy(np.column_stack((x[:,i], cond)), mask, drop_nan, k)
             joint[i] = _estimate_single_entropy(xs, k)
@@ -189,17 +191,17 @@ def _estimate_conditional_entropy(x: np.ndarray, cond: np.ndarray, k: int, multi
 
 
 def estimate_mi(y: ArrayLike, x: ArrayLike,
-                lag: Union[Sequence[int], np.ndarray, int] = 0,
+                lag: Union[Sequence[int], ArrayLike, int] = 0,
                 *, k: int = 3,
                 cond: Optional[ArrayLike] = None,
-                cond_lag: Union[Sequence[int], Sequence[Sequence[int]], np.ndarray, int] = 0,
+                cond_lag: Union[Sequence[int], Sequence[Sequence[int]], ArrayLike, int] = 0,
                 mask: Optional[ArrayLike] = None,
                 discrete_y: bool = False,
                 preprocess: bool = True,
                 drop_nan: bool = False,
                 normalize: bool = False,
                 max_threads: Optional[int] = None,
-                callback: Optional[Callable[[int, int], None]] = None) -> np.ndarray:
+                callback: Optional[Callable[[int, int], None]] = None) -> FloatArray:
     """Estimate the mutual information between y and each x variable.
 
     - Unconditional MI: the default.
@@ -289,7 +291,7 @@ def estimate_mi(y: ArrayLike, x: ArrayLike,
     else:
         cond_arr = None
         ncond = 1
-    mask_arr = None # type: Optional[np.ndarray]
+    mask_arr = None # type: Optional[npt.NDArray[np.float64]]
     if mask is not None: mask_arr = np.asarray(mask)
 
     # Broadcast cond_lag to be (#lags, #cond vars) in shape
@@ -313,11 +315,11 @@ def estimate_mi(y: ArrayLike, x: ArrayLike,
             return pandas.DataFrame(result, index=lag_arr, columns=[x.name])
     return result
 
-def _estimate_mi(y: np.ndarray, x: np.ndarray, lag: np.ndarray, k: int,
-        cond: Optional[np.ndarray], cond_lag: np.ndarray,
-        mask: Optional[np.ndarray], discrete_y: bool, preprocess: bool, drop_nan: bool,
+def _estimate_mi(y: FloatArray, x: FloatArray, lag: FloatArray, k: int,
+        cond: Optional[FloatArray], cond_lag: FloatArray,
+        mask: Optional[FloatArray], discrete_y: bool, preprocess: bool, drop_nan: bool,
         max_threads: Optional[int],
-        callback: Optional[Callable[[int, int], None]]) -> np.ndarray:
+        callback: Optional[Callable[[int, int], None]]) -> FloatArray:
     """This method is strongly typed, estimate_mi() does necessary conversion."""
 
     _check_parameters(x, y, k, cond, mask)
@@ -361,8 +363,8 @@ def _estimate_mi(y: np.ndarray, x: np.ndarray, lag: np.ndarray, k: int,
     return result
 
 
-def _check_parameters(x: np.ndarray, y: Optional[np.ndarray], k: int,
-        cond: Optional[np.ndarray], mask: Optional[np.ndarray]) -> None:
+def _check_parameters(x: FloatArray, y: Optional[FloatArray], k: int,
+        cond: Optional[FloatArray], mask: Optional[FloatArray]) -> None:
     """Does most of parameter checking, but some is still left to _lagged_mi."""
     _validate_k_type(k)
 
@@ -385,7 +387,7 @@ def _validate_k_type(k: int) -> None:
     if k <= 0:
         raise ValueError("k must be greater than zero")
 
-def _validate_mask(mask: np.ndarray, input_len: int) -> None:
+def _validate_mask(mask: FloatArray, input_len: int) -> None:
     if len(mask.shape) > 1:
         raise ValueError("mask must be one-dimensional")
     if len(mask) != input_len:
@@ -393,7 +395,7 @@ def _validate_mask(mask: np.ndarray, input_len: int) -> None:
     if mask.dtype != bool:
         raise TypeError("mask must contain only booleans")
 
-def _validate_cond(cond: np.ndarray, input_len: int) -> None:
+def _validate_cond(cond: FloatArray, input_len: int) -> None:
     if not 1 <= cond.ndim <= 2:
         raise ValueError("cond must be one- or two-dimensional")
     if input_len != len(cond):
@@ -408,7 +410,7 @@ def pairwise_mi(data: ArrayLike,
     drop_nan: bool = False,
     normalize: bool = False,
     max_threads: Optional[int] = None,
-    callback: Optional[Callable[[int, int], None]] = None) -> np.ndarray:
+    callback: Optional[Callable[[int, int], None]] = None) -> FloatArray:
     """Estimate the pairwise MI between each variable.
 
     Returns a matrix where the (i,j)'th element is the mutual information
@@ -451,8 +453,8 @@ def pairwise_mi(data: ArrayLike,
 
     # Convert arrays to consistent type; _lagged_mi assumes cond to be 2D
     data_arr = np.asarray(data)
-    cond_arr = None # type: Optional[np.ndarray]
-    mask_arr = None # type: Optional[np.ndarray]
+    cond_arr = None # type: Optional[npt.NDArray[np.float64]]
+    mask_arr = None # type: Optional[npt.NDArray[np.float64]]
     if cond is not None: cond_arr = np.column_stack((np.asarray(cond),))
     if mask is not None: mask_arr = np.asarray(mask)
 
@@ -474,9 +476,9 @@ def pairwise_mi(data: ArrayLike,
     return result
 
 
-def _pairwise_mi(data: np.ndarray, k: int, cond: Optional[np.ndarray], preprocess: bool,
-    drop_nan: bool, mask: Optional[np.ndarray], max_threads: Optional[int],
-    callback: Optional[Callable[[int, int], None]]) -> np.ndarray:
+def _pairwise_mi(data: FloatArray, k: int, cond: Optional[FloatArray], preprocess: bool,
+    drop_nan: bool, mask: Optional[FloatArray], max_threads: Optional[int],
+    callback: Optional[Callable[[int, int], None]]) -> FloatArray:
     """Strongly typed pairwise MI. The data array is at least 2D."""
 
     _check_parameters(data, None, k, cond, mask)
@@ -514,7 +516,7 @@ def _pairwise_mi(data: np.ndarray, k: int, cond: Optional[np.ndarray], preproces
     return result
 
 
-def _get_mi_time_estimate(n: int, cond: Optional[np.ndarray], k: int) -> float:
+def _get_mi_time_estimate(n: int, cond: Optional[FloatArray], k: int) -> float:
     if cond is None:
         n_cond = 0
     else:
@@ -576,8 +578,8 @@ def _map_maybe_parallel(func: Callable[[T], float], params: Sequence[T],
         return result
 
 
-def _lagged_mi(param_tuple: Tuple[np.ndarray, np.ndarray, int, int, int, int,
-        Optional[np.ndarray], Optional[np.ndarray], np.ndarray, bool, bool, bool]) -> float:
+def _lagged_mi(param_tuple: Tuple[FloatArray, FloatArray, int, int, int, int,
+        Optional[FloatArray], Optional[FloatArray], FloatArray, bool, bool, bool]) -> float:
     # Unpack the param tuple used for possible cross-thread transfer
     x, y, lag, max_lag, min_lag, k, mask, cond, cond_lag, discrete_y, preprocess, drop_nan = param_tuple
 
@@ -613,9 +615,9 @@ def _lagged_mi(param_tuple: Tuple[np.ndarray, np.ndarray, int, int, int, int,
         else:
             return _estimate_conditional_mi(xs, ys, zs, k)
 
-def _apply_masks(xs: np.ndarray, ys: np.ndarray, zs: Optional[np.ndarray],
-        mask: Optional[np.ndarray], min_lag: int, max_lag: int, drop_nan: bool)\
-        -> Tuple[np.ndarray, np.ndarray, Optional[np.ndarray]]:
+def _apply_masks(xs: FloatArray, ys: FloatArray, zs: Optional[FloatArray],
+        mask: Optional[FloatArray], min_lag: int, max_lag: int, drop_nan: bool)\
+        -> Tuple[FloatArray, FloatArray, Optional[FloatArray]]:
     # Apply the mask
     if mask is not None:
         mask_subset = mask[max_lag : len(mask)+min_lag]
@@ -635,7 +637,7 @@ def _apply_masks(xs: np.ndarray, ys: np.ndarray, zs: Optional[np.ndarray],
 
     return xs, ys, zs
 
-def _validate_masked_data(xs: np.ndarray, ys: np.ndarray, zs: Optional[np.ndarray],
+def _validate_masked_data(xs: FloatArray, ys: FloatArray, zs: Optional[FloatArray],
         k: int, discrete_y: bool) -> None:
     # Check that there are enough observations and no NaNs
     # Disable the check if y is discrete and non-numeric
@@ -650,8 +652,8 @@ def _validate_masked_data(xs: np.ndarray, ys: np.ndarray, zs: Optional[np.ndarra
     if zs is not None and np.isnan(zs).any():
         raise ValueError(NAN_MSG)
 
-def _rescale_data(xs: np.ndarray, ys: np.ndarray, zs: Optional[np.ndarray], discrete_y: bool)\
-        -> Tuple[np.ndarray, np.ndarray, Optional[np.ndarray]]:
+def _rescale_data(xs: FloatArray, ys: FloatArray, zs: Optional[FloatArray], discrete_y: bool)\
+        -> Tuple[FloatArray, FloatArray, Optional[FloatArray]]:
     # Digits of e for reproducibility
     rng = np.random.default_rng(2_718281828)
 
