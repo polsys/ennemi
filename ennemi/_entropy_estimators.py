@@ -9,12 +9,15 @@ Use the `estimate_mi` method in the main ennemi module instead.
 
 from __future__ import annotations
 import numpy as np
-import numpy.typing as npt
 from scipy.spatial import cKDTree
 from typing import Union
 from warnings import warn
 
-FloatArray = npt.NDArray[np.float64]
+try:
+    import numpy.typing as npt
+    FloatArray = npt.NDArray[np.float64]
+except:
+    FloatArray = "" # type: ignore
 
 
 def _estimate_single_entropy(x: FloatArray, k: int = 3) -> float:

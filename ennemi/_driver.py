@@ -8,18 +8,23 @@ Do not import this module directly, but rather import the main ennemi module.
 
 from __future__ import annotations
 import concurrent.futures
-from typing import Callable, Iterable, Optional, Sequence, Tuple, TypeVar, Union
+from typing import Callable, Iterable, Optional, Sequence, Tuple, Type, TypeVar, Union
 import itertools
 import math
 import numpy as np
-import numpy.typing as npt
 from os import cpu_count
 import sys
 from ._entropy_estimators import _estimate_single_mi, _estimate_conditional_mi,\
     _estimate_semidiscrete_mi, _estimate_conditional_semidiscrete_mi, _estimate_single_entropy
 
-ArrayLike = npt.ArrayLike
-FloatArray = npt.NDArray[np.float64]
+try:
+    import numpy.typing as npt
+    FloatArray = npt.NDArray[np.float64]
+    ArrayLike = npt.ArrayLike
+except:
+    # Just stop supporting annotations altogether on NumPy 1.20 and below
+    FloatArray = np.ndarray # type: ignore
+    ArrayLike = np.ndarray # type: ignore
 GenArrayLike = TypeVar("GenArrayLike", Sequence[float], Sequence[Sequence[float]], FloatArray)
 T = TypeVar("T")
 

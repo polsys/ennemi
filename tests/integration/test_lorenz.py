@@ -14,12 +14,17 @@ is 7-dimensional. It also passes a two-dimensional cond_lag parameter.
 from __future__ import annotations
 from ennemi import estimate_mi
 import numpy as np
-import numpy.typing as npt
 import unittest
+
+try:
+    import numpy.typing as npt
+    FloatArray = npt.NDArray[np.float64]
+except:
+    FloatArray = "" # type: ignore
 
 class TestLorenz(unittest.TestCase):
 
-    def simulate(self) -> npt.NDArray[np.float64]:
+    def simulate(self) -> FloatArray:
         # Simulate the three Lorenz systems with 100x time resolution
         # Unlike Frenzel & Pompe, we use Euler's method for simplicity
         TIME_FACTOR = 100
@@ -60,7 +65,7 @@ class TestLorenz(unittest.TestCase):
         return y[BURNIN::TIME_FACTOR]
 
 
-    def verify_unconditional(self, data: npt.NDArray[np.float64]) -> None:
+    def verify_unconditional(self, data: FloatArray) -> None:
         # Check the top row of Frenzel & Pompe, Figure 3
         lags = np.arange(-30, 30+1)
 
@@ -85,7 +90,7 @@ class TestLorenz(unittest.TestCase):
         self.assertAlmostEqual(mi[argmax], 0.6, delta=0.03)
 
 
-    def verify_conditional(self, data: npt.NDArray[np.float64]) -> None:
+    def verify_conditional(self, data: FloatArray) -> None:
         # Check the bottom row of Figure 3
         # The conditioning variable is seven copies of the remaining variable
         # lagged symmetrically around the MI peak, as specified in the article.

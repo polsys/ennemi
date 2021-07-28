@@ -7,13 +7,19 @@ from __future__ import annotations
 from itertools import product
 import math
 import numpy as np
-import numpy.typing as npt
 import os.path
 import pandas as pd
 import random
 from typing import List, Optional, Tuple
 import unittest
 from ennemi import estimate_entropy, estimate_mi, normalize_mi, pairwise_mi
+
+try:
+    import numpy.typing as npt
+    FloatArray = npt.NDArray[np.float64]
+except:
+    FloatArray = "" # type: ignore
+    
 
 X_Y_DIFFERENT_LENGTH_MSG = "x and y must have same length"
 X_COND_DIFFERENT_LENGTH_MSG = "x and cond must have same length"
@@ -771,7 +777,7 @@ class TestEstimateMi(unittest.TestCase):
         self.assertAlmostEqual(single_cond.item(), 0.33, delta=0.03)
         self.assertGreater(many_cond.item(), 1.0)
 
-    def _create_4d_data(self) -> Tuple[npt.NDArray[np.float64], float]:
+    def _create_4d_data(self) -> Tuple[FloatArray, float]:
         # The same dataset as in test_four_gaussians algorithm test
         rng = np.random.default_rng(2020_07_29)
         cov = np.array([[1, 0, 2, 1],
@@ -1005,7 +1011,7 @@ class TestNormalizeMi(unittest.TestCase):
 
 class TestPairwiseMi(unittest.TestCase):
 
-    def generate_normal(self, seed: int) -> npt.NDArray[np.float64]:
+    def generate_normal(self, seed: int) -> FloatArray:
         rng = np.random.default_rng(seed)
         cov = np.asarray([[1, 0.6], [0.6, 1]])
         return rng.multivariate_normal([0, 0], cov, 1000)
