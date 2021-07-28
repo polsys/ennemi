@@ -7,6 +7,7 @@ from __future__ import annotations
 from itertools import product
 import math
 import numpy as np
+import numpy.typing as npt
 import os.path
 import pandas as pd
 import random
@@ -405,7 +406,7 @@ class TestEstimateMi(unittest.TestCase):
         y = [5, 6, 7, 8]
 
         with self.assertRaises(TypeError):
-            estimate_mi(y, x, lag=1.2) # type: ignore
+            estimate_mi(y, x, lag=1.2)
 
     def test_x_and_cond_different_length(self) -> None:
         x = np.zeros(10)
@@ -770,7 +771,7 @@ class TestEstimateMi(unittest.TestCase):
         self.assertAlmostEqual(single_cond.item(), 0.33, delta=0.03)
         self.assertGreater(many_cond.item(), 1.0)
 
-    def _create_4d_data(self) -> Tuple[np.ndarray, float]:
+    def _create_4d_data(self) -> Tuple[npt.NDArray[np.float64], float]:
         # The same dataset as in test_four_gaussians algorithm test
         rng = np.random.default_rng(2020_07_29)
         cov = np.array([[1, 0, 2, 1],
@@ -816,7 +817,7 @@ class TestEstimateMi(unittest.TestCase):
                 y = np.zeros(100)
                 if ynan: y[25] = np.nan
 
-                cond = None # type: Optional[np.ndarray]
+                cond = None # type: Optional[npt.NDArray[np.float64]]
                 if condnan is not None:
                     cond = np.zeros(100)
                     if condnan: cond[37] = np.nan
@@ -1004,7 +1005,7 @@ class TestNormalizeMi(unittest.TestCase):
 
 class TestPairwiseMi(unittest.TestCase):
 
-    def generate_normal(self, seed: int) -> np.ndarray:
+    def generate_normal(self, seed: int) -> npt.NDArray[np.float64]:
         rng = np.random.default_rng(seed)
         cov = np.asarray([[1, 0.6], [0.6, 1]])
         return rng.multivariate_normal([0, 0], cov, 1000)
