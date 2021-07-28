@@ -842,6 +842,10 @@ class TestEstimateMi(unittest.TestCase):
             estimate_mi(y, x, discrete_y=True)
         self.assertEqual(str(cm.exception), NANS_LEFT_MSG)
 
+        with self.assertRaises(ValueError) as cm2:
+            estimate_mi(x, y, discrete_x=True)
+        self.assertEqual(str(cm2.exception), NANS_LEFT_MSG)
+
     def test_cond_and_mask_as_list(self) -> None:
         x = [1, 2, 3, 4, 5, math.nan]
         y = [2, 4, 6, 8, 10, 12]
@@ -863,7 +867,7 @@ class TestEstimateMi(unittest.TestCase):
         self.assertAlmostEqual(mi, 0.8, delta=0.02)
 
 
-    def test_discrete_y(self) -> None:
+    def test_discrete_y_continuous_x(self) -> None:
         # See the two_disjoint_uniforms algorithm test
         rng = np.random.default_rng(51)
         y = rng.choice([0, 2], size=800)
@@ -876,6 +880,10 @@ class TestEstimateMi(unittest.TestCase):
         with self.assertWarns(UserWarning):
             _ = estimate_mi(x, y, discrete_y=True)
 
+        # Symmetry
+        mi2 = estimate_mi(x, y, discrete_x=True)
+        self.assertEqual(mi2, mi)
+
     def test_discrete_nonnumeric_y(self) -> None:
         rng = np.random.default_rng(52)
         y = rng.choice([0, 2], size=800)
@@ -886,6 +894,10 @@ class TestEstimateMi(unittest.TestCase):
 
         mi = estimate_mi(y, x, discrete_y=True)
         self.assertAlmostEqual(mi, math.log(2), delta=0.02)
+
+        # Symmetry
+        mi2 = estimate_mi(x, y, discrete_x=True)
+        self.assertEqual(mi2, mi)
 
     def test_discrete_y_with_condition(self) -> None:
         # With X,Y,Z normal, W their sum and S = sign(X),
@@ -908,6 +920,44 @@ class TestEstimateMi(unittest.TestCase):
         # There should also be a warning for misplaced x and y
         with self.assertWarns(UserWarning):
             _ = estimate_mi(x, s, cond=z, discrete_y=True)
+
+        # Symmetry
+        mi3 = estimate_mi(w, s, discrete_x=True, cond=np.column_stack((y,z)))
+        self.assertEqual(mi3, mi2)
+
+
+    def test_both_discrete_independent(self) -> None:
+        x = np.tile([0, 1], 100)
+        y = np.repeat([0, 1], 100)
+
+        mi = estimate_mi(y, x, discrete_x=True, discrete_y=True)
+        self.assertAlmostEqual(mi, 0, delta=1e-6)
+        
+    def test_both_discrete_independent_bools(self) -> None:
+        x = np.tile([True, False], 100)
+        y = np.repeat([False, True], 100)
+
+        mi = estimate_mi(y, x, discrete_x=True, discrete_y=True)
+        self.assertAlmostEqual(mi, 0, delta=1e-6)
+
+    def test_both_discrete_fully_dependent(self) -> None:
+        x = np.tile(["a", "b", "c"], 100)
+        y = np.tile(["b", "a", "c"], 100)
+
+        mi = estimate_mi(y, x, discrete_x=True, discrete_y=True)
+        self.assertAlmostEqual(mi, math.log(3), delta=1e-6)
+
+    def test_both_discrete_partly_dependent(self) -> None:
+        # 0 always associates to 0, but 1 -> 1 with probability 1/3 only
+        x = np.tile([0, 0, 1, 1, 1], 10)
+        y = np.tile([0, 0, 0, 1, 0], 10)
+
+        mi = estimate_mi(y, x, discrete_x=True, discrete_y=True)
+        # (x,y) = (0,0); (1,0); (1,1)
+        expected = 0.4 * math.log(0.4 / (0.4 * 0.8))\
+            + 0.4 * math.log(0.4 / (0.6 * 0.8))\
+            + 0.2 * math.log(0.2 / (0.6 * 0.2))
+        self.assertAlmostEqual(mi, expected, delta=1e-6)
 
 
     def test_preprocess(self) -> None:
