@@ -932,7 +932,7 @@ class TestEstimateMi(unittest.TestCase):
 
         mi = estimate_mi(y, x, discrete_x=True, discrete_y=True)
         self.assertAlmostEqual(mi, 0, delta=1e-6)
-        
+
     def test_both_discrete_independent_bools(self) -> None:
         x = np.tile([True, False], 100)
         y = np.repeat([False, True], 100)
@@ -958,6 +958,19 @@ class TestEstimateMi(unittest.TestCase):
             + 0.4 * math.log(0.4 / (0.6 * 0.8))\
             + 0.2 * math.log(0.2 / (0.6 * 0.2))
         self.assertAlmostEqual(mi, expected, delta=1e-6)
+
+    def test_both_discrete_with_lag(self) -> None:
+        # Y equals X with lag of two time steps
+        rng = np.random.default_rng(2021_07_29)
+        x = rng.choice(["a", "b"], 500)
+        y = np.roll(x, 2)
+
+        mi = estimate_mi(y, x, discrete_x=True, discrete_y=True, lag=[0, 1, 2])
+
+        # Some error due to randomness is expected
+        self.assertAlmostEqual(mi[0,0], 0.0, delta=0.01)
+        self.assertAlmostEqual(mi[1,0], 0.0, delta=0.01)
+        self.assertAlmostEqual(mi[2,0], math.log(2), delta=0.01)
 
 
     def test_preprocess(self) -> None:
