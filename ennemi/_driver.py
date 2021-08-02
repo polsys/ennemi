@@ -424,6 +424,7 @@ def pairwise_mi(data: ArrayLike,
     *, k: int = 3,
     cond: Optional[ArrayLike] = None,
     mask: Optional[ArrayLike] = None,
+    discrete: ArrayLike = False,
     preprocess: bool = True,
     drop_nan: bool = False,
     normalize: bool = False,
@@ -453,6 +454,10 @@ def pairwise_mi(data: ArrayLike,
     mask : array_like or None
         If specified, an array of booleans that gives the data elements to use for
         estimation. Use this to exclude some observations from consideration.
+    discrete : bool or array_like, default False
+        Specifies the columns that contain discrete data. Conditioning can be
+        used only if the data is all-continuous or all-discrete (in which case
+        the condition is interpreted as discrete).
     preprocess : bool, default True
         By default, continuous variables are scaled to unit variance and
         added with low-amplitude noise. The noise uses a fixed random seed.
@@ -482,8 +487,11 @@ def pairwise_mi(data: ArrayLike,
     # If there is just one variable, return the trivial result
     if data_arr.ndim == 1 or data_arr.shape[1] == 1:
         return np.full((1,1), np.nan)
+
+    discrete_arr = np.broadcast_to(discrete, data_arr.shape[1])
     
-    result = _pairwise_mi(data_arr, k, cond_arr, preprocess, drop_nan, mask_arr, max_threads, callback)
+    result = _pairwise_mi(data_arr, k, cond_arr, preprocess, drop_nan, mask_arr,
+        discrete_arr, max_threads, callback)
 
     # Normalize if asked for
     if normalize:
@@ -498,11 +506,16 @@ def pairwise_mi(data: ArrayLike,
 
 
 def _pairwise_mi(data: FloatArray, k: int, cond: Optional[FloatArray], preprocess: bool,
-    drop_nan: bool, mask: Optional[FloatArray], max_threads: Optional[int],
+    drop_nan: bool, mask: Optional[FloatArray], discrete: FloatArray, max_threads: Optional[int],
     callback: Optional[Callable[[int, int], None]]) -> FloatArray:
     """Strongly typed pairwise MI. The data array is at least 2D."""
 
     _check_parameters(data, None, k, cond, mask)
+    if (not (np.all(discrete) or np.all(~discrete))) and (cond is not None):
+        raise ValueError("Conditioning is not supported with mixed discrete and continuous data. " +
+            "This is a limitation that can be lifted in the future (see " +
+            "https://github.com/polsys/ennemi/issues/87).")
+
     nobs, nvar = data.shape
 
     # Fake a cond_lag of correct shape for _lagged_mi
@@ -518,8 +531,8 @@ def _pairwise_mi(data: FloatArray, k: int, cond: Optional[FloatArray], preproces
     for i in range(nvar):
         for j in range(i+1, nvar):
             indices.append((i, j))
-            # TODO: discrete
-            params.append((data[:,i], data[:,j], 0, 0, 0, k, mask, cond, cond_lag, False, False, preprocess, drop_nan))
+            params.append((data[:,i], data[:,j], 0, 0, 0, k, mask, cond, cond_lag,
+                discrete[i], discrete[j], preprocess, drop_nan))
 
     # Run the MI estimation for each pair, possibly in parallel
     def wrapped_callback(i: int) -> None:

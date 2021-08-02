@@ -1163,6 +1163,14 @@ class TestPairwiseMi(unittest.TestCase):
             pairwise_mi(data, cond=cond)
         self.assertEqual(str(cm.exception), X_COND_DIFFERENT_LENGTH_MSG)
 
+    def test_cond_with_mixed_discrete_continuous(self) -> None:
+        data = np.zeros((10, 2))
+        cond = np.zeros(10)
+
+        with self.assertRaises(ValueError) as cm:
+            pairwise_mi(data, cond=cond, discrete=[False, True])
+        self.assertTrue("Conditioning is not supported" in str(cm.exception))
+
     def test_ndarray(self) -> None:
         data = self.generate_normal(100)
         expected = -0.5 * math.log(1 - 0.6**2)
@@ -1218,6 +1226,46 @@ class TestPairwiseMi(unittest.TestCase):
         self.assertTrue(np.isnan(result[1,1]))
         self.assertLess(result[0,1], 0.03)
         self.assertLess(result[1,0], 0.03)
+
+    def test_all_discrete_data(self) -> None:
+        x = np.tile(["A", "B", "C"], 50)
+        y = np.tile(["C", "B", "A"], 50)
+        z = np.repeat(["A", "B"], 75)
+        data = np.column_stack((x,y,z))
+
+        result = pairwise_mi(data, discrete=True)
+
+        self.assertAlmostEqual(result[0,1], math.log(3), delta=1e-6)
+        self.assertAlmostEqual(result[0,2], 0.0, delta=1e-6)
+        self.assertAlmostEqual(result[1,2], 0.0, delta=1e-6)
+
+    def test_some_discrete_data(self) -> None:
+        # Dependence of y and x: see TestEstimateMi.test_discrete_y_continuous_x
+        rng = np.random.default_rng(2021_08_02)
+        y = rng.choice([0, 2], size=800)
+        x = rng.uniform(y, y+1)
+        z = 1 - y
+        w = rng.normal(size=800)
+
+        data = np.column_stack((x,y,z,w))
+        result = pairwise_mi(data, discrete=[False, True, True, False])
+
+        self.assertAlmostEqual(result[0,1], math.log(2), delta=0.02)
+        self.assertAlmostEqual(result[1,2], math.log(2), delta=0.001)
+        self.assertAlmostEqual(result[0,3], 0.0, delta=0.05)
+        self.assertAlmostEqual(result[2,3], 0.0, delta=0.02)
+
+    def test_all_discrete_with_condition(self) -> None:
+        x = np.tile([0, 1, 2], 20)
+        y = np.repeat([0, 1, 2], 20)
+        diff = y == x
+        z = np.tile([-1, -2], 30)
+
+        data = np.column_stack((x,y,z))
+        result = pairwise_mi(data, cond=diff, discrete=True)
+        
+        self.assertAlmostEqual(result[0,1], 1/3*math.log(3) + 2/3*math.log(3/2), delta=1e-4)
+        self.assertAlmostEqual(result[0,2], 0.0, delta=0.004)
 
     def test_mask_removes_nans(self) -> None:
         data = self.generate_normal(102)

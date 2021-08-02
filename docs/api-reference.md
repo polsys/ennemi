@@ -268,6 +268,14 @@ $\infty$ nats or correlation $1$).
   If specified, an array of booleans that gives the data elements to use for
   estimation. Use this to exclude some observations from consideration.
 
+- `discrete: bool` or `array_like`, default False.
+
+  Specifies the columns that contain discrete data.
+  
+  Conditioning can be used only if the data is all-continuous or all-discrete
+  (in which case the condition is interpreted as discrete).
+  This limitation is tracked in [issue #88](https://github.com/polsys/ennemi/issues/88).
+
 - `preprocess: bool`, default True.
   
   By default, the variables are scaled to unit variance and
