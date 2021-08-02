@@ -972,6 +972,55 @@ class TestEstimateMi(unittest.TestCase):
         self.assertAlmostEqual(mi[1,0], 0.0, delta=0.01)
         self.assertAlmostEqual(mi[2,0], math.log(2), delta=0.01)
 
+    def test_both_discrete_cond_gives_no_information(self) -> None:
+        x = np.tile([0, 1], 100)
+        y = np.repeat([0, 1], 100)
+        z = np.zeros(200)
+
+        mi_cond = estimate_mi(y, x, cond=z, discrete_x=True, discrete_y=True)
+        self.assertAlmostEqual(mi_cond, 0, delta=1e-6)
+
+    def test_both_discrete_cond_gives_all_information(self) -> None:
+        # X and Y are independent, but knowing both X and X==Y determines Y completely
+        x = np.tile([0, 1], 100)
+        y = np.repeat([0, 1], 100)
+
+        # Consistency check
+        mi_uncond = estimate_mi(y, x, discrete_x=True, discrete_y=True)
+        self.assertAlmostEqual(mi_uncond, 0, delta=1e-6)
+
+        mi_cond = estimate_mi(y, x, cond=(x==y), discrete_x=True, discrete_y=True)
+        self.assertAlmostEqual(mi_cond, math.log(2), delta=1e-6)
+
+    def test_both_discrete_cond_gives_some_information(self) -> None:
+        # X and Y are independent, Z is (X==Y) with some probability
+        x = np.tile([0, 1], 150)
+        y = np.repeat([0, 1], 150)
+        z = np.full(300, 2)
+        z[np.arange(300) % 3 == 0] = (x == y)[np.arange(300) % 3 == 0]
+
+        # Consistency check
+        mi_uncond = estimate_mi(y, x, discrete_x=True, discrete_y=True)
+        self.assertAlmostEqual(mi_uncond, 0, delta=1e-6)
+
+        mi_cond = estimate_mi(y, x, cond=z, discrete_x=True, discrete_y=True)
+        self.assertAlmostEqual(mi_cond, math.log(2)/3, delta=1e-6)
+
+    def test_both_discrete_cond_multidimensional(self) -> None:
+        # Like above, but the two conditions determine Y with probability 2/3
+        x = np.tile([0, 1], 150)
+        y = np.repeat([0, 1], 150)
+        z = np.full((300,2), 2)
+        z[np.arange(300) % 3 == 0, 0] = (x == y)[np.arange(300) % 3 == 0]
+        z[np.arange(300) % 3 == 1, 1] = (x != y)[np.arange(300) % 3 == 1]
+
+        # Consistency check
+        mi_uncond = estimate_mi(y, x, discrete_x=True, discrete_y=True)
+        self.assertAlmostEqual(mi_uncond, 0, delta=1e-6)
+
+        mi_cond = estimate_mi(y, x, cond=z, discrete_x=True, discrete_y=True)
+        self.assertAlmostEqual(mi_cond, 2/3 * math.log(2), delta=1e-6)
+
 
     def test_preprocess(self) -> None:
         # The highly different variances should cause issues
