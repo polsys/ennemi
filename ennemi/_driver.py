@@ -15,7 +15,7 @@ import numpy as np
 from os import cpu_count
 import sys
 from ._entropy_estimators import _estimate_single_mi, _estimate_conditional_mi,\
-    _estimate_discrete_mi,\
+    _estimate_discrete_mi, _estimate_conditional_discrete_mi,\
     _estimate_semidiscrete_mi, _estimate_conditional_semidiscrete_mi, _estimate_single_entropy
 
 try:
@@ -41,6 +41,11 @@ def normalize_mi(mi: Union[float, GenArrayLike]) -> GenArrayLike:
 
     Negative values are kept as-is. This is because mutual information is always
     non-negative, but `estimate_mi` may produce negative values.
+
+    The normalization is not applicable to pairs of discrete variables:
+    it is not possible to get coefficient 1.0 even when the variables are completely
+    determined by each other. The formula assumes that the system contains
+    an infinite amount of entropy.
 
     Parameters:
     ---
@@ -254,10 +259,13 @@ def estimate_mi(y: ArrayLike, x: ArrayLike,
     ---
     k : int, default 3
         The number of neighbors to consider.
+        Ignored if both variables are discrete.
     cond : array_like or None
         Optional 1D or 2D array of observations used for conditioning.
         Must have as many observations as y.
         All variables in a 2D array are used together.
+        If both `discrete_x` and `discrete_y` are set, this is interpreted as a
+        discrete variable. (In future versions, this might be set explicitly.)
     cond_lag : int or array_like, default 0
         Lag applied to the cond array. Must be broadcastable to the size of `lag`.
         Can be two-dimensional to lag each conditioning variable separately.
@@ -271,13 +279,14 @@ def estimate_mi(y: ArrayLike, x: ArrayLike,
         If True, the respective variable is interpreted as a discrete variable.
         Values of the variable may be non-numeric.
     preprocess : bool, default True
-        By default, the variables are scaled to unit variance and
+        By default, continuous variables are scaled to unit variance and
         added with low-amplitude noise. The noise uses a fixed random seed.
     drop_nan : bool, default False
         If True, all NaN (not a number) values are masked out.
     normalize : bool, default False
         If True, the results will be normalized to correlation coefficient scale.
         Same as calling `normalize_mi` on the results.
+        The results are sensible only if at least one variable is continuous.
     max_threads : int or None
         The maximum number of threads to use for estimation.
         By default, the number of CPU cores is used.
@@ -436,6 +445,7 @@ def pairwise_mi(data: ArrayLike,
     ---
     k : int, default 3
         The number of neighbors to consider.
+        Ignored if both variables are discrete.
     cond : array_like or None
         Optional 1D or 2D array of observations used for conditioning.
         Must have as many observations as the data.
@@ -444,12 +454,14 @@ def pairwise_mi(data: ArrayLike,
         If specified, an array of booleans that gives the data elements to use for
         estimation. Use this to exclude some observations from consideration.
     preprocess : bool, default True
-        By default, the variables are scaled to unit variance and
+        By default, continuous variables are scaled to unit variance and
         added with low-amplitude noise. The noise uses a fixed random seed.
     drop_nan : bool, default False
         If True, all NaN (not a number) values in `x` and `cond` are masked out.
     normalize : bool, default False
         If True, the MI values will be normalized to correlation coefficient scale.
+        Same as calling `normalize_mi` on the results.
+        The results are sensible only if at least one variable is continuous.
     max_threads : int or None
         The maximum number of threads to use for estimation.
         By default, the number of CPU cores is used.
@@ -617,7 +629,7 @@ def _lagged_mi(param_tuple: Tuple[FloatArray, FloatArray, int, int, int, int,
     # Apply the relevant estimation method
     if cond is None:
         if discrete_x and discrete_y:
-            return _estimate_discrete_mi(xs, ys, k)
+            return _estimate_discrete_mi(xs, ys)
         elif discrete_x:
             return _estimate_semidiscrete_mi(ys, xs, k)
         if discrete_y:
@@ -625,6 +637,10 @@ def _lagged_mi(param_tuple: Tuple[FloatArray, FloatArray, int, int, int, int,
         else:
             return _estimate_single_mi(xs, ys, k)
     else:
+        if discrete_x and discrete_y:
+            return _estimate_conditional_discrete_mi(xs, ys, zs)
+        elif discrete_x:
+            return _estimate_conditional_semidiscrete_mi(ys, xs, zs, k)
         if discrete_y:
             return _estimate_conditional_semidiscrete_mi(xs, ys, zs, k)
         else:
@@ -681,7 +697,8 @@ def _rescale_data(xs: FloatArray, ys: FloatArray, zs: Optional[FloatArray],
         ys = (ys - ys.mean()) / ys.std()
         ys += rng.normal(0.0, 1e-10, ys.shape)
     
-    if zs is not None:
+    # If both X and Y are discrete, we assume the condition to be discrete too
+    if zs is not None and not (discrete_x and discrete_y):
         zs = (zs - zs.mean(axis=0)) / zs.std(axis=0)
         zs += rng.normal(0.0, 1e-10, zs.shape) # type: ignore # mypy does not realize this is ndarray
 

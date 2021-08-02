@@ -134,12 +134,16 @@ matching mask element set to `True` are used for estimation.
 - `k: int`, default 3.
   
   The number of neighbors to consider.
+  Ignored if both variables are discrete.
 
 - `cond: array_like`, default None.
   
   Optional 1D or 2D array of observations used for conditioning.
   Must have as many observations as `y`.
   A $(n \times m)$ array is interpreted as a single $m$-dimensional variable.
+
+  If both `discrete_x` and `discrete_y` are set, this is interpreted as a
+  discrete variable. (In future versions, this might be set explicitly.)
 
 - `cond_lag: array_like`, default 0.
 
@@ -160,7 +164,7 @@ matching mask element set to `True` are used for estimation.
 
 - `preprocess: bool`, default True.
 
-  By default, the variables are scaled to unit variance and
+  By default, continuous variables are scaled to unit variance and
   added with low-amplitude noise. The noise uses a fixed random seed.
   This is not applied to discrete variables.
 
@@ -172,6 +176,7 @@ matching mask element set to `True` are used for estimation.
 
   If True, the results will be normalized to correlation coefficient scale.
   Same as calling `normalize_mi` on the results.
+  The results are sensible only if at least one variable is continuous.
 
 - `max_threads: int` or None.
   
@@ -212,6 +217,11 @@ This is because mutual information is always
 non-negative, but `estimate_mi` may produce negative values.
 Large negative values may indicate that the data does not satisfy assumptions.
 
+The normalization is not applicable to pairs of discrete variables:
+it is not possible to get coefficient 1.0 even when the variables are completely
+determined by each other. The formula assumes that the system contains
+an infinite amount of entropy.
+
 ### Parameters
 - `mi: array_like`.
   
@@ -245,6 +255,7 @@ $\infty$ nats or correlation $1$).
 - `k: int`, default 3.
   
   The number of neighbors to consider.
+  Ignored if both variables are discrete.
 
 - `cond: array_like` or None.
   
@@ -269,6 +280,8 @@ $\infty$ nats or correlation $1$).
 - `normalize: bool`, default False.
 
   If True, the MI values will be normalized to correlation coefficient scale.
+  Same as calling `normalize_mi` on the results.
+  The results are sensible only if at least one variable is continuous.
 
 - `max_threads: int` or None.
   

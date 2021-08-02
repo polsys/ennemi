@@ -228,8 +228,8 @@ def _estimate_conditional_semidiscrete_mi(x: FloatArray, y: FloatArray, cond: Fl
     return _psi(k) - np.mean(_psi(nxz) + _psi(nyz) - _psi(nz))
 
 
-def _estimate_discrete_mi(x: FloatArray, y: FloatArray, k: int = 3) -> float:
-    """Estimate unconditional MI between two variables.
+def _estimate_discrete_mi(x: FloatArray, y: FloatArray) -> float:
+    """Estimate unconditional MI between two discrete variables.
 
     The calculation proceeds by the mathematical definition:
     joint probabilities are calculated and then used as weights to compute
@@ -248,11 +248,36 @@ def _estimate_discrete_mi(x: FloatArray, y: FloatArray, k: int = 3) -> float:
     def sum_term(a: FloatArray) -> float:
         x_weight = x_dict[a[0]]
         y_weight = y_dict[a[1]]
-        joint_weight = int(a[2]) # If values are not integers, this gets converted to string
+        joint_weight = int(a[2]) # If values are not integers, this might get converted to a string
 
         return joint_weight * np.log(N * joint_weight / (x_weight * y_weight))
         
     return np.sum(np.apply_along_axis(sum_term, 1, np.column_stack((joint_vals, joint_counts)))) / N
+
+def _estimate_conditional_discrete_mi(x: FloatArray, y: FloatArray, cond: FloatArray) -> float:
+    """Estimate conditional MI between two discrete variables, with discrete condition.
+
+    The calculation proceeds by the mathematical definition:
+    joint probabilities are calculated and then used as weights to compute
+
+        MI = sum P(z) sum log(P(x,y|z) / (P(x|z) * P(y|z)) * P(x,y|z).
+    """
+
+    N = len(x)
+
+    # Determine probabilities of the conditioning variable
+    cond_vals, cond_inverses, cond_counts = np.unique(cond,
+        axis=0, return_inverse=True, return_counts=True)
+
+    # For each condition, compute the conditional probability (given by basic MI on subset of data)
+    cond_probs = np.zeros(len(cond_vals))
+    for i in range(len(cond_vals)):
+        x_subset = x[cond_inverses == i]
+        y_subset = y[cond_inverses == i]
+        cond_probs[i] = cond_counts[i] * _estimate_discrete_mi(x_subset, y_subset)
+
+    # Return the weighted sum
+    return np.sum(cond_probs) / N
 
 
 #
