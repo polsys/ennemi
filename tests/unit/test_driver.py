@@ -971,6 +971,25 @@ class TestEstimateMi(unittest.TestCase):
         mi = estimate_mi(y, x, discrete_x=True, discrete_y=True)
         self.assertAlmostEqual(mi, math.log(3), delta=1e-6)
 
+    def test_both_discrete_mixed_str_and_int(self) -> None:
+        # NumPy converts mixed int/string to all string, which causes trouble
+        x = np.tile(["a", "b", "c"], 100)
+        y = np.tile([2, 1, 3], 100)
+
+        mi = estimate_mi(y, x, discrete_x=True, discrete_y=True)
+        mi2 = estimate_mi(x, y, discrete_x=True, discrete_y=True)
+        self.assertAlmostEqual(mi, math.log(3), delta=1e-6)
+        self.assertAlmostEqual(mi2, math.log(3), delta=1e-6)
+
+    def test_both_discrete_mixed_bool_and_int(self) -> None:
+        x = np.tile([True, False], 100)
+        y = np.repeat([7, 8], 100)
+
+        mi = estimate_mi(y, x, discrete_x=True, discrete_y=True)
+        mi2 = estimate_mi(x, y, discrete_x=True, discrete_y=True)
+        self.assertAlmostEqual(mi, 0, delta=1e-6)
+        self.assertAlmostEqual(mi2, 0, delta=1e-6)
+
     def test_both_discrete_partly_dependent(self) -> None:
         # 0 always associates to 0, but 1 -> 1 with probability 1/3 only
         x = np.tile([0, 0, 1, 1, 1], 10)
@@ -1020,8 +1039,9 @@ class TestEstimateMi(unittest.TestCase):
         # X and Y are independent, Z is (X==Y) with some probability
         x = np.tile([0, 1], 150)
         y = np.repeat([0, 1], 150)
-        z = np.full(300, 2)
-        z[np.arange(300) % 3 == 0] = (x == y)[np.arange(300) % 3 == 0]
+        z = np.full(300, "don't know")
+        z[(np.arange(300) % 3 == 0) & (x == y)] = "certainly same"
+        z[(np.arange(300) % 3 == 0) & (x != y)] = "not same"
 
         # Consistency check
         mi_uncond = estimate_mi(y, x, discrete_x=True, discrete_y=True)

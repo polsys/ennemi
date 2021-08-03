@@ -707,7 +707,7 @@ def _validate_masked_data(xs: FloatArray, ys: FloatArray, zs: Optional[FloatArra
         raise ValueError(NAN_MSG)
     if (not discrete_y or ys.dtype.kind in "iufc") and np.isnan(ys).any():
         raise ValueError(NAN_MSG)
-    if zs is not None and np.isnan(zs).any():
+    if not (discrete_x and discrete_y) and zs is not None and np.isnan(zs).any():
         raise ValueError(NAN_MSG)
 
 def _rescale_data(xs: FloatArray, ys: FloatArray, zs: Optional[FloatArray],

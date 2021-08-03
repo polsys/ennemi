@@ -251,16 +251,20 @@ def _estimate_discrete_mi(x: FloatArray, y: FloatArray) -> float:
 
     N = len(x)
 
-    x_vals, x_counts = np.unique(x, return_counts=True)
+    # If one variable is string and the other an integer, this converts them both to strings.
+    # Without this, we get into trouble searching for strings in a dictionary of integers.
+    data = np.column_stack((x,y))
+
+    x_vals, x_counts = np.unique(data[:,0], return_counts=True)
     x_dict = dict(zip(x_vals, x_counts))
-    y_vals, y_counts = np.unique(y, return_counts=True)
+    y_vals, y_counts = np.unique(data[:,1], return_counts=True)
     y_dict = dict(zip(y_vals, y_counts))
-    joint_vals, joint_counts = np.unique(np.column_stack((x,y)), axis=0, return_counts=True)
+    joint_vals, joint_counts = np.unique(data, axis=0, return_counts=True)
 
     def sum_term(a: FloatArray) -> float:
         x_weight = x_dict[a[0]]
         y_weight = y_dict[a[1]]
-        joint_weight = int(a[2]) # If values are not integers, this might get converted to a string
+        joint_weight = int(a[2]) # This too might have been converted to a string
 
         return joint_weight * np.log(N * joint_weight / (x_weight * y_weight))
         
