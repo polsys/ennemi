@@ -204,10 +204,7 @@ def _estimate_conditional_semidiscrete_mi(x: FloatArray, y: FloatArray, cond: Fl
 
     # Find the unique values of y
     y_values = np.unique(y)
-    
-    if len(y_values) > N / 4:
-        warn("The discrete variable has relatively many unique values." +
-            " Did you pass y and x in correct order?", UserWarning)
+    _verify_not_continuous(y_values, N)
 
     # First, create N-dimensional trees for variables
     # The full space is partitioned according to y levels
@@ -239,6 +236,13 @@ def _estimate_conditional_semidiscrete_mi(x: FloatArray, y: FloatArray, cond: Fl
 
     return _psi(k) - np.mean(_psi(nxz) + _psi(nyz) - _psi(nz))
 
+def _verify_not_continuous(values: FloatArray, N: int) -> None:
+    if len(values) > N / 4:
+        warn("A discrete variable has relatively many unique values." +
+            " Have you set marked the discrete variables in correct order?" +
+            " If both X and Y are discrete, the conditioning variable cannot be continuous" +
+            " (this limitation can be lifted in the future).", UserWarning)
+
 
 def _estimate_discrete_mi(x: FloatArray, y: FloatArray) -> float:
     """Estimate unconditional MI between two discrete variables.
@@ -260,6 +264,9 @@ def _estimate_discrete_mi(x: FloatArray, y: FloatArray) -> float:
     y_vals, y_counts = np.unique(data[:,1], return_counts=True)
     y_dict = dict(zip(y_vals, y_counts))
     joint_vals, joint_counts = np.unique(data, axis=0, return_counts=True)
+
+    _verify_not_continuous(x_vals, N)
+    _verify_not_continuous(y_vals, N)
 
     def sum_term(a: FloatArray) -> float:
         x_weight = x_dict[a[0]]

@@ -891,6 +891,31 @@ class TestEstimateMi(unittest.TestCase):
         self.assertAlmostEqual(mi, 0.8, delta=0.02)
 
 
+    def test_discrete_many_values_warning(self) -> None:
+        rng = np.random.default_rng(2021_08_03)
+        cont = rng.normal(size=100)
+        disc = rng.choice([0, 1, 2], size=100)
+
+        # If the parameters are put the wrong way, a warning is emitted
+        with self.assertWarns(UserWarning):
+            _ = estimate_mi(cont, disc, discrete_y=True)
+        with self.assertWarns(UserWarning):
+            _ = estimate_mi(disc, cont, discrete_x=True)
+
+        # This also applies when both are discrete
+        with self.assertWarns(UserWarning):
+            _ = estimate_mi(disc, cont, discrete_y=True, discrete_x=True)
+        with self.assertWarns(UserWarning):
+            _ = estimate_mi(cont, disc, discrete_y=True, discrete_x=True)
+
+        # ...and to the condition as well
+        with self.assertWarns(UserWarning):
+            _ = estimate_mi(disc, cont, cond=disc, discrete_y=True, discrete_x=True)
+        with self.assertWarns(UserWarning):
+            _ = estimate_mi(cont, disc, cond=disc, discrete_y=True, discrete_x=True)
+        with self.assertWarns(UserWarning):
+            _ = estimate_mi(disc, disc, cond=cont, discrete_y=True, discrete_x=True)
+
     def test_discrete_y_continuous_x(self) -> None:
         # See the two_disjoint_uniforms algorithm test
         rng = np.random.default_rng(51)
@@ -899,10 +924,6 @@ class TestEstimateMi(unittest.TestCase):
 
         mi = estimate_mi(y, x, discrete_y=True)
         self.assertAlmostEqual(mi, math.log(2), delta=0.02)
-
-        # If the parameters are put the wrong way, a warning is emitted
-        with self.assertWarns(UserWarning):
-            _ = estimate_mi(x, y, discrete_y=True)
 
         # Symmetry
         mi2 = estimate_mi(x, y, discrete_x=True)
