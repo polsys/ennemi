@@ -12,20 +12,21 @@ with no theoretical background required.
 
 **Features:**
 - Non-linear correlation detection:
-  - Mutual information between two variables
+  - Mutual information between two variables, continous or discrete
   - Conditional MI with arbitrary-dimensional conditioning variables
-  - Discrete-continuous MI
+  - Quick overview of many-variable datasets with pairwise MI estimation
 - Practical data analysis:
-  - Interface for evaluating multiple variable pairs and time lags with one call
+  - Interfaces for evaluating multiple variable pairs and time lags with one call
   - Integrated with `pandas` data frames (optional)
   - Optimized and automatically parallelized estimation
+  - Algorithms verified to work, so that you can focus on your data
 
-`ennemi` is has been developed by Petri Laarne ([@polsys](https://github.com/polsys)) at
+`ennemi` is maintained by Petri Laarne ([@polsys](https://github.com/polsys)) and was initially developed at
 [Institute for Atmospheric and Earth System Research (INAR)](https://www.helsinki.fi/en/inar-institute-for-atmospheric-and-earth-system-research),
 University of Helsinki.
 The package is published under the MIT License.
 
-This software is also described in the SoftwareX article
+This package is also described in the SoftwareX article
 [doi:10.1016/j.softx.2021.100686](https://dx.doi.org/10.1016/j.softx.2021.100686).
 If you use this software in scientific work, please mention also the exact version number for reproducibility.
 Archived versions of the source code are available on Zenodo

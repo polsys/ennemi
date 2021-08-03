@@ -6,10 +6,10 @@ _(Easy Nearest Neighbor Estimation of Mutual Information)_
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=polsys_ennemi&metric=coverage)](https://sonarcloud.io/dashboard?id=polsys_ennemi)
 [![DOI](https://zenodo.org/badge/247088713.svg)](https://zenodo.org/badge/latestdoi/247088713)
 
-This Python 3 package provides simple methods for estimating mutual information of continuous variables.
+This Python 3 package provides simple methods for estimating mutual information of continuous and discrete variables.
 With one method call, you can estimate several variable pairs and time lags at once.
 Both unconditional and conditional MI (including multivariate condition) are supported.
-The interface is aimed at non-linear correlation analysis.
+The interface is aimed at practical, non-linear correlation analysis.
 
 The package uses the nearest neighbor methods decscribed in:
 - Kraskov et al. (2004): Estimating mutual information. Physical Review E 69.
