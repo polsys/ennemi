@@ -208,7 +208,7 @@ def _estimate_conditional_entropy(x: FloatArray, cond: FloatArray, k: int, multi
             joint[i] = _call_entropy_func(xs, k, discrete)
         return joint - marginal
 
-def _call_entropy_func(xs: FloatArray, k: int, discrete: bool):
+def _call_entropy_func(xs: FloatArray, k: int, discrete: bool) -> float:
     if discrete:
         return _estimate_discrete_entropy(xs, k)
     else:
@@ -628,7 +628,7 @@ def _map_maybe_parallel(func: Callable[[T], float], params: Sequence[T],
 
 
 def _lagged_mi(param_tuple: Tuple[FloatArray, FloatArray, int, int, int, int,
-        Optional[FloatArray], Optional[FloatArray], FloatArray, bool, bool, bool]) -> float:
+        Optional[FloatArray], Optional[FloatArray], FloatArray, bool, bool, bool, bool]) -> float:
     # Unpack the param tuple used for possible cross-thread transfer
     x, y, lag, max_lag, min_lag, k, mask, cond, cond_lag,\
         discrete_x, discrete_y, preprocess, drop_nan = param_tuple
