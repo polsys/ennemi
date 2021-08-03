@@ -67,6 +67,12 @@ with column names matching `x`.
   If False, each column of `x` is considered a separate variable.
   If True, the $(n \times m)$ array is considered a single $m$-dimensional variable.
 
+- `discrete: bool`, default False.
+
+  If True, the variable and the optional conditioning variable are interpreted
+  as discrete variables. The result will be calculated using the mathematical
+  definition of entropy.
+
 - `mask: array_like` or None.
   
   If specified, an array of booleans that gives the input elements to use for
@@ -86,6 +92,7 @@ with column names matching `x`.
 - `drop_nan: bool`, default False.
 
   If True, all NaN (not a number) values in `x` and `cond` are masked out.
+  Not applied to discrete data.
 
 
 

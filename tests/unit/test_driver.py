@@ -305,6 +305,30 @@ class TestEstimateEntropy(unittest.TestCase):
                 except:
                     self.fail(f"Exception occurred; multidim={multidim}, k={k}")
 
+    def test_discrete_1d(self) -> None:
+        data = np.repeat(["a", "a", "a", "b", "b", "c"], 20)
+        result = estimate_entropy(data, discrete=True)
+
+        expected = -(3/6*math.log(3/6) + 2/6*math.log(2/6) + 1/6*math.log(1/6))
+        self.assertAlmostEqual(result, expected, delta=1e-6)
+
+    def test_discrete_2d(self) -> None:
+        chars = ["a", "b", "c", "d", "e"]
+        data = np.column_stack((np.tile(chars, 5), np.repeat(chars, 5)))
+        result = estimate_entropy(data, discrete=True, multidim=True)
+
+        self.assertAlmostEqual(result, math.log(5*5), delta=1e-6)
+
+    def test_discrete_condition(self) -> None:
+        data = np.repeat(["a", "b", "c", "d"], 20)
+        cond = np.repeat(["even", "odd", "even", "odd"], 20)
+
+        uncond = estimate_entropy(data, discrete=True)
+        cond = estimate_entropy(data, discrete=True, cond=cond)
+
+        self.assertAlmostEqual(uncond, math.log(4), delta=1e-6)
+        self.assertAlmostEqual(cond, math.log(2), delta=1e-6)
+
 
 class TestEstimateMi(unittest.TestCase):
     
