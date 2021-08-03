@@ -43,6 +43,18 @@ def _estimate_single_entropy(x: FloatArray, k: int = 3) -> float:
     # The log(2) term is because the mean is taken over double the distances
     return _psi(N) - _psi(k) + ndim * (np.mean(np.log(distances)) + np.log(2))
 
+def _estimate_discrete_entropy(x: FloatArray, k: int = 3) -> float:
+    """Estimate the discrete entropy of a n-dimensional random variable.
+
+    This is done using the mathematical definition:
+        entropy = -sum P(x) log(P(x)).
+    """
+
+    N = x.shape[0]
+    _, counts = np.unique(x, axis=0, return_counts=True)
+    probs = counts / N
+    return -np.sum(np.dot(probs, np.log(probs)))
+
 
 def _estimate_single_mi(x: FloatArray, y: FloatArray, k: int = 3) -> float:
     """Estimate the mutual information between two continuous variables.

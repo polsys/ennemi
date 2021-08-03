@@ -16,7 +16,8 @@ from os import cpu_count
 import sys
 from ._entropy_estimators import _estimate_single_mi, _estimate_conditional_mi,\
     _estimate_discrete_mi, _estimate_conditional_discrete_mi,\
-    _estimate_semidiscrete_mi, _estimate_conditional_semidiscrete_mi, _estimate_single_entropy
+    _estimate_semidiscrete_mi, _estimate_conditional_semidiscrete_mi,\
+    _estimate_single_entropy, _estimate_discrete_entropy
 
 try:
     import numpy.typing as npt
@@ -73,6 +74,7 @@ def _normalize(mi: float) -> float:
 def estimate_entropy(x: ArrayLike,
     *, k: int = 3,
     multidim: bool = False,
+    discrete: bool = False,
     mask: Optional[ArrayLike] = None,
     cond: Optional[ArrayLike] = None,
     drop_nan: bool = False) -> FloatArray:
@@ -100,9 +102,13 @@ def estimate_entropy(x: ArrayLike,
     ---
     k : int, default 3
         The number of neighbors to consider.
-    multidim : bool
+    multidim : bool, default False
         If False (the default), each column of `x` is considered a separate variable.
         If True, the (n x m) array is considered a single m-dimensional variable.
+    discrete : bool, default False
+        If True, the variable and the optional conditioning variable are interpreted
+        as discrete variables. The result will be calculated using the mathematical
+        definition of entropy.
     mask : array_like or None
         If specified, an array of booleans that gives the input elements to use for
         estimation. Use this to exclude some observations from consideration.
@@ -114,6 +120,7 @@ def estimate_entropy(x: ArrayLike,
         any correction for potential estimation bias.
     drop_nan : bool, default False
         If True, all NaN (not a number) values in `x` and `cond` are masked out.
+        Not applied to discrete data.
     """
 
     x_arr = np.asarray(x)
@@ -128,11 +135,11 @@ def estimate_entropy(x: ArrayLike,
     _validate_k_type(k)
 
     if cond is None:
-        result = _estimate_entropy(x_arr, k, multidim, mask, drop_nan)
+        result = _estimate_entropy(x_arr, k, multidim, mask, discrete, drop_nan)
     else:
         cond_arr = np.asarray(cond)
         _validate_cond(cond_arr, x_arr.shape[0])
-        result = _estimate_conditional_entropy(x_arr, cond_arr, k, multidim, mask, drop_nan)
+        result = _estimate_conditional_entropy(x_arr, cond_arr, k, multidim, mask, discrete, drop_nan)
 
     # If the original x array was a pandas data type, return a DataFrame
     # As an exception, if multidim=True, we still return a NumPy scalar
@@ -146,59 +153,66 @@ def estimate_entropy(x: ArrayLike,
 
 
 def _estimate_entropy(x: FloatArray, k: int, multidim: bool,
-        mask: Optional[ArrayLike], drop_nan: bool) -> FloatArray:
+        mask: Optional[ArrayLike], discrete: bool, drop_nan: bool) -> FloatArray:
     """Strongly typed estimate_entropy()."""
 
     if multidim or x.ndim == 1:
-        x = _mask_and_validate_entropy(x, mask, drop_nan, k)
-        return np.asarray(_estimate_single_entropy(x, k))
+        x = _mask_and_validate_entropy(x, mask, drop_nan, discrete, k)
+        return np.asarray(_call_entropy_func(x, k, discrete))
     else:
         nvar = x.shape[1]
         result = np.empty(nvar)
         for i in range(nvar):
-            xs = _mask_and_validate_entropy(x[:,i], mask, drop_nan, k)
-            result[i] = _estimate_single_entropy(xs, k)
+            xs = _mask_and_validate_entropy(x[:,i], mask, drop_nan, discrete, k)
+            result[i] = _call_entropy_func(xs, k, discrete)
         return result
 
 def _mask_and_validate_entropy(x: FloatArray, mask: Optional[ArrayLike],
-        drop_nan: bool, k: int) -> FloatArray:
+        drop_nan: bool, discrete: bool, k: int) -> FloatArray:
     # Apply the mask and drop NaNs
     # TODO: Support 2D masks (https://github.com/polsys/ennemi/issues/37)
     if mask is not None:
         x = x[mask]
 
-    if drop_nan and x.ndim > 1:
-        x = x[~np.max(np.isnan(x), axis=1)]
-    elif drop_nan:
-        x = x[~np.isnan(x)]
+    if drop_nan and not discrete:
+        if x.ndim > 1:
+            x = x[~np.max(np.isnan(x), axis=1)]
+        else:
+            x = x[~np.isnan(x)]
 
     # Validate the x array
     if k >= x.shape[0]:
         raise ValueError("k must be smaller than number of observations (after lag and mask)")
-    if np.any(np.isnan(x)):
+    if not discrete and np.any(np.isnan(x)):
         raise ValueError("input contains NaNs (after applying the mask), pass drop_nan=True to ignore")
 
     return x
 
 def _estimate_conditional_entropy(x: FloatArray, cond: FloatArray, k: int, multidim: bool,
-        mask: Optional[ArrayLike], drop_nan: bool) -> FloatArray:
+        mask: Optional[ArrayLike], discrete: bool, drop_nan: bool) -> FloatArray:
     """Conditional entropy by the chain rule: H(X|Y) = H(X,Y) - H(Y)."""
 
     # Estimate the entropy of cond by the method above (multidim=True)
-    marginal = _estimate_entropy(cond, k, True, mask, drop_nan)
+    marginal = _estimate_entropy(cond, k, True, mask, discrete, drop_nan)
 
     # The joint entropy depends on multidim and number of dimensions:
     # In the latter case, the joint entropy is calculated for each x variable
     if multidim or x.ndim == 1:
-        xs = _mask_and_validate_entropy(np.column_stack((x, cond)), mask, drop_nan, k)
-        return np.asarray(_estimate_single_entropy(xs, k) - marginal)
+        xs = _mask_and_validate_entropy(np.column_stack((x, cond)), mask, drop_nan, discrete, k)
+        return np.asarray(_call_entropy_func(xs, k, discrete) - marginal)
     else:
         nvar = x.shape[1]
         joint = np.empty(nvar) # type: npt.NDArray[np.float64]
         for i in range(nvar):
-            xs = _mask_and_validate_entropy(np.column_stack((x[:,i], cond)), mask, drop_nan, k)
-            joint[i] = _estimate_single_entropy(xs, k)
+            xs = _mask_and_validate_entropy(np.column_stack((x[:,i], cond)), mask, drop_nan, discrete, k)
+            joint[i] = _call_entropy_func(xs, k, discrete)
         return joint - marginal
+
+def _call_entropy_func(xs: FloatArray, k: int, discrete: bool):
+    if discrete:
+        return _estimate_discrete_entropy(xs, k)
+    else:
+        return _estimate_single_entropy(xs, k)
 
 
 def estimate_mi(y: ArrayLike, x: ArrayLike,

@@ -35,3 +35,31 @@ class TestEntropyIdentities(unittest.TestCase):
         joint = estimate_entropy(np.column_stack((x,y)), multidim=True)
 
         self.assertAlmostEqual(np.sum(marginal) - joint, mi, delta=0.02)
+
+    def test_discrete_mi_as_conditional_entropy_difference(self) -> None:
+        # A -> X, the others are random
+        rng = np.random.default_rng(2)
+        x = rng.choice(["A", "B", "C", "D"], 200, p=[0.3, 0.1, 0.4, 0.2])
+        y = rng.choice(["X", "Y", "Z", "W"], 200, p=[0.1, 0.1, 0.2, 0.6])
+        y[x == "A"] = "X"
+
+        mi = estimate_mi(y, x, discrete_y=True, discrete_x=True)
+        ent_x = estimate_entropy(x, discrete=True)
+        cond_ent = estimate_entropy(x, cond=y, discrete=True)
+
+        self.assertAlmostEqual(ent_x - cond_ent, mi, delta=1e-6)
+
+    def test_discrete_mi_as_sum_of_entropies(self) -> None:
+        # A -> X and B -> Y, the others are random
+        rng = np.random.default_rng(2)
+        x = rng.choice(["A", "B", "C", "D", "E"], 200, p=[0.2, 0.2, 0.3, 0.2, 0.1])
+        y = rng.choice(["X", "Y", "Z", "W"], 200, p=[0.1, 0.2, 0.2, 0.5])
+        y[x == "A"] = "X"
+        y[x == "B"] = "Y"
+
+        mi = estimate_mi(y, x, discrete_y=True, discrete_x=True)
+        marginal = estimate_entropy(np.column_stack((x, y)), discrete=True)
+        joint = estimate_entropy(np.column_stack((x,y)), multidim=True, discrete=True)
+
+        self.assertAlmostEqual(np.sum(marginal) - joint, mi, delta=1e-6)
+
