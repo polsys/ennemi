@@ -17,6 +17,8 @@ The results should still be the same to several significant digits.
 
 ## Bivariate normal distribution
 
+![Illustration of the normal distribution described below](example_normal.png)
+
 We begin by considering a two-variable normal distribution:
 $$
 (X, Y) \sim \mathrm{Normal}(\mu, \Sigma).
@@ -30,7 +32,7 @@ $$
 \rho & 1
 \end{bmatrix}.
 $$
-There is an explicit formula for the mutual information between the two variables:
+In this case, there is a formula for the mutual information between the two variables:
 $$
 \mathrm{MI}(X, Y) = -\frac 1 2 \ln \det \Sigma = -\frac 1 2 \ln (1-\rho^2).
 $$
@@ -74,6 +76,14 @@ to get the estimated correlation coefficient (`0.79980729`).
 The returned coefficient approximately matches the **absolute value**
 of the linear correlation coefficient after suitable transformations.
 For example, consider the model $y = \sin(x) + \varepsilon$.
+
+![Illustration of the model: Y follows a sine wave.](example_transformed.png)
+
+Ordinary linear correlation is unsuitable in this case:
+the best straight line through the data points would be nearly horizontal.
+However, a straight line could be drawn if we
+transformed the X axis to represent $\sin(x)$, and kept the Y axis as is.
+
 We calculate both the linear correlation and correlation from MI:
 ```python
 from ennemi import estimate_mi
@@ -84,8 +94,8 @@ x = rng.normal(0.0, 3.0, size=800)
 y = np.sin(x) + rng.normal(0.0, 0.5, size=800)
 
 print(f"From MI: {estimate_mi(y, x, normalize=True)[0,0]:.3}")
-print(f"Pearson: {np.corrcoef(y, np.sin(x))[0,1]:.3}")
-print(f"Pearson, untransformed: {np.corrcoef(y, x)[0,1]:.3}")
+print(f"Pearson, transformed: {np.corrcoef(y, np.sin(x))[0,1]:.3}")
+print(f"Pearson, straight line: {np.corrcoef(y, x)[0,1]:.3}")
 ```
 
 The two values are very close to each other.
@@ -93,8 +103,8 @@ Without the correct transformation, there is no linear correlation
 between the two variables.
 ```
 From MI: 0.824
-Pearson: 0.812
-Pearson, untransformed: 0.01993
+Pearson, transformed: 0.812
+Pearson, straight line: 0.01993
 ```
 
 There are some caveats to the above.
@@ -173,20 +183,6 @@ the `lag` parameter to `estimate_mi()`.
 The lags are applied to the $X_i$ variables and may be positive or negative
 (in which case information flows from $Y$ to $X$ instead).
 
-The $Y$ array is constrained so that it stays the same for all lags.
-This is done in order to make the results comparable.
-For example, if there are observations $Y(0), \ldots, Y(N-1)$
-and the lags are $-1$, $0$ and $1$,
-the array $Y(1), \ldots, Y(N-2)$ is compared with
-$$
-\begin{cases}
-X(2), \ldots, X(N-1),\\
-X(1), \ldots, X(N-2),\\
-X(0), \ldots, X(N-3),
-\end{cases}
-$$
-each in turn.
-
 Let's consider a model where $Y(t) = X(t-1) + \varepsilon$,
 and estimate the MI for various time lags:
 ```python
@@ -211,6 +207,22 @@ The code prints:
 which means that $Y(t)$ depends strongly on $X(t-1)$, but not
 at all on $X(t)$ or $X(t+1)$.
 The rows of the result array correspond to the `lag` parameter.
+
+### Technical note
+
+The $Y$ array is constrained so that it stays the same for all lags.
+This is done in order to make the results slightly more comparable.
+For example, if there are observations $Y(0), \ldots, Y(N-1)$
+and the lags are $-1$, $0$ and $1$,
+the array $Y(1), \ldots, Y(N-2)$ is compared with
+$$
+\begin{cases}
+X(2), \ldots, X(N-1),\\
+X(1), \ldots, X(N-2),\\
+X(0), \ldots, X(N-3),
+\end{cases}
+$$
+each in turn.
 
 
 
@@ -326,10 +338,10 @@ some explanative power from $X_2$.
 The example data was generated with
 $$
 \begin{align*}
-X_2(t) &= \mathrm{Normal}(0.2, 4^2),\\
 X_1(t) &= X_2(t-2) + \mathrm{Normal}(0, 0.2^2),\\
-Y(t) &= X_1(t-1) + \mathrm{Normal}(0, 0.1^2),\\
-X_3(t) &= Y(t) - X_2(t-3).
+X_2(t) &= \mathrm{Normal}(0.2, 4^2),\\
+X_3(t) &= Y(t) - X_2(t-3),\\
+Y(t) &= X_1(t-1) + \mathrm{Normal}(0, 0.1^2).
 \end{align*}
 $$
 The reason for our result is that $X_3$ contains the full difference between
