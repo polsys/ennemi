@@ -5,13 +5,14 @@ with no theoretical background required.
 
 **Features:**
 - Non-linear correlation detection:
-  - Mutual information between two variables
+  - Mutual information between two variables, continous or discrete
   - Conditional MI with arbitrary-dimensional conditioning variables
-  - Discrete-continuous MI
+  - Quick overview of many-variable datasets with pairwise MI estimation
 - Practical data analysis:
-  - Interface for evaluating multiple variable pairs and time lags with one call
+  - Interfaces for evaluating multiple variable pairs and time lags with one call
   - Integrated with `pandas` data frames (optional)
   - Optimized and automatically parallelized estimation
+  - Algorithms verified to work, so that you can focus on your data
 
 This package depends only on NumPy and SciPy;
 Pandas is suggested for more enjoyable data analysis.
@@ -24,6 +25,6 @@ If you encounter any problems or have suggestions, please file an issue!
 
 ---
 
-This package has been developed at
+This package was initially developed at
 [Institute for Atmospheric and Earth System Research (INAR)](https://www.helsinki.fi/en/inar-institute-for-atmospheric-and-earth-system-research),
 University of Helsinki.
