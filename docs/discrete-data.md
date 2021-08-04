@@ -144,6 +144,9 @@ print(estimate_entropy(data2["Weather"], discrete=True))
 That is, out of the 0.91&nbsp;nats of information, temperature provides only 0.092&nbsp;nats,
 and air pressure even less.
 
+**Note:** The entropy of a continuous variable is interpreted very differently.
+In particular, one cannot compare ratios of entropies like we do below.
+
 
 
 ## Conditioning on the other variable
@@ -170,6 +173,8 @@ Knowing also the air pressure gives 0.145&nbsp;nats more &ndash; meaning that th
 is already 0.237&nbsp;nats.
 Together, the two variables explain 26&nbsp;% of the weather.
 
+In the literature, this is also known as the _uncertainty coefficient_.
+
 
 
 ## Correlation between wind direction and weather
@@ -190,7 +195,7 @@ The results are very promising:
 0  0.533151
 ```
 
-Wind direction alone seems to explain most of the randomness in weather.
+Wind direction alone seems to explain most (59&nbsp;%) of the randomness in weather.
 Moreover, wind at Entropyville seems to be independent of the other measures:
 
 ```python
@@ -282,3 +287,6 @@ Even though this was a silly toy example with generated data
 (and a very unrealistic model of weather!),
 we went through the relevant estimation methods.
 We also discussed one way of interpreting the data.
+
+In this tutorial, we did not look into autocorrelation, time lags, or masking.
+These features work just as in the [general tutorial](tutorial.md).
