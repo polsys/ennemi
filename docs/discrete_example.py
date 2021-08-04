@@ -10,7 +10,7 @@ N = 200
 week = np.arange(N)
 rng = np.random.default_rng(1234)
 
-# The weather is completely determined by temperature and air pressure
+# The weather is completely determined by temperature, air pressure and wind
 # NOTE: This is not a realistic weather model! :)
 actual_temp = 15 + 5*np.sin(week / 8) + rng.normal(0, 3, N)
 actual_press = 1000 + 30*np.sin(week / 3) + rng.normal(0, 4, N)
