@@ -43,9 +43,9 @@ def normalize_mi(mi: Union[float, GenArrayLike]) -> GenArrayLike:
     Negative values are kept as-is. This is because mutual information is always
     non-negative, but `estimate_mi` may produce negative values.
 
-    The normalization is not applicable to pairs of discrete variables:
+    The normalization is not applicable to discrete variables:
     it is not possible to get coefficient 1.0 even when the variables are completely
-    determined by each other. The formula assumes that the system contains
+    determined by each other. The formula assumes that the both variables have
     an infinite amount of entropy.
 
     Parameters:
@@ -300,7 +300,7 @@ def estimate_mi(y: ArrayLike, x: ArrayLike,
     normalize : bool, default False
         If True, the results will be normalized to correlation coefficient scale.
         Same as calling `normalize_mi` on the results.
-        The results are sensible only if at least one variable is continuous.
+        The results are sensible only if both variables are continuous.
     max_threads : int or None
         The maximum number of threads to use for estimation.
         By default, the number of CPU cores is used.
@@ -480,7 +480,7 @@ def pairwise_mi(data: ArrayLike,
     normalize : bool, default False
         If True, the MI values will be normalized to correlation coefficient scale.
         Same as calling `normalize_mi` on the results.
-        The results are sensible only if at least one variable is continuous.
+        The results are sensible only if both variables are continuous.
     max_threads : int or None
         The maximum number of threads to use for estimation.
         By default, the number of CPU cores is used.
