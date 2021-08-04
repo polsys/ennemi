@@ -51,9 +51,21 @@ def _estimate_discrete_entropy(x: FloatArray, k: int = 3) -> float:
     """
 
     N = x.shape[0]
+    _assert_not_object(x)
     _, counts = np.unique(x, axis=0, return_counts=True)
+    
     probs = counts / N
     return -np.sum(np.dot(probs, np.log(probs)))
+
+def _assert_not_object(x: FloatArray) -> None:
+    if x.dtype.kind == "O":
+        # We may get 'object' data type especially from pandas (which stores strings as objects).
+        # We can only use np.unique with 1D arrays of objects.
+        # Give a more user-friendly error message instead of NumPy's.
+        raise TypeError("Data type 'object' is not supported." +
+                        " Please pass only numeric, boolean, or string data." +
+                        " If your data is in a pandas DataFrame, convert string categories" +
+                        " to integers (pandas stores strings as objects).")
 
 
 def _estimate_single_mi(x: FloatArray, y: FloatArray, k: int = 3) -> float:
@@ -258,6 +270,7 @@ def _estimate_discrete_mi(x: FloatArray, y: FloatArray) -> float:
     # If one variable is string and the other an integer, this converts them both to strings.
     # Without this, we get into trouble searching for strings in a dictionary of integers.
     data = np.column_stack((x,y))
+    _assert_not_object(data)
 
     x_vals, x_counts = np.unique(data[:,0], return_counts=True)
     x_dict = dict(zip(x_vals, x_counts))
@@ -287,6 +300,7 @@ def _estimate_conditional_discrete_mi(x: FloatArray, y: FloatArray, cond: FloatA
     """
 
     N = len(x)
+    _assert_not_object(cond)
 
     # Determine probabilities of the conditioning variable
     cond_vals, cond_inverses, cond_counts = np.unique(cond,

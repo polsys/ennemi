@@ -329,6 +329,17 @@ class TestEstimateEntropy(unittest.TestCase):
         self.assertAlmostEqual(uncond, math.log(4), delta=1e-6)
         self.assertAlmostEqual(cond, math.log(2), delta=1e-6)
 
+    def test_pandas_object_dtype_raises_error(self) -> None:
+        # pandas converts strings to data type 'object',
+        # and np.unique does not like it at all.
+        # Recognize this situation and give a user-friendly error message.
+        chars = ["a", "b", "c", "d", "e"]
+        data = pd.DataFrame({"X": np.tile(chars, 5), "Y": np.repeat(chars, 5)})
+
+        with self.assertRaises(TypeError) as cm:
+            estimate_entropy(data, discrete=True)
+        self.assertTrue("pandas stores strings" in str(cm.exception))
+
 
 class TestEstimateMi(unittest.TestCase):
     
@@ -1085,6 +1096,27 @@ class TestEstimateMi(unittest.TestCase):
 
         mi_cond = estimate_mi(y, x, cond=z, discrete_x=True, discrete_y=True)
         self.assertAlmostEqual(mi_cond, 2/3 * math.log(2), delta=1e-6)
+
+    def test_discrete_data_pandas_object_dtype_raises_error(self) -> None:
+        # pandas converts strings to data type 'object',
+        # and np.unique does not like it at all.
+        # Recognize this situation and give a user-friendly error message.
+        chars = ["a", "b", "c", "d", "e"]
+        data = pd.DataFrame({"X": np.tile(chars, 5), "Y": np.repeat(chars, 5)})
+
+        with self.assertRaises(TypeError) as cm:
+            estimate_mi(data["Y"], data["X"], discrete_y=True, discrete_x=True)
+        self.assertTrue("pandas stores strings" in str(cm.exception))
+
+    def test_discrete_cond_pandas_object_dtype_raises_error(self) -> None:
+        # Same as above but for cond
+        y = np.zeros(25)
+        chars = ["a", "b", "c", "d", "e"]
+        data = pd.DataFrame({"X": np.tile(chars, 5), "Y": np.repeat(chars, 5)})
+
+        with self.assertRaises(TypeError) as cm:
+            estimate_mi(y, y, cond=data, discrete_y=True, discrete_x=True)
+        self.assertTrue("pandas stores strings" in str(cm.exception))
 
 
     def test_preprocess(self) -> None:
