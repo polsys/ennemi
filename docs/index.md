@@ -50,6 +50,8 @@ pip install ennemi
   This tutorial covers the basic use cases through examples.
 - **[Case study](kaisaniemi.md).**
   An example workflow with real data.
+- **[Working with discrete data](discrete-data.md).**
+  Estimation and interpretation when some variables are discrete.
 - **[Potential issues](potential-issues.md).**
   Common issues and how to solve them.
 - **[API reference](api-reference.md).**

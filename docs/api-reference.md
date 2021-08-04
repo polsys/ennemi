@@ -183,7 +183,7 @@ matching mask element set to `True` are used for estimation.
 
   If True, the results will be normalized to correlation coefficient scale.
   Same as calling `normalize_mi` on the results.
-  The results are sensible only if at least one variable is continuous.
+  The results are sensible only if both variables are continuous.
 
 - `max_threads: int` or None.
   
@@ -224,9 +224,9 @@ This is because mutual information is always
 non-negative, but `estimate_mi` may produce negative values.
 Large negative values may indicate that the data does not satisfy assumptions.
 
-The normalization is not applicable to pairs of discrete variables:
+The normalization is not applicable to discrete variables:
 it is not possible to get coefficient 1.0 even when the variables are completely
-determined by each other. The formula assumes that the system contains
+determined by each other. The formula assumes that both variables have
 an infinite amount of entropy.
 
 ### Parameters
@@ -296,7 +296,7 @@ $\infty$ nats or correlation $1$).
 
   If True, the MI values will be normalized to correlation coefficient scale.
   Same as calling `normalize_mi` on the results.
-  The results are sensible only if at least one variable is continuous.
+  The results are sensible only if both variables are continuous.
 
 - `max_threads: int` or None.
   

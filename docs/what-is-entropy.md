@@ -51,6 +51,9 @@ $$
 \mathrm{bits} = \mathrm{nats} \cdot \log_2 e.
 $$
 
+To estimate the entropy of a discrete data set, you can call `ennemi`'s
+`estimate_entropy()` method with the parameter `discrete=True`.
+
 
 
 ## Going continuous
@@ -105,16 +108,13 @@ For example, consider the below scatter plot:
 It is pretty obvious that the $X$ and $Y$ variables are related.
 Specifically, $Y$ seems to be the absolute value of $X$ added with some noise.
 Yet the classical Pearson correlation coefficient between the two is close to 0.
-This is because it is designed only to detect linear correlations.
+This is because it is calculated by drawing a straight line through the data points.
 
 If, and only if, the variables $X$ and $Y$ are independent, their
 mutual information is zero.
 This makes MI a test for independence.
 
 MI is not affected by monotonic transformations of the variables $X$ and $Y$.
-(In technical terms, it is invariant under measurable bijections with measurable inverse.
-Under sufficient symmetry, piecewise bijectivity is enough.)
-
 Additionally, MI is always non-negative (save for estimation errors)
 and $\mathrm{MI}(X; Y) = \mathrm{MI}(Y; X)$.
 
@@ -204,6 +204,9 @@ Finding the best value might not be an easy task.
 Instead, `ennemi` uses a more reliable method.
 It uses nearest-neighbor estimation of entropy, adapted for MI by
 [Kraskov et al. (2004)](https://link.aps.org/doi/10.1103/PhysRevE.69.066138).
+This method has just one parameter, and moreover its effect is usually very small.
+
+### Technical details
 The idea is to, for each point:
 
 1. Find the distance to the $k$'th closest neighbor.
@@ -221,6 +224,7 @@ $$
 
 Small values of the parameter $k$ give lower systematic error
 whereas large values of $k$ give lower statistical error.
+Smaller values also result in faster estimation.
 In practice, high MI values are more accurate with small $k$ and vice versa;
 however, the effect may be fairly small.
 
