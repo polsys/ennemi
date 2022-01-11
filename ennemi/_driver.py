@@ -8,7 +8,7 @@ Do not import this module directly, but rather import the main ennemi module.
 
 from __future__ import annotations
 import concurrent.futures
-from typing import Callable, Iterable, Optional, Sequence, Tuple, Type, TypeVar, Union
+from typing import Callable, Iterable, Optional, Sequence, Tuple, TypeVar, Union
 import itertools
 import math
 import numpy as np
@@ -62,7 +62,9 @@ def normalize_mi(mi: Union[float, GenArrayLike]) -> GenArrayLike:
         if isinstance(mi, (pandas.DataFrame, pandas.Series)):
             return mi.applymap(_normalize)
     
-    return np.vectorize(_normalize, otypes=[float])(mi)
+    # TODO: Type ignore is necessary because mypy does not realize that the
+    #       result is an array of float, not array of Any
+    return np.vectorize(_normalize, otypes=[float])(mi) # type: ignore
 
 def _normalize(mi: float) -> float:
     if mi <= 0.0:
@@ -172,7 +174,8 @@ def _mask_and_validate_entropy(x: FloatArray, mask: Optional[ArrayLike],
     # Apply the mask and drop NaNs
     # TODO: Support 2D masks (https://github.com/polsys/ennemi/issues/37)
     if mask is not None:
-        x = x[mask]
+        mask_arr = np.asanyarray(mask) # This makes the type checker happier
+        x = x[mask_arr]
 
     if drop_nan and not discrete:
         if x.ndim > 1:
@@ -654,7 +657,7 @@ def _lagged_mi(param_tuple: Tuple[FloatArray, FloatArray, int, int, int, int,
         xs, ys, zs = _rescale_data(xs, ys, zs, discrete_x, discrete_y)
     
     # Apply the relevant estimation method
-    if cond is None:
+    if zs is None:
         if discrete_x and discrete_y:
             return _estimate_discrete_mi(xs, ys)
         elif discrete_x:
