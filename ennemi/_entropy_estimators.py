@@ -16,8 +16,10 @@ from warnings import warn
 try:
     import numpy.typing as npt
     FloatArray = npt.NDArray[np.float64]
+    IntArray = npt.NDArray[np.int64]
 except:
     FloatArray = "" # type: ignore
+    IntArray = "" # type: ignore
 
 
 def _estimate_single_entropy(x: FloatArray, k: int = 3) -> float:
@@ -321,7 +323,7 @@ def _estimate_conditional_discrete_mi(x: FloatArray, y: FloatArray, cond: FloatA
 # Digamma
 #
 
-def _psi(x: Union[int, FloatArray]) -> FloatArray:
+def _psi(x: Union[int, FloatArray, IntArray]) -> FloatArray:
     """A replacement for scipy.special.psi, for non-negative integers only.
     
     This is slightly faster than the SciPy version (not that it's a bottleneck),
