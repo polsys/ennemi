@@ -14,7 +14,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ ubuntu-16.04, windows-2016 ]
+        os: [ ubuntu-18.04, windows-2016 ]
 
     steps:
       - name: Check out code
