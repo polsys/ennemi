@@ -1,7 +1,7 @@
 # MIT License - Copyright Petri Laarne and contributors
 # See the LICENSE.md file included in this source code package
 
-from setuptools import setup, find_packages
+from setuptools import setup
 from os import path
 
 description_file = path.join(path.abspath(path.dirname(__file__)), "DESCRIPTION.md")
@@ -10,7 +10,7 @@ with open(description_file, encoding="utf-8") as f:
 
 setup(
     name = "ennemi",
-    version = "1.1.0",
+    version = "1.1.1",
     description = "Non-linear correlation detection with mutual information",
     long_description = long_description,
     long_description_content_type = "text/markdown",
