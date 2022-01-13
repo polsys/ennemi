@@ -9,6 +9,7 @@ Do not import this module directly, but rather import the main ennemi module.
 from __future__ import annotations
 import concurrent.futures
 from typing import Callable, Iterable, Optional, Sequence, Tuple, TypeVar, Union
+from warnings import warn
 import itertools
 import math
 import numpy as np
@@ -29,6 +30,14 @@ except:
     ArrayLike = np.ndarray # type: ignore
 GenArrayLike = TypeVar("GenArrayLike", Sequence[float], Sequence[Sequence[float]], FloatArray)
 T = TypeVar("T")
+
+DISCRETE_NORMALIZATION_WARNING = \
+    "You have set normalize=True while at least one variable is discrete. " +\
+    "The correlation coefficient formula assumes both variables to be continuous, " +\
+    "and the results are not comparable across different discrete variables. " +\
+    "Compare the raw MI against entropy of the discrete variable instead. " +\
+    "If you really want to calculate correlation coefficients, you can suppress " +\
+    "this warning by setting normalize=False and calling normalize_mi() on the results."
 
 def normalize_mi(mi: Union[float, GenArrayLike]) -> GenArrayLike:
     """Normalize mutual information values to the unit interval.
@@ -338,6 +347,8 @@ def estimate_mi(y: ArrayLike, x: ArrayLike,
 
     # Normalize if requested
     if normalize:
+        if discrete_x or discrete_y:
+            warn(DISCRETE_NORMALIZATION_WARNING)
         result = normalize_mi(result)
 
     # If the input was a pandas data frame, set the column names
@@ -512,6 +523,8 @@ def pairwise_mi(data: ArrayLike,
 
     # Normalize if asked for
     if normalize:
+        if discrete_arr.any():
+            warn(DISCRETE_NORMALIZATION_WARNING)
         result = normalize_mi(result)
 
     # If data was a pandas DataFrame, return a DataFrame with matching names
