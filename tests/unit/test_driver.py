@@ -6,6 +6,7 @@
 from __future__ import annotations
 from itertools import product
 import math
+from warnings import catch_warnings
 import numpy as np
 import os.path
 import pandas as pd
@@ -902,6 +903,33 @@ class TestEstimateMi(unittest.TestCase):
         self.assertAlmostEqual(mi, 0.8, delta=0.02)
 
 
+    def test_normalize_with_discrete_warns(self) -> None:
+        cont = np.zeros(10)
+        disc = np.zeros(10)
+        disc2d = np.zeros((10,2))
+
+        # Warnings emitted both in scalar and array case
+        with self.assertWarnsRegex(UserWarning, "discrete"):
+            estimate_mi(cont, disc, discrete_x=True, normalize=True)
+        with self.assertWarnsRegex(UserWarning, "discrete"):
+            estimate_mi(disc, cont, discrete_y=True, normalize=True)
+        with self.assertWarnsRegex(UserWarning, "discrete"):
+            estimate_mi(cont, disc2d, discrete_x=True, normalize=True)
+
+        # No warning should be emitted if data is continuous...
+        with catch_warnings(record=True) as w:
+            estimate_mi(cont, cont, discrete_x=False, normalize=True)
+
+            matching_warns = [msg for msg in w if "discrete" in str(msg.message)]
+            self.assertEqual(len(matching_warns), 0, "should not warn")
+        
+        # ...or normalization disabled
+        with catch_warnings(record=True) as w:
+            estimate_mi(cont, disc2d, discrete_x=True, normalize=False)
+
+            matching_warns = [msg for msg in w if "discrete" in str(msg.message)]
+            self.assertEqual(len(matching_warns), 0, "should not warn")
+
     def test_discrete_many_values_warning(self) -> None:
         rng = np.random.default_rng(2021_08_03)
         cont = rng.normal(size=100)
@@ -1267,6 +1295,29 @@ class TestPairwiseMi(unittest.TestCase):
         with self.assertRaises(ValueError) as cm:
             pairwise_mi(data, cond=cond, discrete=[False, True])
         self.assertTrue("Conditioning is not supported" in str(cm.exception))
+
+    def test_normalize_with_discrete_warns(self) -> None:
+        data = np.zeros((10, 2))
+
+        # Warnings emitted both in scalar and array case
+        with self.assertWarnsRegex(UserWarning, "discrete"):
+            pairwise_mi(data, discrete=True, normalize=True)
+        with self.assertWarnsRegex(UserWarning, "discrete"):
+            pairwise_mi(data, discrete=[False, True], normalize=True)
+
+        # No warning should be emitted if data is continuous...
+        with catch_warnings(record=True) as w:
+            pairwise_mi(data, discrete=False, normalize=True)
+
+            matching_warns = [msg for msg in w if "discrete" in str(msg.message)]
+            self.assertEqual(len(matching_warns), 0, "should not warn")
+        
+        # ...or normalization is disabled
+        with catch_warnings(record=True) as w:
+            pairwise_mi(data, discrete=True, normalize=False)
+
+            matching_warns = [msg for msg in w if "discrete" in str(msg.message)]
+            self.assertEqual(len(matching_warns), 0, "should not warn")
 
     def test_ndarray(self) -> None:
         data = self.generate_normal(100)
