@@ -98,6 +98,16 @@ with column names matching `x`.
 
 <hr style="margin: 4rem 0;">
 
+# `estimate_corr`
+Equivalent to `estimate_mi` with `normalize=True`;
+please refer to the documentation below.
+
+The correlation coefficient is calculated using the formula
+$$
+\rho = \sqrt{1 - \exp(-2\, \mathrm{MI}(X;Y))}.
+$$
+
+
 # `estimate_mi`
 Estimate the mutual information between `y` and each `x` variable.
 
@@ -105,7 +115,8 @@ Estimate the mutual information between `y` and each `x` variable.
 - Conditional MI: pass a `cond` array.
 - Discrete-continuous MI: set `discrete_y` to True.
 
-Returns the estimated mutual information (in nats or in correlation scale).
+Returns the estimated mutual information in nats, or if `normalize` is set,
+as a correlation coefficient.
 The result is a 2D `ndarray` where the first index represents `lag` values
 and the second index represents `x` columns.
 If `x` is a pandas `DataFrame` or `Series`, the result is a `DataFrame`
@@ -239,6 +250,11 @@ an infinite amount of entropy.
 
 
 <hr style="margin: 4rem 0;">
+
+# `pairwise_corr`
+Equivalent to `pairwise_mi` with `normalize=True`;
+please refer to the documentation below.
+
 
 # `pairwise_mi`
 Estimate the pairwise MI between each variable.

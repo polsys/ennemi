@@ -246,8 +246,9 @@ def estimate_mi(y: ArrayLike, x: ArrayLike,
     - Conditional MI: pass a `cond` array.
     - Discrete-continuous MI: set `discrete_y` to True.
  
-    Returns the estimated mutual information (in nats) for continuous
-    variables. The result is a 2D `ndarray` where the first index represents `lag` values
+    Returns the estimated mutual information in nats, or if `normalize` is set,
+    as a correlation coefficient.
+    The result is a 2D `ndarray` where the first index represents `lag` values
     and the second index represents `x` columns. If `x` is a pandas
     `DataFrame` or `Series`, the result is a `DataFrame`.
 
@@ -359,6 +360,95 @@ def estimate_mi(y: ArrayLike, x: ArrayLike,
         elif isinstance(x, pandas.Series):
             return pandas.DataFrame(result, index=lag_arr, columns=[x.name])
     return result
+
+def estimate_corr(y: ArrayLike, x: ArrayLike,
+                  lag: Union[Sequence[int], ArrayLike, int] = 0,
+                  *, k: int = 3,
+                  cond: Optional[ArrayLike] = None,
+                  cond_lag: Union[Sequence[int], Sequence[Sequence[int]], ArrayLike, int] = 0,
+                  mask: Optional[ArrayLike] = None,
+                  preprocess: bool = True,
+                  drop_nan: bool = False,
+                  max_threads: Optional[int] = None,
+                  callback: Optional[Callable[[int, int], None]] = None) -> FloatArray:
+    """Estimate MI correlation between continuous variables.
+    
+    This method is equivalent to `estimate_mi` with `normalize=True`.
+
+    - Unconditional MI: the default.
+    - Conditional MI: pass a `cond` array.
+ 
+    Returns the estimated mutual information correlation for continuous
+    variables. The result is a 2D `ndarray` where the first index represents `lag` values
+    and the second index represents `x` columns. If `x` is a pandas
+    `DataFrame` or `Series`, the result is a `DataFrame`.
+
+    The time lag is interpreted as `y(t) ~ x(t - lag) | z(t - cond_lag)`.
+    The time lags are applied to the `x` and `cond` arrays such that the `y`
+    array stays the same every time.
+    This means that `y` is cropped to `y[max(max_lag,0) : N+min(min_lag,0)]`.
+    The `cond_lag` parameter specifies the lag for the `cond` array separately
+    from the `x` lag.
+
+    If the `mask` parameter is set, only those `y` observations with the
+    matching mask element set to `True` are used for estimation.
+    
+    For accurate results, the variables should be transformed to roughly
+    symmetrical distributions. If `preprocess==True`, the variables are
+    automatically scaled to unit variance.
+
+    The calculation is based on "Kraskov et al. (2004): Estimating mutual
+    information. Physical Review E 69. doi:10.1103/PhysRevE.69.066138" and
+    derivatives by (Frenzel and Pompe 2007) and (Ross 2014).
+
+    Positional or keyword parameters:
+    ---
+    y : array_like
+        A 1D array of observations. If `discrete_y` is True, the values may be
+        of any type. Otherwise the values must be numeric.
+    x : array_like
+        A 1D or 2D array where the columns are one or more variables and the
+        rows are observations. The number of rows must be the same as in y.
+    lag : int or array_like, default 0
+        A time lag or 1D array of time lags to apply. A positive lag means that
+        `y` depends on earlier `x` values and vice versa.
+
+    Optional keyword parameters:
+    ---
+    k : int, default 3
+        The number of neighbors to consider.
+        Ignored if both variables are discrete.
+    cond : array_like or None
+        Optional 1D or 2D array of observations used for conditioning.
+        Must have as many observations as y.
+        All variables in a 2D array are used together.
+    cond_lag : int or array_like, default 0
+        Lag applied to the cond array. Must be broadcastable to the size of `lag`.
+        Can be two-dimensional to lag each conditioning variable separately.
+    mask : array_like or None
+        If specified, an array of booleans that gives the `y` elements to use for
+        estimation. Use this to exclude some observations from consideration
+        while preserving the time series structure of the data. Elements of
+        `x` and `cond` are masked with the lags applied.
+    preprocess : bool, default True
+        By default, continuous variables are scaled to unit variance and
+        added with low-amplitude noise. The noise uses a fixed random seed.
+    drop_nan : bool, default False
+        If True, all NaN (not a number) values are masked out.
+    max_threads : int or None
+        The maximum number of threads to use for estimation.
+        By default, the number of CPU cores is used.
+    callback : method or None
+        A method to call when each estimation task is completed. The method
+        must take two integer parameters: `x` variable index and lag value.
+        This method should be very short. Because Python code is not executed
+        concurrently, the callback may slow down other estimation tasks.
+    """
+
+    return estimate_mi(y, x, lag, k=k, cond=cond, cond_lag=cond_lag, mask=mask,
+        preprocess=preprocess, drop_nan=drop_nan, normalize=True,
+        max_threads=max_threads, callback=callback)
+
 
 def _estimate_mi(y: FloatArray, x: FloatArray, lag: FloatArray, k: int,
         cond: Optional[FloatArray], cond_lag: FloatArray,
@@ -533,6 +623,59 @@ def pairwise_mi(data: ArrayLike,
         if isinstance(data, pandas.DataFrame):
             return pandas.DataFrame(result, index=data.columns, columns=data.columns)
     return result
+
+
+def pairwise_corr(data: ArrayLike,
+    *, k: int = 3,
+    cond: Optional[ArrayLike] = None,
+    mask: Optional[ArrayLike] = None,
+    preprocess: bool = True,
+    drop_nan: bool = False,
+    max_threads: Optional[int] = None,
+    callback: Optional[Callable[[int, int], None]] = None) -> FloatArray:
+    """Estimate the pairwise MI correlation between each variable.
+
+    This method is equivalent to `pairwise_mi` with `normalize=True`.
+
+    Returns a matrix where the (i,j)'th element is the mutual information
+    between the i'th and j'th columns in the data. The values are
+    correlation coefficients between 0 and 1. The diagonal
+    contains NaNs (for better visualization, as the autocorrelation is 1).
+
+    Positional or keyword parameters:
+    ---
+    data : array_like
+        A 2D array where the columns represent variables.
+
+    Optional keyword parameters:
+    ---
+    k : int, default 3
+        The number of neighbors to consider.
+        Ignored if both variables are discrete.
+    cond : array_like or None
+        Optional 1D or 2D array of observations used for conditioning.
+        Must have as many observations as the data.
+        All variables in a 2D array are used together.
+    mask : array_like or None
+        If specified, an array of booleans that gives the data elements to use for
+        estimation. Use this to exclude some observations from consideration.
+    preprocess : bool, default True
+        By default, continuous variables are scaled to unit variance and
+        added with low-amplitude noise. The noise uses a fixed random seed.
+    drop_nan : bool, default False
+        If True, all NaN (not a number) values in `x` and `cond` are masked out.
+    max_threads : int or None
+        The maximum number of threads to use for estimation.
+        By default, the number of CPU cores is used.
+    callback : method or None
+        A method to call when each estimation task is completed. The method
+        must take two integer parameters, representing the variable indices.
+        This method should be very short. Because Python code is not executed
+        concurrently, the callback may slow down other estimation tasks.
+    """
+
+    return pairwise_mi(data, k=k, cond=cond, mask=mask, preprocess=preprocess,
+        drop_nan=drop_nan, normalize=True, max_threads=max_threads, callback=callback)
 
 
 def _pairwise_mi(data: FloatArray, k: int, cond: Optional[FloatArray], preprocess: bool,

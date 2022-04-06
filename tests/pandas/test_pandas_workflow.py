@@ -4,8 +4,7 @@
 """A simplified version of the case study in the documentation."""
 
 from __future__ import annotations
-from ennemi import estimate_mi, pairwise_mi
-import numpy as np
+from ennemi import estimate_corr, pairwise_corr
 import pandas as pd
 import unittest
 import os
@@ -20,13 +19,13 @@ class TestPandasWorkflow(unittest.TestCase):
         self.data = pd.read_csv(data_path, index_col=0, parse_dates=True)
 
 
-    def test_pairwise_mi(self) -> None:
-        # Determine the pairwise MI between three variables
+    def test_pairwise_corr(self) -> None:
+        # Determine the pairwise correlation between three variables
         columns = ["Temperature", "WindDir", "DayOfYear"]
         afternoon_mask = (self.data.index.hour == 13)
 
-        uncond = pairwise_mi(self.data[columns], mask=afternoon_mask, normalize=True) # type: pd.DataFrame
-        cond_doy = pairwise_mi(self.data[columns], mask=afternoon_mask, normalize=True,
+        uncond = pairwise_corr(self.data[columns], mask=afternoon_mask) # type: pd.DataFrame
+        cond_doy = pairwise_corr(self.data[columns], mask=afternoon_mask,
             cond=self.data["DayOfYear"]) # type: pd.DataFrame
 
         # The result is a 3x3 data frame
@@ -54,9 +53,9 @@ class TestPandasWorkflow(unittest.TestCase):
     def test_autocorrelation(self) -> None:
         # Determine the autocorrelation of temperature, conditional on DOY
         afternoon_mask = (self.data.index.hour == 13)
-        result = estimate_mi(self.data["Temperature"], self.data["Temperature"],
-            lag=[0, -24, -10*24], cond=self.data["DayOfYear"], mask=afternoon_mask,
-            normalize=True) # type: pd.DataFrame
+        result = estimate_corr(self.data["Temperature"], self.data["Temperature"],
+            lag=[0, -24, -10*24], cond=self.data["DayOfYear"],
+            mask=afternoon_mask) # type: pd.DataFrame
 
         # The result is a 3x1 data frame
         self.assertEqual(result.shape, (3,1))

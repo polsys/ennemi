@@ -13,7 +13,8 @@ import pandas as pd
 import random
 from typing import List, Optional, Tuple
 import unittest
-from ennemi import estimate_entropy, estimate_mi, normalize_mi, pairwise_mi
+from ennemi import estimate_entropy, estimate_mi, normalize_mi, pairwise_mi,\
+    estimate_corr, pairwise_corr
 
 try:
     import numpy.typing as npt
@@ -902,6 +903,25 @@ class TestEstimateMi(unittest.TestCase):
         mi = estimate_mi(data[:,1], data[:,0], normalize=True, drop_nan=True)
         self.assertAlmostEqual(mi, 0.8, delta=0.02)
 
+    def test_alias(self) -> None:
+        rng = np.random.default_rng(2022_04_06)
+        cov = np.array([[1, 0.8], [0.8, 1]])
+        data = rng.multivariate_normal([0, 0], cov, size=1000)
+        data[:50,0] = np.nan
+        data[950:,1] = np.nan
+        cond = np.roll(data[:,0] + 0.3*data[:,1], shift=-2)
+        mask = rng.choice([True, False], size=1000, replace=True, p=[0.9, 0.1])
+
+        # estimate_mi with normalize=True
+        expected = estimate_mi(data[:,1], data[:,0], k=7, cond=cond, cond_lag=2,
+            mask=mask, preprocess=False, drop_nan=True, normalize=True)
+        self.assertAlmostEqual(expected, 0.83, delta=0.03)
+
+        # estimate_corr should produce EXACTLY same results
+        actual = estimate_corr(data[:,1], data[:,0], k=7, cond=cond, cond_lag=2,
+            mask=mask, preprocess=False, drop_nan=True)
+        self.assertEqual(actual, expected)
+
 
     def test_normalize_with_discrete_warns(self) -> None:
         cont = np.zeros(10)
@@ -1505,3 +1525,19 @@ class TestPairwiseMi(unittest.TestCase):
                         self.assertIn((i, j), callback_results)
                     else:
                         self.assertNotIn((i, j), callback_results)
+
+    def test_alias(self) -> None:
+        data = self.generate_normal(2022_04_06)
+        data[7,0] = np.nan
+        data[8,1] = np.nan
+        mask = [True, False] * 500
+
+        # All parameters of pairwise_mi tweaked
+        expected = pairwise_mi(data, cond=np.roll(data[:,0], shift=1), k=7, mask=mask,
+            preprocess=False, drop_nan=True, normalize=True)
+        self.assertAlmostEqual(expected[0,1], 0.62, delta=0.03)
+
+        # ...and pairwise_corr should produce EXACTLY same results
+        actual = pairwise_corr(data, cond=np.roll(data[:,0], shift=1), k=7, mask=mask,
+            preprocess=False, drop_nan=True)
+        self.assertEqual(actual[0,1], expected[0,1])

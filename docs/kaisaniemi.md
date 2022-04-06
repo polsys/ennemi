@@ -18,7 +18,7 @@ Let's start by importing the data; nothing special here.
 We use the `pandas` library for data manipulation.
 
 ```python
-from ennemi import estimate_mi, pairwise_mi
+from ennemi import estimate_corr, pairwise_corr
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -61,12 +61,12 @@ afternoon_mask = (data.index.hour == 13)
 
 To get an overview of the dependencies between variables, we create a pairwise MI plot.
 This is a matrix where the rows and columns correspond to variables.
-`ennemi` includes a `pairwise_mi()` method for this purpose.
-We pass the `normalize` parameter to transform the MI values to a correlation
+`ennemi` includes a `pairwise_corr()` method for this purpose.
+This method returns values on a correlation
 coefficient scale (0 to 1, sign of correlation not determined).
 
 ```python
-pairwise = pairwise_mi(data, mask=afternoon_mask, normalize=True)
+pairwise = pairwise_corr(data, mask=afternoon_mask)
 
 # Plot a matrix where the color represents the correlation coefficient.
 # We clip the color values at 0.2 because of significant random noise,
@@ -95,8 +95,8 @@ in our case this variable is DayOfYear.
 
 ```python
 # Now we pass the 'cond' parameter
-pairwise_doy = pairwise_mi(data, mask=afternoon_mask,
-    cond=data["DayOfYear"], normalize=True)
+pairwise_doy = pairwise_corr(data, mask=afternoon_mask,
+    cond=data["DayOfYear"])
 
 # The same plotting code as above
 fig, ax = plt.subplots(figsize=(8,6))
@@ -134,7 +134,7 @@ This is demonstrated more in the next steps.
 ## Time dependency
 
 How does temperature depend on past observations of the variables?
-We can answer this question with the time lag feature of `estimate_mi()`.
+We can answer this question with the time lag feature of `estimate_corr()`.
 We calculate the correlation between "temperature now" and
 "[other variable] [0, 2, ..., 48] hours ago".
 Again, the temperature observations are fixed at 15:00.
@@ -145,8 +145,8 @@ covariates = ["Temperature", "DewPoint", "WindDir", "AirPressure", "WindSpeed"]
 
 # Lag up to two days with 2-hour spacing
 lags = np.arange(0, 2*24 + 1, 2)
-temp = estimate_mi(data["Temperature"], data[covariates], lags,
-    cond=data["DayOfYear"], mask=afternoon_mask, normalize=True)
+temp = estimate_corr(data["Temperature"], data[covariates], lags,
+    cond=data["DayOfYear"], mask=afternoon_mask)
 
 # Plot the MI correlation coefficients as a line plot
 fig, ax = plt.subplots(figsize=(8,6))
@@ -197,12 +197,12 @@ We can therefore repeat the estimation with two more masks.
 
 ```python
 # Use two more masks, higher k, and average of the three runs
-temp_12 = estimate_mi(data["Temperature"], data[covariates], lags, k=8,
-    cond=data["DayOfYear"], mask=(data.index.hour == 12), normalize=True)
-temp_13 = estimate_mi(data["Temperature"], data[covariates], lags, k=8,
-    cond=data["DayOfYear"], mask=afternoon_mask, normalize=True)
-temp_14 = estimate_mi(data["Temperature"], data[covariates], lags, k=8,
-    cond=data["DayOfYear"], mask=(data.index.hour == 14), normalize=True)
+temp_12 = estimate_corr(data["Temperature"], data[covariates], lags, k=8,
+    cond=data["DayOfYear"], mask=(data.index.hour == 12))
+temp_13 = estimate_corr(data["Temperature"], data[covariates], lags, k=8,
+    cond=data["DayOfYear"], mask=afternoon_mask)
+temp_14 = estimate_corr(data["Temperature"], data[covariates], lags, k=8,
+    cond=data["DayOfYear"], mask=(data.index.hour == 14))
 
 temp_avg = (temp_12 + temp_13 + temp_14) / 3
 

@@ -4,7 +4,7 @@
 #
 # STEP 1: Import the data
 #
-from ennemi import estimate_mi, pairwise_mi
+from ennemi import estimate_corr, pairwise_corr
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -29,7 +29,7 @@ afternoon_mask = (data.index.hour == 13)
 #
 # STEP 4: Plot pairwise MI
 #
-pairwise = pairwise_mi(data, mask=afternoon_mask, normalize=True)
+pairwise = pairwise_corr(data, mask=afternoon_mask)
 
 # Plot a matrix where the color represents the correlation coefficient.
 # We clip the color values at 0.2 because of significant random noise,
@@ -53,8 +53,8 @@ plt.savefig("casestudy_pairwise.png", transparent=True)
 #
 
 # Now we pass the 'cond' parameter
-pairwise_doy = pairwise_mi(data, mask=afternoon_mask,
-    cond=data["DayOfYear"], normalize=True)
+pairwise_doy = pairwise_corr(data, mask=afternoon_mask,
+    cond=data["DayOfYear"])
 
 # The same plotting code as above
 fig, ax = plt.subplots(figsize=(8,6))
@@ -79,8 +79,8 @@ covariates = ["Temperature", "DewPoint", "WindDir", "AirPressure", "WindSpeed"]
 
 # Lag up to two days with 2-hour spacing
 lags = np.arange(0, 2*24 + 1, 2)
-temp = estimate_mi(data["Temperature"], data[covariates], lags,
-    cond=data["DayOfYear"], mask=afternoon_mask, normalize=True)
+temp = estimate_corr(data["Temperature"], data[covariates], lags,
+    cond=data["DayOfYear"], mask=afternoon_mask)
 
 # Plot the MI correlation coefficients as a line plot
 fig, ax = plt.subplots(figsize=(8,6))
@@ -106,12 +106,12 @@ plt.savefig("casestudy_lags.png", transparent=True)
 #
 
 # Use two more masks, higher k, and average of the three runs
-temp_12 = estimate_mi(data["Temperature"], data[covariates], lags, k=8,
-    cond=data["DayOfYear"], mask=(data.index.hour == 12), normalize=True)
-temp_13 = estimate_mi(data["Temperature"], data[covariates], lags, k=8,
-    cond=data["DayOfYear"], mask=afternoon_mask, normalize=True)
-temp_14 = estimate_mi(data["Temperature"], data[covariates], lags, k=8,
-    cond=data["DayOfYear"], mask=(data.index.hour == 14), normalize=True)
+temp_12 = estimate_corr(data["Temperature"], data[covariates], lags, k=8,
+    cond=data["DayOfYear"], mask=(data.index.hour == 12))
+temp_13 = estimate_corr(data["Temperature"], data[covariates], lags, k=8,
+    cond=data["DayOfYear"], mask=afternoon_mask)
+temp_14 = estimate_corr(data["Temperature"], data[covariates], lags, k=8,
+    cond=data["DayOfYear"], mask=(data.index.hour == 14))
 
 temp_avg = (temp_12 + temp_13 + temp_14) / 3
 
