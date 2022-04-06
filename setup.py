@@ -10,7 +10,7 @@ with open(description_file, encoding="utf-8") as f:
 
 setup(
     name = "ennemi",
-    version = "1.1.1",
+    version = "1.2.0",
     description = "Non-linear correlation detection with mutual information",
     long_description = long_description,
     long_description_content_type = "text/markdown",
@@ -47,8 +47,7 @@ setup(
     packages = [ "ennemi" ],
     package_data = { "ennemi": ["py.typed"] },
     python_requires = "~=3.7",
-    # At least pandas requires numpy 1.17.3+ (security fixes), we should too
-    install_requires = [ "numpy>=1.17.5", "numpy<2.0", "scipy~=1.4" ],
+    install_requires = [ "numpy~=1.19", "scipy~=1.5" ],
     extras_require = {
         "dev": [ "pandas~=1.0", "pytest~=6.2", "mypy~=0.770" ]
     }
