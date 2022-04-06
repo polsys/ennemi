@@ -72,6 +72,11 @@ To continue the above example, we could execute
 print(estimate_mi(y, x, normalize=True))
 ```
 to get the estimated correlation coefficient (`0.79980729`).
+Because the correlation coefficient is more useful in applied analysis,
+there is a shorter alias for it:
+```python
+print(estimate_corr(y, x))
+```
 
 The returned coefficient approximately matches the **absolute value**
 of the linear correlation coefficient after suitable transformations.
@@ -86,14 +91,14 @@ transformed the X axis to represent $\sin(x)$, and kept the Y axis as is.
 
 We calculate both the linear correlation and correlation from MI:
 ```python
-from ennemi import estimate_mi
+from ennemi import estimate_corr
 import numpy as np
 
 rng = np.random.default_rng(1234)
 x = rng.normal(0.0, 3.0, size=800)
 y = np.sin(x) + rng.normal(0.0, 0.5, size=800)
 
-print(f"From MI: {estimate_mi(y, x, normalize=True)[0,0]:.3}")
+print(f"From MI: {estimate_corr(y, x)[0,0]:.3}")
 print(f"Pearson, transformed: {np.corrcoef(y, np.sin(x))[0,1]:.3}")
 print(f"Pearson, straight line: {np.corrcoef(y, x)[0,1]:.3}")
 ```
@@ -121,7 +126,7 @@ Therefore, the returned coefficient **should be considered only approximate**.
 Let's extend the above example by adding another, unrelated variable.
 The mutual information between independent variables is 0.
 
-The `estimate_mi()` method accepts a 2D array for the `x` parameter.
+The `estimate_mi()` and `estimate_corr()` methods accept a 2D array for the `x` parameter.
 In that case, it splits the array into columns $X_1$ to $X_m$,
 and calculates $\mathrm{MI}(X_i, Y)$ for each $i = 1, \ldots, m$.
 
@@ -138,7 +143,7 @@ as the results would be difficult to interpret.
 
 Here's the above example updated with a new, independent variable $Z$:
 ```python
-from ennemi import estimate_mi
+from ennemi import estimate_corr
 import numpy as np
 
 rng = np.random.default_rng(1234)
@@ -152,7 +157,7 @@ z = rng.normal(0, 1, size=800)
 
 covariates = np.column_stack((x, z))
 
-print(estimate_mi(y, covariates, normalize=True))
+print(estimate_corr(y, covariates))
 ```
 
 The code prints
@@ -179,14 +184,14 @@ There may be a clear dependence between $Y(t)$ and $X(t-\Delta)$,
 whereas the apparent link between $Y(t)$ and $X(t)$ may be weaker or nonexistent.
 
 The time lag is specified by passing an integer or a list/array of integers as
-the `lag` parameter to `estimate_mi()`.
+the `lag` parameter to `estimate_mi()`/`estimate_corr()`.
 The lags are applied to the $X_i$ variables and may be positive or negative
 (in which case information flows from $Y$ to $X$ instead).
 
 Let's consider a model where $Y(t) = X(t-1) + \varepsilon$,
 and estimate the MI for various time lags:
 ```python
-from ennemi import estimate_mi
+from ennemi import estimate_corr
 import numpy as np
 
 rng = np.random.default_rng(1234)
@@ -195,7 +200,7 @@ y = np.zeros(400)
 y[1:] = x[0:-1]
 y += rng.normal(0, 0.01, size=400)
 
-print(estimate_mi(y, x, lag=[1, 0, -1], normalize=True))
+print(estimate_corr(y, x, lag=[1, 0, -1]))
 ```
 
 The code prints:
@@ -229,13 +234,13 @@ each in turn.
 ## Combining the above with Pandas
 
 In this example, we import the data set from a file using the Pandas package
-and pass the imported data straight to `estimate_mi()`.
+and pass the imported data straight to `estimate_corr()`.
 We calculate the MI for several time lags and plot the results with Matplotlib.
 
 To try this example, download the [mi_example.csv](mi_example.csv) file.
 
 ```python
-from ennemi import estimate_mi
+from ennemi import estimate_corr
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -243,8 +248,8 @@ import pandas as pd
 data = pd.read_csv("mi_example.csv")
 time_lags = np.arange(-3, 6)
 
-mi = estimate_mi(data["y"], data[["x1", "x2", "x3"]],
-                 lag=time_lags, normalize=True)
+mi = estimate_corr(data["y"], data[["x1", "x2", "x3"]],
+                   lag=time_lags)
 
 plt.plot(time_lags, mi["x1"], label="$x_1$", marker="o")
 plt.plot(time_lags, mi["x2"], label="$x_2$", marker="^")
@@ -295,7 +300,7 @@ We pass the $X_2$ column as the `cond` parameter,
 and specify that the condition should be lagged by additional two steps:
 
 ```python
-from ennemi import estimate_mi
+from ennemi import estimate_corr
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -303,8 +308,8 @@ import pandas as pd
 data = pd.read_csv("mi_example.csv")
 time_lags = np.arange(-3, 6)
 
-mi = estimate_mi(data["y"], data[["x1", "x3"]], lag=time_lags,
-                 cond=data["x2"], cond_lag=time_lags+2, normalize=True)
+mi = estimate_corr(data["y"], data[["x1", "x3"]], lag=time_lags,
+                   cond=data["x2"], cond_lag=time_lags+2)
 print(mi)
 
 plt.plot(time_lags, mi["x1"], label="$x_1$", marker="o")
@@ -363,7 +368,8 @@ This is easy to do unless some variables are time lagged.
 The time lags are easy to get the wrong way around, and
 the calculation must be repeated for each lag value.
 
-To make subsetting with time lags easier, `estimate_mi()` accepts a `mask` parameter.
+To make subsetting with time lags easier, `estimate_mi()` and `estimate_corr()`
+accept a `mask` parameter.
 The mask is an array (or list) of boolean values.
 An `y` observation,
 and the relevant `x` and `cond` observations after lagging,
@@ -378,7 +384,7 @@ values only in the daytime.
 
 To analyze the full data set, you would execute:
 ```python
-from ennemi import estimate_mi
+from ennemi import estimate_corr
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -389,7 +395,7 @@ x = -0.3 * np.cos(2 * np.pi * t / 24) + rng.normal(0, 0.01, len(t))
 y = np.sqrt(np.maximum(0, -np.cos(2 * np.pi * (t-3) / 24)))\
                           + rng.normal(0, 0.01, len(t))
 
-print(estimate_mi(y, x, lag=[0, 1, 2, 3], normalize=True))
+print(estimate_corr(y, x, lag=[0, 1, 2, 3]))
 ```
 The result is:
 ```
@@ -402,7 +408,7 @@ The result is:
 To constrain to daytime observations of $Y$ only, replace the last line with
 ```python
 mask = (t % 24 > 6) & (t % 24 < 18)
-print(estimate_mi(y, x, lag=[0, 1, 2, 3], mask=mask, normalize=True))
+print(estimate_corr(y, x, lag=[0, 1, 2, 3], mask=mask))
 ```
 This produces slightly different MI values:
 ```
@@ -416,4 +422,4 @@ if $X &lt; 0$, then $Y$ is probably zero.
 The MI at the correct lag term increased a bit.
 
 If some observations were missing altogether, indicated by a `NaN` value,
-we could pass the `drop_nan` parameter to `estimate_mi()` and get the same results.
+we could pass the `drop_nan` parameter to `estimate_corr()` and get the same results.

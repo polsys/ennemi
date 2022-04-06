@@ -51,6 +51,7 @@ def get_pairwise_mi_callback(x, factor=1):
 ```
 
 To use the callback, pass the returned value to `estimate_mi`/`pairwise_mi`
+(or their `..._corr` counterparts)
 as the optional `callback` keyword parameter:
 ```python
 y, covariates = ...

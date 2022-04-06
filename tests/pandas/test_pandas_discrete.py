@@ -29,7 +29,7 @@ class TestPandasDiscrete(unittest.TestCase):
         weather[(weather==1) & (wind_dir==3)] = 0
         weather[(weather==1) & (wind_dir==2) & rng.choice([0,1], N)] = 0
 
-        self.data = data = pd.DataFrame({
+        self.data = pd.DataFrame({
             "Temp": np.round(actual_temp + rng.normal(0, 1, N)),
             "Press": np.round(actual_press + rng.normal(0, 1, N)),
             "Wind": wind_dir,
