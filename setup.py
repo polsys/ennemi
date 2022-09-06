@@ -5,8 +5,11 @@ from setuptools import setup
 from os import path
 
 description_file = path.join(path.abspath(path.dirname(__file__)), "DESCRIPTION.md")
-with open(description_file, encoding="utf-8") as f:
-    long_description = f.read()
+if os.path.exists(description_file):
+    with open(description_file, encoding="utf-8") as f:
+        long_description = f.read()
+else:
+    long_description = ""
 
 setup(
     name = "ennemi",
@@ -45,7 +48,7 @@ setup(
     },
 
     packages = [ "ennemi" ],
-    package_data = { "ennemi": ["py.typed"] },
+    package_data = { "ennemi": ["py.typed"], "": ["*.md"]},
     python_requires = "~=3.7",
     install_requires = [ "numpy~=1.19", "scipy~=1.5" ],
     extras_require = {
