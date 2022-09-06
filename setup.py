@@ -5,11 +5,8 @@ from setuptools import setup
 from os import path
 
 description_file = path.join(path.abspath(path.dirname(__file__)), "DESCRIPTION.md")
-if os.path.exists(description_file):
-    with open(description_file, encoding="utf-8") as f:
-        long_description = f.read()
-else:
-    long_description = ""
+with open(description_file, encoding="utf-8") as f:
+    long_description = f.read()
 
 setup(
     name = "ennemi",
