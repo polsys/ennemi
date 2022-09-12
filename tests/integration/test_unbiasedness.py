@@ -22,7 +22,7 @@ class TestUnbiasedness(unittest.TestCase):
 
         # Large k will have some bias, small k should not
         expected = -0.5 * log(1 - 0.8**2)
-        self.assertAlmostEqual(mi_3, expected, delta=0.005)
+        self.assertAlmostEqual(mi_3.item(), expected, delta=0.005)
         self.assertGreater(abs(mi_100 - expected), abs(mi_3 - expected) + 0.005)
 
     def test_unconditional_mi_independence(self) -> None:
@@ -34,7 +34,7 @@ class TestUnbiasedness(unittest.TestCase):
         mi_100 = estimate_mi(data[:,0], data[:,1], k=100)
 
         # Large k should be better for independence testing
-        self.assertAlmostEqual(mi_100, 0.0, delta=0.004)
+        self.assertAlmostEqual(mi_100.item(), 0.0, delta=0.004)
         self.assertGreater(mi_3 - mi_100, 0.002)
 
 
@@ -48,7 +48,7 @@ class TestUnbiasedness(unittest.TestCase):
         mi_100 = estimate_mi(x, x+y, cond=x, k=100)
 
         # Large k should be better for independence testing here as well
-        self.assertAlmostEqual(mi_100, 0.0, delta=0.005)
+        self.assertAlmostEqual(mi_100.item(), 0.0, delta=0.005)
         self.assertGreater(abs(mi_3 - mi_100), 0.05)
 
 
@@ -65,8 +65,8 @@ class TestUnbiasedness(unittest.TestCase):
         self.assertLess(h_100, expected - 0.005)
 
         # Still, both are reasonably close, and large k is closer
-        self.assertAlmostEqual(h_1, expected, delta=0.04)
-        self.assertAlmostEqual(h_100, expected, delta=0.01)
+        self.assertAlmostEqual(h_1.item(), expected, delta=0.04)
+        self.assertAlmostEqual(h_100.item(), expected, delta=0.01)
 
 
     def test_conditional_entropy_bias(self) -> None:
@@ -81,5 +81,5 @@ class TestUnbiasedness(unittest.TestCase):
 
         # Again, large k appears to have more negative bias
         expected = 0.5 * (log(np.linalg.det(2 * pi * e * cov)) - log(2 * pi * e))
-        self.assertAlmostEqual(h_5, expected, delta=0.005)
-        self.assertAlmostEqual(h_50, expected, delta=0.03)
+        self.assertAlmostEqual(h_5.item(), expected, delta=0.005)
+        self.assertAlmostEqual(h_50.item(), expected, delta=0.03)

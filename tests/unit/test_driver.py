@@ -101,7 +101,7 @@ class TestEstimateEntropy(unittest.TestCase):
         result = estimate_entropy(x)
 
         self.assertEqual(result.shape, ())
-        self.assertAlmostEqual(result, math.log(2 - 0), delta=0.01)
+        self.assertAlmostEqual(result.item(), math.log(2 - 0), delta=0.01)
 
     def test_multidim_interpretation(self) -> None:
         # Generate a two-dimensional Gaussian variable
@@ -197,7 +197,7 @@ class TestEstimateEntropy(unittest.TestCase):
         self.assertLess(marginal[2], -4.5)
 
         expected_multi = 0.5 * (math.log(np.linalg.det(2 * math.pi * math.e * cov)) - math.log(2*math.pi*math.e*1))
-        self.assertAlmostEqual(multidim, expected_multi, delta=0.1)
+        self.assertAlmostEqual(multidim.item(), expected_multi, delta=0.1)
 
     def test_conditional_entropy_nd_condition(self) -> None:
         # Draw a sample from three-dimensional Gaussian distribution
@@ -259,7 +259,7 @@ class TestEstimateEntropy(unittest.TestCase):
 
         result = estimate_entropy(data, multidim=True, drop_nan=True)
 
-        self.assertAlmostEqual(result,
+        self.assertAlmostEqual(result.item(),
             math.log(2*math.pi*math.e) + 0.5*math.log(2-0.6**2), delta=0.05)
 
     def test_drop_nan_cond(self) -> None:
@@ -271,7 +271,7 @@ class TestEstimateEntropy(unittest.TestCase):
 
         result = estimate_entropy(data, cond=cond, drop_nan=True)
 
-        self.assertAlmostEqual(result, 0.0, delta=0.04)
+        self.assertAlmostEqual(result.item(), 0.0, delta=0.04)
 
     def test_drop_nan_cond_multidim(self) -> None:
         # See test_conditional_entropy_1d_condition
@@ -285,7 +285,7 @@ class TestEstimateEntropy(unittest.TestCase):
         result = estimate_entropy(data[:,:2], cond=data[:,2], multidim=True, drop_nan=True)
 
         expected = 0.5 * (math.log(np.linalg.det(2 * math.pi * math.e * cov)) - math.log(2*math.pi*math.e*1))
-        self.assertAlmostEqual(result, expected, delta=0.1)
+        self.assertAlmostEqual(result.item(), expected, delta=0.1)
 
     def test_drop_nan_leaves_too_few_observations(self) -> None:
         data = [(np.nan, 2), (np.nan, 4), (5, np.nan), (7, np.nan), (9, 10), (11, 12)]
@@ -312,14 +312,14 @@ class TestEstimateEntropy(unittest.TestCase):
         result = estimate_entropy(data, discrete=True)
 
         expected = -(3/6*math.log(3/6) + 2/6*math.log(2/6) + 1/6*math.log(1/6))
-        self.assertAlmostEqual(result, expected, delta=1e-6)
+        self.assertAlmostEqual(result.item(), expected, delta=1e-6)
 
     def test_discrete_2d(self) -> None:
         chars = ["a", "b", "c", "d", "e"]
         data = np.column_stack((np.tile(chars, 5), np.repeat(chars, 5)))
         result = estimate_entropy(data, discrete=True, multidim=True)
 
-        self.assertAlmostEqual(result, math.log(5*5), delta=1e-6)
+        self.assertAlmostEqual(result.item(), math.log(5*5), delta=1e-6)
 
     def test_discrete_condition(self) -> None:
         data = np.repeat(["a", "b", "c", "d"], 20)
@@ -328,8 +328,8 @@ class TestEstimateEntropy(unittest.TestCase):
         uncond = estimate_entropy(data, discrete=True)
         cond = estimate_entropy(data, discrete=True, cond=cond)
 
-        self.assertAlmostEqual(uncond, math.log(4), delta=1e-6)
-        self.assertAlmostEqual(cond, math.log(2), delta=1e-6)
+        self.assertAlmostEqual(uncond.item(), math.log(4), delta=1e-6)
+        self.assertAlmostEqual(cond.item(), math.log(2), delta=1e-6)
 
     def test_pandas_object_dtype_raises_error(self) -> None:
         # pandas converts strings to data type 'object',
@@ -696,7 +696,7 @@ class TestEstimateMi(unittest.TestCase):
         # Constraining to the correct dataset produces correct results
         expected = -0.5 * math.log(1 - 0.8**2)
         masked = estimate_mi(y, x, mask=mask)
-        self.assertAlmostEqual(masked, expected, delta=0.03)
+        self.assertAlmostEqual(masked.item(), expected, delta=0.03)
 
     def test_mask_as_list(self) -> None:
         x = list(range(300)) # type: List[float]
@@ -835,7 +835,7 @@ class TestEstimateMi(unittest.TestCase):
         data, expected = self._create_4d_data()
 
         actual = estimate_mi(data[:,1], data[:,0], cond=data[:,2:], cond_lag=[[1,-1]])
-        self.assertAlmostEqual(actual, expected, delta=0.08)
+        self.assertAlmostEqual(actual.item(), expected, delta=0.08)
 
     def test_conditional_mi_with_multiple_and_separate_lags(self) -> None:
         # The same as above, but with multiple lags too
@@ -901,7 +901,7 @@ class TestEstimateMi(unittest.TestCase):
         data[950:,1] = np.nan
 
         mi = estimate_mi(data[:,1], data[:,0], normalize=True, drop_nan=True)
-        self.assertAlmostEqual(mi, 0.8, delta=0.02)
+        self.assertAlmostEqual(mi.item(), 0.8, delta=0.02)
 
     def test_alias(self) -> None:
         rng = np.random.default_rng(2022_04_06)
@@ -915,7 +915,7 @@ class TestEstimateMi(unittest.TestCase):
         # estimate_mi with normalize=True
         expected = estimate_mi(data[:,1], data[:,0], k=7, cond=cond, cond_lag=2,
             mask=mask, preprocess=False, drop_nan=True, normalize=True)
-        self.assertAlmostEqual(expected, 0.83, delta=0.03)
+        self.assertAlmostEqual(expected.item(), 0.83, delta=0.03)
 
         # estimate_corr should produce EXACTLY same results
         actual = estimate_corr(data[:,1], data[:,0], k=7, cond=cond, cond_lag=2,
@@ -982,7 +982,7 @@ class TestEstimateMi(unittest.TestCase):
         x = rng.uniform(y, y+1)
 
         mi = estimate_mi(y, x, discrete_y=True)
-        self.assertAlmostEqual(mi, math.log(2), delta=0.02)
+        self.assertAlmostEqual(mi.item(), math.log(2), delta=0.02)
 
         # Symmetry
         mi2 = estimate_mi(x, y, discrete_x=True)
@@ -997,7 +997,7 @@ class TestEstimateMi(unittest.TestCase):
         y = np.asarray(["Zero", "One", "Two"])[y]
 
         mi = estimate_mi(y, x, discrete_y=True)
-        self.assertAlmostEqual(mi, math.log(2), delta=0.02)
+        self.assertAlmostEqual(mi.item(), math.log(2), delta=0.02)
 
         # Symmetry
         mi2 = estimate_mi(x, y, discrete_x=True)
@@ -1017,7 +1017,7 @@ class TestEstimateMi(unittest.TestCase):
         mi1 = estimate_mi(s, w, discrete_y=True, cond=y)
         mi2 = estimate_mi(s, w, discrete_y=True, cond=np.column_stack((y,z)))
 
-        self.assertAlmostEqual(mi2, math.log(2), delta=0.06)
+        self.assertAlmostEqual(mi2.item(), math.log(2), delta=0.06)
         self.assertGreater(mi2, mi1 + 0.1)
         self.assertGreater(mi1, mi0 + 0.1)
 
@@ -1035,21 +1035,21 @@ class TestEstimateMi(unittest.TestCase):
         y = np.repeat([0, 1], 100)
 
         mi = estimate_mi(y, x, discrete_x=True, discrete_y=True)
-        self.assertAlmostEqual(mi, 0, delta=1e-6)
+        self.assertAlmostEqual(mi.item(), 0, delta=1e-6)
 
     def test_both_discrete_independent_bools(self) -> None:
         x = np.tile([True, False], 100)
         y = np.repeat([False, True], 100)
 
         mi = estimate_mi(y, x, discrete_x=True, discrete_y=True)
-        self.assertAlmostEqual(mi, 0, delta=1e-6)
+        self.assertAlmostEqual(mi.item(), 0, delta=1e-6)
 
     def test_both_discrete_fully_dependent(self) -> None:
         x = np.tile(["a", "b", "c"], 100)
         y = np.tile(["b", "a", "c"], 100)
 
         mi = estimate_mi(y, x, discrete_x=True, discrete_y=True)
-        self.assertAlmostEqual(mi, math.log(3), delta=1e-6)
+        self.assertAlmostEqual(mi.item(), math.log(3), delta=1e-6)
 
     def test_both_discrete_mixed_str_and_int(self) -> None:
         # NumPy converts mixed int/string to all string, which causes trouble
@@ -1058,8 +1058,8 @@ class TestEstimateMi(unittest.TestCase):
 
         mi = estimate_mi(y, x, discrete_x=True, discrete_y=True)
         mi2 = estimate_mi(x, y, discrete_x=True, discrete_y=True)
-        self.assertAlmostEqual(mi, math.log(3), delta=1e-6)
-        self.assertAlmostEqual(mi2, math.log(3), delta=1e-6)
+        self.assertAlmostEqual(mi.item(), math.log(3), delta=1e-6)
+        self.assertAlmostEqual(mi2.item(), math.log(3), delta=1e-6)
 
     def test_both_discrete_mixed_bool_and_int(self) -> None:
         x = np.tile([True, False], 100)
@@ -1067,8 +1067,8 @@ class TestEstimateMi(unittest.TestCase):
 
         mi = estimate_mi(y, x, discrete_x=True, discrete_y=True)
         mi2 = estimate_mi(x, y, discrete_x=True, discrete_y=True)
-        self.assertAlmostEqual(mi, 0, delta=1e-6)
-        self.assertAlmostEqual(mi2, 0, delta=1e-6)
+        self.assertAlmostEqual(mi.item(), 0, delta=1e-6)
+        self.assertAlmostEqual(mi2.item(), 0, delta=1e-6)
 
     def test_both_discrete_partly_dependent(self) -> None:
         # 0 always associates to 0, but 1 -> 1 with probability 1/3 only
@@ -1080,7 +1080,7 @@ class TestEstimateMi(unittest.TestCase):
         expected = 0.4 * math.log(0.4 / (0.4 * 0.8))\
             + 0.4 * math.log(0.4 / (0.6 * 0.8))\
             + 0.2 * math.log(0.2 / (0.6 * 0.2))
-        self.assertAlmostEqual(mi, expected, delta=1e-6)
+        self.assertAlmostEqual(mi.item(), expected, delta=1e-6)
 
     def test_both_discrete_with_lag(self) -> None:
         # Y equals X with lag of two time steps
@@ -1101,7 +1101,7 @@ class TestEstimateMi(unittest.TestCase):
         z = np.zeros(200)
 
         mi_cond = estimate_mi(y, x, cond=z, discrete_x=True, discrete_y=True)
-        self.assertAlmostEqual(mi_cond, 0, delta=1e-6)
+        self.assertAlmostEqual(mi_cond.item(), 0, delta=1e-6)
 
     def test_both_discrete_cond_gives_all_information(self) -> None:
         # X and Y are independent, but knowing both X and X==Y determines Y completely
@@ -1110,10 +1110,10 @@ class TestEstimateMi(unittest.TestCase):
 
         # Consistency check
         mi_uncond = estimate_mi(y, x, discrete_x=True, discrete_y=True)
-        self.assertAlmostEqual(mi_uncond, 0, delta=1e-6)
+        self.assertAlmostEqual(mi_uncond.item(), 0, delta=1e-6)
 
         mi_cond = estimate_mi(y, x, cond=(x==y), discrete_x=True, discrete_y=True)
-        self.assertAlmostEqual(mi_cond, math.log(2), delta=1e-6)
+        self.assertAlmostEqual(mi_cond.item(), math.log(2), delta=1e-6)
 
     def test_both_discrete_cond_gives_some_information(self) -> None:
         # X and Y are independent, Z is (X==Y) with some probability
@@ -1125,10 +1125,10 @@ class TestEstimateMi(unittest.TestCase):
 
         # Consistency check
         mi_uncond = estimate_mi(y, x, discrete_x=True, discrete_y=True)
-        self.assertAlmostEqual(mi_uncond, 0, delta=1e-6)
+        self.assertAlmostEqual(mi_uncond.item(), 0, delta=1e-6)
 
         mi_cond = estimate_mi(y, x, cond=z, discrete_x=True, discrete_y=True)
-        self.assertAlmostEqual(mi_cond, math.log(2)/3, delta=1e-6)
+        self.assertAlmostEqual(mi_cond.item(), math.log(2)/3, delta=1e-6)
 
     def test_both_discrete_cond_multidimensional(self) -> None:
         # Like above, but the two conditions determine Y with probability 2/3
@@ -1140,10 +1140,10 @@ class TestEstimateMi(unittest.TestCase):
 
         # Consistency check
         mi_uncond = estimate_mi(y, x, discrete_x=True, discrete_y=True)
-        self.assertAlmostEqual(mi_uncond, 0, delta=1e-6)
+        self.assertAlmostEqual(mi_uncond.item(), 0, delta=1e-6)
 
         mi_cond = estimate_mi(y, x, cond=z, discrete_x=True, discrete_y=True)
-        self.assertAlmostEqual(mi_cond, 2/3 * math.log(2), delta=1e-6)
+        self.assertAlmostEqual(mi_cond.item(), 2/3 * math.log(2), delta=1e-6)
 
     def test_discrete_data_pandas_object_dtype_raises_error(self) -> None:
         # pandas converts strings to data type 'object',
@@ -1178,8 +1178,8 @@ class TestEstimateMi(unittest.TestCase):
         mi_unscaled = estimate_mi(y, x, preprocess=False, normalize=True)
         mi_scaled = estimate_mi(y, x, preprocess=True, normalize=True)
 
-        self.assertNotAlmostEqual(mi_unscaled, 0.6, delta=0.1)
-        self.assertAlmostEqual(mi_scaled, 0.6, delta=0.03)
+        self.assertNotAlmostEqual(mi_unscaled.item(), 0.6, delta=0.1)
+        self.assertAlmostEqual(mi_scaled.item(), 0.6, delta=0.03)
 
 
     def test_normalization(self) -> None:
@@ -1189,7 +1189,7 @@ class TestEstimateMi(unittest.TestCase):
 
         result = estimate_mi(data[:,0], data[:,1], normalize=True)
 
-        self.assertAlmostEqual(result, 0.6, delta=0.02)
+        self.assertAlmostEqual(result.item(), 0.6, delta=0.02)
 
 
     def test_callback_on_single_task(self) -> None:

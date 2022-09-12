@@ -316,7 +316,8 @@ def _estimate_conditional_discrete_mi(x: FloatArray, y: FloatArray, cond: FloatA
         cond_probs[i] = cond_counts[i] * _estimate_discrete_mi(x_subset, y_subset)
 
     # Return the weighted sum
-    return np.sum(cond_probs) / N
+    # The item() call makes the type checker happier somehow...
+    return np.sum(cond_probs).item() / N
 
 
 #
