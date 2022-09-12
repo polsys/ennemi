@@ -490,7 +490,7 @@ def _estimate_mi(y: FloatArray, x: FloatArray, lag: FloatArray, k: int,
             callback(var_index, lag[lag_index])
     
     time_estimate = _get_mi_time_estimate(len(y), cond, k)
-    conc_result = _map_maybe_parallel(_lagged_mi, params, max_threads, time_estimate, wrapped_callback)
+    conc_result = _map_maybe_parallel(_lagged_mi, params, max_threads, time_estimate, wrapped_callback) # type: ignore
     
     # Collect the results to a 2D array
     result = np.empty((len(lag), nvar))

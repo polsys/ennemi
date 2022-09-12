@@ -51,11 +51,11 @@ class TestMixtureDistribution(unittest.TestCase):
 
         # With low sample size, increasing k should increase accuracy
         self.assertLess(np.mean(np.abs(small_k3a - expected)), np.mean(np.abs(small_k1a - expected)))
-        self.assertAlmostEqual(np.median(small_k3a), expected, delta=0.02)
+        self.assertAlmostEqual(np.median(small_k3a).item(), expected, delta=0.02)
 
         # With high sample size, decreasing k should increase accuracy
         self.assertLess(np.mean(np.abs(full_k2a - expected)), np.mean(np.abs(full_k40a - expected)))
-        self.assertAlmostEqual(np.median(full_k2a), expected, delta=0.01)
+        self.assertAlmostEqual(np.median(full_k2a).item(), expected, delta=0.01)
 
 
     def integrate_mi(self) -> float:

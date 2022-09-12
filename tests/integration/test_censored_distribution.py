@@ -34,7 +34,7 @@ class TestCensoredDistribution(unittest.TestCase):
         # The estimated MI should be very close to the numerical one
         actual = estimate_mi(sample[:,0], sample[:,1])
 
-        self.assertAlmostEqual(actual, expected, delta=0.015)
+        self.assertAlmostEqual(actual.item(), expected, delta=0.015)
 
 
     def integrate_mi(self) -> float:
