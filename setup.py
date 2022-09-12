@@ -10,7 +10,7 @@ with open(description_file, encoding="utf-8") as f:
 
 setup(
     name = "ennemi",
-    version = "1.2.0",
+    version = "1.2.1",
     description = "Non-linear correlation detection with mutual information",
     long_description = long_description,
     long_description_content_type = "text/markdown",
