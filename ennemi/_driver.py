@@ -71,9 +71,7 @@ def normalize_mi(mi: Union[float, GenArrayLike]) -> GenArrayLike:
         if isinstance(mi, (pandas.DataFrame, pandas.Series)):
             return mi.applymap(_normalize)
     
-    # TODO: Type ignore is necessary because mypy does not realize that the
-    #       result is an array of float, not array of Any
-    return np.vectorize(_normalize, otypes=[float])(mi) # type: ignore
+    return np.vectorize(_normalize, otypes=[float])(mi)
 
 def _normalize(mi: float) -> float:
     if mi <= 0.0:
