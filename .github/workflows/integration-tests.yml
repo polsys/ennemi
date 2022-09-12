@@ -1,4 +1,4 @@
-# Longer-running tests that are only executed on merged code.
+# Longer-running tests.
 # These are run with oldest supported versions of the dependencies.
 
 name: Integration Tests
