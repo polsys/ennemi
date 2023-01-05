@@ -16,7 +16,7 @@ with no theoretical background required.
 
 This package depends only on NumPy and SciPy;
 Pandas is suggested for more enjoyable data analysis.
-Python 3.7+ on the latest macOS, Ubuntu and Windows versions
+Python 3.8+ on the latest macOS, Ubuntu and Windows versions
 is officially supported.
 
 For more information on theoretical background and usage, please see the

@@ -17,21 +17,21 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ ubuntu-18.04, windows-2019 ]
+        os: [ ubuntu-20.04, windows-2019, macos-11 ]
 
     steps:
       - name: Check out code
         uses: actions/checkout@v2
 
-      - name: Set up Python 3.7
+      - name: Set up Python 3.8
         uses: actions/setup-python@v1
         with:
-          python-version: 3.7
+          python-version: 3.8
 
       - name: Install dependencies with custom versions
         # Note: This must be kept in sync with the minimum versions in setup.py
         run: |
-          pip install numpy==1.19.0 scipy==1.5 pytest~=5.4
+          pip install numpy==1.21.0 scipy==1.7 pytest~=6.2
           pip install --no-deps -e .
 
       - name: Run integration tests (without pandas)
