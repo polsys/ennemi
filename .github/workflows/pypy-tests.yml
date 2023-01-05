@@ -1,0 +1,39 @@
+# Run the tests with latest dependencies and the alternative PyPy compiler.
+
+name: PyPy Tests
+
+on:
+  pull_request:
+    branches: [ master ]
+    paths-ignore:
+      - 'docs/**'
+      - '**.md'
+
+jobs:
+  build:
+
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # Save a bit of resources by arguing that Ubuntu and macOS are roughly equivalent
+        os: [ ubuntu-latest, windows-latest ]
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3
+
+      - name: Set up latest PyPy
+        uses: actions/setup-python@v4
+        with:
+          python-version: 'pypy-3.9'
+
+      - name: Install dependencies
+        # Note: This must be kept in sync with the minimum versions in setup.py
+        run: |
+          pip install -e .
+          pip install pandas pytest
+
+      - name: Run all tests
+        run: |
+          python -m pytest .
