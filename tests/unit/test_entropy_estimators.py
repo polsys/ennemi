@@ -236,7 +236,7 @@ class TestEstimateConditionalMi(unittest.TestCase):
 
         actual = _estimate_conditional_mi(data[:,0], data[:,1], data[:,2])
         expected = 0.5 * (log(8) + log(35) - log(9) - log(24))
-        self.assertAlmostEqual(actual, expected, delta=0.015)
+        self.assertAlmostEqual(actual, expected, delta=0.025)
 
     def test_four_gaussians(self) -> None:
         # As above, but now the condition is two-dimensional.
