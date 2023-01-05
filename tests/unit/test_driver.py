@@ -212,7 +212,7 @@ class TestEstimateEntropy(unittest.TestCase):
         self.assertLess(marginal[0], -0.5)
         self.assertLess(marginal[1], -0.5)
         self.assertLess(marginal[2], -0.5)
-        self.assertLess(multidim, -1.5)
+        self.assertLess(multidim.item(), -1.5)
 
     def test_conditional_entropy_with_independent_condition(self) -> None:
         rng = np.random.default_rng(6)
@@ -233,8 +233,8 @@ class TestEstimateEntropy(unittest.TestCase):
         cond = np.concatenate((unif, rng.normal(0, 1, size=400)))
         mask = np.concatenate((np.full(1000, True), np.full(400, False)))
 
-        unmasked = estimate_entropy(data, cond=cond)
-        masked = estimate_entropy(data, cond=cond, mask=mask)
+        unmasked = estimate_entropy(data, cond=cond).item()
+        masked = estimate_entropy(data, cond=cond, mask=mask).item()
 
         self.assertLess(masked, unmasked - 1)
         self.assertLess(masked, -5)
@@ -690,13 +690,13 @@ class TestEstimateMi(unittest.TestCase):
         mask[150:450] = False
 
         # The unmasked estimation is clearly incorrect
-        unmasked = estimate_mi(y, x, mask=None)
+        unmasked = estimate_mi(y, x, mask=None).item()
         self.assertLess(unmasked, 0.4)
 
         # Constraining to the correct dataset produces correct results
         expected = -0.5 * math.log(1 - 0.8**2)
-        masked = estimate_mi(y, x, mask=mask)
-        self.assertAlmostEqual(masked.item(), expected, delta=0.03)
+        masked = estimate_mi(y, x, mask=mask).item()
+        self.assertAlmostEqual(masked, expected, delta=0.03)
 
     def test_mask_as_list(self) -> None:
         x = list(range(300)) # type: List[float]
@@ -706,7 +706,7 @@ class TestEstimateMi(unittest.TestCase):
         y = list(range(300, 0, -1))
         mask = [ True, False ] * 150
 
-        self.assertGreater(estimate_mi(y, x, lag=1, mask=mask), 3)
+        self.assertGreater(estimate_mi(y, x, lag=1, mask=mask).item(), 3)
 
     def test_mask_and_lag(self) -> None:
         # Only even y and odd x elements are preserved
@@ -720,7 +720,7 @@ class TestEstimateMi(unittest.TestCase):
         x[mask] = 0
         y[np.logical_not(mask)] = 0
 
-        actual = estimate_mi(y, x, lag=1, mask=mask)
+        actual = estimate_mi(y, x, lag=1, mask=mask).item()
         self.assertGreater(actual, 4)
 
     def test_conditional_mi_with_several_lags(self) -> None:
@@ -736,7 +736,7 @@ class TestEstimateMi(unittest.TestCase):
 
         # As a consistency check, the non-conditional MI should be large
         noncond = estimate_mi(z, y, k=5, lag=1)
-        self.assertGreater(noncond, 1)
+        self.assertGreater(noncond.item(), 1)
 
         # Then the conditional MI
         actual = estimate_mi(z, y, lag=[0,1], k=5, cond=x, cond_lag=[1, 2])

@@ -17,12 +17,12 @@ class TestUnbiasedness(unittest.TestCase):
         cov = [[1, 0.8], [0.8, 1]]
         data = rng.multivariate_normal([0, 0], cov, size=20_000)
         
-        mi_3 = estimate_mi(data[:,0], data[:,1], k=3)
-        mi_100 = estimate_mi(data[:,0], data[:,1], k=100)
+        mi_3 = estimate_mi(data[:,0], data[:,1], k=3).item()
+        mi_100 = estimate_mi(data[:,0], data[:,1], k=100).item()
 
         # Large k will have some bias, small k should not
         expected = -0.5 * log(1 - 0.8**2)
-        self.assertAlmostEqual(mi_3.item(), expected, delta=0.005)
+        self.assertAlmostEqual(mi_3, expected, delta=0.005)
         self.assertGreater(abs(mi_100 - expected), abs(mi_3 - expected) + 0.005)
 
     def test_unconditional_mi_independence(self) -> None:
@@ -30,11 +30,11 @@ class TestUnbiasedness(unittest.TestCase):
         cov = [[1, 0], [0, 1]]
         data = rng.multivariate_normal([0, 0], cov, size=20_000)
         
-        mi_3 = estimate_mi(data[:,0], data[:,1], k=3)
-        mi_100 = estimate_mi(data[:,0], data[:,1], k=100)
+        mi_3 = estimate_mi(data[:,0], data[:,1], k=3).item()
+        mi_100 = estimate_mi(data[:,0], data[:,1], k=100).item()
 
         # Large k should be better for independence testing
-        self.assertAlmostEqual(mi_100.item(), 0.0, delta=0.004)
+        self.assertAlmostEqual(mi_100, 0.0, delta=0.004)
         self.assertGreater(mi_3 - mi_100, 0.002)
 
 
@@ -44,11 +44,11 @@ class TestUnbiasedness(unittest.TestCase):
         x = rng.normal(0.0, 1.0, size=20_000)
         y = rng.normal(0.0, 1.0, size=20_000)
         
-        mi_3 = estimate_mi(x, x+y, cond=x, k=3)
-        mi_100 = estimate_mi(x, x+y, cond=x, k=100)
+        mi_3 = estimate_mi(x, x+y, cond=x, k=3).item()
+        mi_100 = estimate_mi(x, x+y, cond=x, k=100).item()
 
         # Large k should be better for independence testing here as well
-        self.assertAlmostEqual(mi_100.item(), 0.0, delta=0.005)
+        self.assertAlmostEqual(mi_100, 0.0, delta=0.005)
         self.assertGreater(abs(mi_3 - mi_100), 0.05)
 
 
@@ -56,8 +56,8 @@ class TestUnbiasedness(unittest.TestCase):
         rng = np.random.default_rng(0)
         x = rng.normal(size=20_000)
 
-        h_1 = estimate_entropy(x, k=1)
-        h_100 = estimate_entropy(x, k=100)
+        h_1 = estimate_entropy(x, k=1).item()
+        h_100 = estimate_entropy(x, k=100).item()
 
         # Small k has positive bias, large k has negative bias
         expected = 0.5*log(2*pi*e)
@@ -65,8 +65,8 @@ class TestUnbiasedness(unittest.TestCase):
         self.assertLess(h_100, expected - 0.005)
 
         # Still, both are reasonably close, and large k is closer
-        self.assertAlmostEqual(h_1.item(), expected, delta=0.04)
-        self.assertAlmostEqual(h_100.item(), expected, delta=0.01)
+        self.assertAlmostEqual(h_1, expected, delta=0.04)
+        self.assertAlmostEqual(h_100, expected, delta=0.01)
 
 
     def test_conditional_entropy_bias(self) -> None:
@@ -76,10 +76,10 @@ class TestUnbiasedness(unittest.TestCase):
         cov = np.asarray([[1, 0.6, 0.3], [0.6, 2, 0.1], [0.3, 0.1, 1]])
         data = rng.multivariate_normal([0, 0, 0], cov, size=20_000)
 
-        h_5 = estimate_entropy(data[:,:2], cond=data[:,2], multidim=True, k=5)
-        h_50 = estimate_entropy(data[:,:2], cond=data[:,2], multidim=True, k=50)
+        h_5 = estimate_entropy(data[:,:2], cond=data[:,2], multidim=True, k=5).item()
+        h_50 = estimate_entropy(data[:,:2], cond=data[:,2], multidim=True, k=50).item()
 
         # Again, large k appears to have more negative bias
         expected = 0.5 * (log(np.linalg.det(2 * pi * e * cov)) - log(2 * pi * e))
-        self.assertAlmostEqual(h_5.item(), expected, delta=0.005)
-        self.assertAlmostEqual(h_50.item(), expected, delta=0.03)
+        self.assertAlmostEqual(h_5, expected, delta=0.005)
+        self.assertAlmostEqual(h_50, expected, delta=0.03)

@@ -30,7 +30,7 @@ You can also follow the development by clicking `Watch releases` on the GitHub p
 
 ## Getting started
 
-This package requires Python 3.7 or higher,
+This package requires Python 3.8 or higher,
 and it is tested to work on the latest versions of Ubuntu, macOS and Windows.
 The only hard dependencies are reasonably recent versions of NumPy and SciPy;
 Pandas is strongly suggested for more enjoyable data analysis.
