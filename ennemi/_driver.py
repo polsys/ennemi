@@ -20,14 +20,9 @@ from ._entropy_estimators import _estimate_single_mi, _estimate_conditional_mi,\
     _estimate_semidiscrete_mi, _estimate_conditional_semidiscrete_mi,\
     _estimate_single_entropy, _estimate_discrete_entropy
 
-try:
-    import numpy.typing as npt
-    FloatArray = npt.NDArray[np.float64]
-    ArrayLike = npt.ArrayLike
-except:
-    # Just stop supporting annotations altogether on NumPy 1.20 and below
-    FloatArray = np.ndarray # type: ignore
-    ArrayLike = np.ndarray # type: ignore
+import numpy.typing as npt
+FloatArray = npt.NDArray[np.float64]
+ArrayLike = npt.ArrayLike
 GenArrayLike = TypeVar("GenArrayLike", Sequence[float], Sequence[Sequence[float]], FloatArray)
 T = TypeVar("T")
 
@@ -220,7 +215,7 @@ def _estimate_conditional_entropy(x: FloatArray, cond: FloatArray, k: int, multi
 
 def _call_entropy_func(xs: FloatArray, k: int, discrete: bool) -> float:
     if discrete:
-        return _estimate_discrete_entropy(xs, k)
+        return _estimate_discrete_entropy(xs)
     else:
         return _estimate_single_entropy(xs, k)
 

@@ -13,13 +13,9 @@ from scipy.spatial import cKDTree
 from typing import Union
 from warnings import warn
 
-try:
-    import numpy.typing as npt
-    FloatArray = npt.NDArray[np.float64]
-    IntArray = npt.NDArray[np.int64]
-except:
-    FloatArray = "" # type: ignore
-    IntArray = "" # type: ignore
+import numpy.typing as npt
+FloatArray = npt.NDArray[np.float64]
+IntArray = npt.NDArray[np.int64]
 
 
 def _estimate_single_entropy(x: FloatArray, k: int = 3) -> float:
@@ -45,7 +41,7 @@ def _estimate_single_entropy(x: FloatArray, k: int = 3) -> float:
     # The log(2) term is because the mean is taken over double the distances
     return _psi(N) - _psi(k) + ndim * (np.mean(np.log(distances)) + np.log(2))
 
-def _estimate_discrete_entropy(x: FloatArray, k: int = 3) -> float:
+def _estimate_discrete_entropy(x: FloatArray) -> float:
     """Estimate the discrete entropy of a n-dimensional random variable.
 
     This is done using the mathematical definition:
@@ -250,8 +246,8 @@ def _estimate_conditional_semidiscrete_mi(x: FloatArray, y: FloatArray, cond: Fl
 
     return _psi(k) - np.mean(_psi(nxz) + _psi(nyz) - _psi(nz))
 
-def _verify_not_continuous(values: FloatArray, N: int) -> None:
-    if len(values) > N / 4:
+def _verify_not_continuous(values: FloatArray, n: int) -> None:
+    if len(values) > n / 4:
         warn("A discrete variable has relatively many unique values." +
             " Have you set marked the discrete variables in correct order?" +
             " If both X and Y are discrete, the conditioning variable cannot be continuous" +
