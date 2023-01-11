@@ -24,12 +24,13 @@ $$
 1, \ldots, 255, &\text{with probability} \frac{1}{510},
 \end{cases}
 $$
-the entropy is 5 bits.
+the entropy is about 5 bits.
 This is because in half of the cases, the variable can be expressed with
 just one bit: $0$.
-In the rest of the cases, nine bits are necessary:
-a $1$ for distinction from the first case, and eight bits for encoding the value.
-(This is a simplification; the real value is slightly smaller.)
+In the rest of the cases, we can use nine bits:
+a $1$ for distinction from the first case, followed by eight bits that encode the value.
+On average, we thus need $1 \cdot \frac 1 2 + 9 \cdot \frac 1 2 = 5$ bits.
+(This is a simplification; the real entropy computed below is slightly smaller.)
 
 This is how data compression works.
 A file can be compressed down to as many bits as it has entropy.
@@ -40,19 +41,38 @@ further reducing the entropy.
 
 Mathematically, the entropy of a random variable $X$ is defined as
 $$
-H(X) = \mathbb E \log_2 p(x) = \sum_{x} p(x) \log_2 p(x).
+H(X) = \mathbb E \log p(x) = \sum_{x} p(x) \log p(x).
 $$
 
-Sometimes, the natural logarithm is used instead of binary logarithm.
-In this case, the unit is often called _nats_.
-**The `ennemi` package always returns values in nats.**
-To convert between bits and nats, apply the change-of-base formula:
+The unit of entropy depends on the base we choose for the logarithm.
+We get bits by using $\log_2$, but generally the natural (base-$e$) logarithm is used.
+This unit is called **nats, and it is used by `ennemi`**.
+
+To convert between bits and nats, we can apply the change-of-base formula:
 $$
-\mathrm{bits} = \mathrm{nats} \cdot \log_2 e.
+\text{bits} = \frac{\text{nats}}{\log_e 2}.
 $$
 
 To estimate the entropy of a discrete data set, you can call `ennemi`'s
 `estimate_entropy()` method with the parameter `discrete=True`.
+The two examples above are computed as in:
+
+```python
+from ennemi import estimate_entropy
+import numpy as np
+
+data1 = np.arange(0, 256)
+entropy1 = estimate_entropy(data1, discrete=True)
+
+print(f"Entropy of first data set: {entropy1:.2f} nats")
+print(f"Entropy of first data set: {entropy1 / np.log(2):.2f} bits")
+
+data2 = np.concatenate((np.repeat(0, 256), np.arange(1, 256)))
+entropy2 = estimate_entropy(data2, discrete=True)
+
+print(f"Entropy of second data set: {entropy2:.2f} nats")
+print(f"Entropy of second data set: {entropy2 / np.log(2):.2f} bits")
+```
 
 
 
@@ -62,8 +82,6 @@ $$
 H(X) = \mathbb E \log p(x) = \int_\Omega p(x) \log p(x) \,dx.
 $$
 However, this definition leads to one significant difference.
-Continuous random variables always take on infinitely many values.
-Therefore you always need an infinite number of bits to express the value.
 
 As an example, it is easy to calculate that the uniform distribution on
 the interval ${[{a}, {b}]}$ has entropy equal to $\log (b-a)$.
@@ -76,6 +94,9 @@ $$
 H(\mathrm{Uniform(0, 1/2)}) = -1 \text{ bits} \approx -0.69 \text{ nats}.
 $$
 
+Continuous random variables always take on infinitely many values.
+Therefore we always need an infinite number of bits to express the value.
+
 Instead of being an _absolute_ measure of information like in the discrete case,
 continuous (or differential) entropy is a _relative_ measure.
 It tells that you need one coin flip less to express $\mathrm{Uniform(0, 1/2)}$
@@ -84,6 +105,11 @@ than $\mathrm{Uniform(0, 1)}$, but both are "at an infinite offset" to zero entr
 `ennemi` can estimate the entropy of continuous random variables via the
 `estimate_entropy()` method.
 The variables can be one- or $n$-dimensional.
+
+```python
+uniform = np.random.default_rng(0).uniform(0, 0.5, 2000)
+print(f"Entropy for Uniform(0, 0.5) variable is {estimate_entropy(uniform):.5f} nats")
+```
 
 
 
@@ -133,18 +159,18 @@ The conditional MI mentioned in Step 3 slightly extends the definition:
 > Given a variable $Z$, how much extra information on $Y$ I gain from $X$?
 
 To quote the classic example, there is a positive correlation between
-ice cream sales and drownings in pools.
-This means that $\mathrm{MI}(\text{drownings}; \text{ice cream sales}) > 0$. 
+ice cream sales and forest fires.
+This means that $\mathrm{MI}(\text{fires}; \text{ice cream sales}) > 0$. 
 Of course, both variables depend on the temperature, so we also have
-$\mathrm{MI}(\text{drownings}; \text{temperature}) > 0$ and
+$\mathrm{MI}(\text{fires}; \text{temperature}) > 0$ and
 $\mathrm{MI}(\text{ice cream sales}; \text{temperature}) > 0$.
 
-To find out whether there is any link between drownings and ice cream,
+To find out whether there is any link between forest fires and ice cream,
 we calculate the MI conditioned on temperature.
 This removes the effect explained by temperature alone.
 If
 $$
-\mathrm{MI}(\text{drownings}; \text{ice cream sales} \mid \text{temperature}) > 0,
+\mathrm{MI}(\text{forest fires}; \text{ice cream sales} \mid \text{temperature}) > 0,
 $$
 there is an actual link.
 If the conditional MI is zero, the correlation is fully explained by temperature.
@@ -180,7 +206,7 @@ correctly suggesting that there is a strong dependency.
 
 The same normalization formula works with conditional MI too,
 and is equivalent to the partial correlation coefficient.
-`ennemi` outputs correlation scale values when the `normalize` parameter is set to True.
+`ennemi.estimate_corr()` outputs correlation scale values.
 
 
 

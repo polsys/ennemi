@@ -6,31 +6,96 @@ There are a few things you should know when using `ennemi` in your projects.
 In case you encounter an issue not mentioned here, please get in touch!
 
 
+## Negative MI
+
+`estimate_mi()` might return a negative number near zero (like -0.03).
+You should first check that:
+
+- If at least one variable is discrete/categorical,
+  you have set the `discrete_x` and/or `discrete_y` parameter.
+
+Mathematically, mutual information is always non-negative,
+but the continuous-case estimation algorithm is not exact.
+Some estimation error is expected, especially with small sample sizes.
+
+Near-zero values can thus be interpreted as zero.
+However, if the result is further from zero (something like `-0.5`, or even `-inf`),
+that certainly is an issue.
+Some possible causes are explained below.
+
+
+
+## Skewed or high-variance distributions
+Mutual information is invariant under strictly monotonic transformations.
+Such transformations include
+- For all variables: addition with a constant,
+  multiplication with a non-zero constant and exponentiation;
+- For positive variables: logarithm, powers and roots.
+
+However, with sample sizes less than $\infty$,
+the estimation algorithm may produce different results
+between original and transformed variables.
+For this reason it is recommended to scale the variables to have
+roughly symmetric distributions.
+This transformation will not change the actual MI,
+but will improve the accuracy of the estimate.
+
+Entropy is not transformation-invariant, and therefore this guidance
+does not apply to `estimate_entropy()`.
+
+For example, here is the bivariate Gaussian example modified to be
+lognormal in both marginal directions,
+with greater variance in the `x` variable.
+As mentioned in the tutorial, $\mathrm{MI}(X, Y) \approx 0.51$ and
+the exponentiation does not change this.
+```python
+from ennemi import estimate_mi
+import numpy as np
+
+rng = np.random.default_rng(1234)
+rho = 0.8
+cov = np.array([[1, rho], [rho, 1]])
+
+data = rng.multivariate_normal([0, 0], cov, size=800)
+x = np.exp(5 * data[:,0])
+y = np.exp(data[:,1])
+
+print(estimate_mi(y, x))
+```
+
+Running the code outputs a value similar to
+```
+[[0.18815223]]
+```
+
+This demonstrates that you should make all variables symmetric,
+here by taking logarithms, before running the estimation.
+
+By default, `ennemi` rescales all variables to have unit variance,
+but the package does not perform any symmetrization.
+The rescaling can be disabled by setting the `preprocess` parameter to `False`.
+
+
 
 ## Discrete/duplicate observations
-If `estimate_mi()` returns a negative number near zero (like -0.03),
-there is no issue.
-Mathematically, mutual information is always non-negative,
-but the estimation algorithm is not exact.
-However, if the result is further from zero, or even `-inf`,
-that certainly is an issue.
 
 The estimation algorithm assumes that the variables are
 sampled from a continuous distribution.
-This assumption can be violated in two ways:
-- The distribution is discrete.
-  The data is either discrete or is recorded at low resolution,
+This assumption can be violated in three ways:
+- The distribution is discrete. (This was addressed above.)
+- The data is recorded at low resolution,
   causing duplicate data points.
 - The distribution is neither discrete nor continuous.
   Censored distributions fall into this category.
 
-`ennemi` supports the case where one variable is discrete and the other is continuous.
-For discrete-discrete MI, other packages are available or the algorithm is easy to implement.
-
 For low-resolution or censored data, the suggestion of
 [Kraskov et al. (2004)](https://link.aps.org/doi/10.1103/PhysRevE.69.066138)
 is to add some low-amplitude noise to the non-continuous variable.
-As an example, here is a censored version of the bivariate Gaussian example:
+`ennemi` does this automatically unless the `preprocess` parameter is set to `False`. 
+
+As an example, we can consider a censored version of the bivariate Gaussian example.
+We sample data points from a centered, correlated normal distribution,
+but move all negative values to the corresponding axis (or origin).
 ```python
 from ennemi import estimate_mi
 import numpy as np
@@ -61,64 +126,12 @@ x += rng.normal(0, 1e-6, size=800)
 y += rng.normal(0, 1e-6, size=800)
 ```
 before the call to `estimate_mi()`,
-or set `preprocess=True` (or remove the parameter altogether; it is true by default).
+or remove the `preprocess=False` parameter.
 With this fix, the code now prints
 ```
 MI: [[0.41881861]]
 ```
-a better approximation of the true value.
-This is still an approximation, as the true distribution is non-continuous,
-but in many cases the value is close to the theoretical result (here $\approx 0.425$).
-The computation involves the more general theory of Lebesgue integral.
-
-
-
-## Skewed or high-variance distributions
-Mutual information is invariant under strictly monotonic transformations.
-Such transformations include
-- For all variables: addition with a constant,
-  multiplication with a non-zero constant and exponentiation;
-- For positive variables: logarithm, powers and roots.
-
-However, with sample sizes less than $\infty$,
-the estimation algorithm may produce different results
-between original and transformed variables.
-For this reason it is recommended to scale the variables to have
-roughly unit variance, symmetric distributions.
-As said, this transformation will not change the actual MI,
-but will improve the accuracy of the estimate.
-
-For example, here is the bivariate Gaussian example modified to be
-lognormal in both marginal directions,
-with greater variance in the `x` variable.
-As mentioned in the tutorial, $\mathrm{MI}(X, Y) \approx 0.51$ and
-the exponentiation does not change this.
-```python
-from ennemi import estimate_mi
-import numpy as np
-
-rng = np.random.default_rng(1234)
-rho = 0.8
-cov = np.array([[1, rho], [rho, 1]])
-
-data = rng.multivariate_normal([0, 0], cov, size=800)
-x = np.exp(5 * data[:,0])
-y = np.exp(data[:,1])
-
-print(estimate_mi(y, x, preprocess=False))
-```
-
-Running the code outputs
-```
-[[0.28671063]]
-```
-
-This demonstrates that you should make all variables symmetric,
-here by taking logarithms and rescaling,
-before running the estimation.
-The rescaling is done by default (disabled by setting `preprocess=False`).
-Entropy is not transformation-invariant, and therefore this guidance
-does not apply to `estimate_entropy()`.
+a better approximation of the true value ($\approx 0.425$).
 
 
 
@@ -183,6 +196,11 @@ The way of fixing this depends on your data.
 Does it make sense to look at deseasonalized or differenced data?
 Can you reduce the sampling frequency so that the autocorrelation is smaller?
 
+This point is addressed in the [case study tutorial](kaisaniemi.md).
+You can also see Section&nbsp;4.2 of the _Atmosphere_ article
+[doi:10.3390/atmos13071046](https://dx.doi.org/10.3390/atmos13071046),
+which includes example code in the Supplementary Material.
+
 
 
 ## High MI values
@@ -233,18 +251,16 @@ estimate_mi(y, data, all_the_lags)
 ```
 
 Similarly, you should use `pairwise_mi` when you want to calculate,
-well, the pairwise MI between variables.
-The calculation is parallelized and utilizes the symmetry of MI.
+well, the pairwise MI between several variables.
+The calculation is parallelized and automatically takes advantage of the symmetry of MI.
 
 If you have only some processor cores available for Python,
 you can override the `max_threads` parameter.
-You should not pass a value greater than the number of cores;
+You should not pass a value greater than the number of cores available;
 the additional threads will not make the estimation faster,
 but only increase the overhead of switching between threads.
 
 If you pass the `callback` parameter, make sure that the callback returns quickly.
-Only one thread of Python code can run at a time, for consistency reasons.
-The heavy computation is done in compiled code that can run simultaneously,
-but some steps are done in Python.
-Time spent in a callback is not only time spent not calculating,
-but also competes of the Global Interpreter Lock with other threads.
+Only one thread of Python code can run at a time for consistency reasons.
+The heavy computation is done in compiled code that can run in parallel with Python code,
+but the callback blocks execution of other callbacks and some `ennemi` internal code.
