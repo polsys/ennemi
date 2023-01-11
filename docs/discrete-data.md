@@ -225,7 +225,7 @@ UserWarning: A discrete variable has relatively many unique values. Have you set
 continuous (this limitation can be lifted in the future).
 ```
 
-As of version 1.1, `ennemi` supports only these combinations of variables and conditions:
+As of version 1.3, `ennemi` supports only these combinations of variables and conditions:
 
 | | No condition | Discrete | Continuous | Both types in 2D condition |
 | --- | --- | --- | --- | --- |

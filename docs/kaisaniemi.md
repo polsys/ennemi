@@ -122,8 +122,25 @@ suggesting that it was partly caused by seasonal cycles of the two variables.
 
 On the other hand, the correlation between wind direction and temperature is stronger
 &ndash; this suggests that the wind explains variation within a season.
-If you want to see why, try drawing a scatter plot of the two variables
-restricted to January and July.
+We can see this by drawing two scatter plots:
+
+```python
+fig, (ax1, ax2) = plt.subplots(ncols=2, figsize=(10,6), sharey=True)
+january_mask = afternoon_mask & (data.index.month == 1)
+july_mask = afternoon_mask & (data.index.month == 7)
+
+ax1.scatter(data.loc[january_mask, "WindDir"], data.loc[january_mask, "Temperature"], color="C0")
+ax2.scatter(data.loc[july_mask, "WindDir"], data.loc[july_mask, "Temperature"], color="C1")
+
+plt.show()
+```
+
+![In January, low temperatures are associated with north wind and warm ones with west wind.
+In July the pattern is opposite but much weaker.](casestudy_wind_scatters.png)
+
+In January the pattern is quite clear; in July no clear pattern is visible.
+Western wind comes from the Atlantic ocean, which explains the warming effect in the winter.
+To confirm the pattern, we could use classical statistical tools.
 
 The lowest correlation values may contain random noise.
 The transformation from raw MI to correlation coefficient scale is non-linear

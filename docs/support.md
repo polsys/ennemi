@@ -15,9 +15,10 @@ Please submit an issue if there is something you would like to see fixed or adde
 
 # Future development
 
-`ennemi` has been developed as part of a fixed-period project
+`ennemi` has been developed as part of a fixed-term project
 (civilian service of the primary author at INAR).
 With version 1.0.0, all originally envisioned major features are complete.
+Version 1.1.0 still added some useful new features.
 
 Future development consists of three categories:
 

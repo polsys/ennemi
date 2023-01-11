@@ -71,7 +71,32 @@ plt.savefig("casestudy_pairwise_doy.png", transparent=True)
 
 
 #
-# STEP 6: Time lags
+# STEP 6: Example scatter plot
+#
+fig, (ax1, ax2) = plt.subplots(ncols=2, figsize=(10,6), sharey=True)
+january_mask = afternoon_mask & (data.index.month == 1)
+july_mask = afternoon_mask & (data.index.month == 7)
+
+ax1.scatter(data.loc[january_mask, "WindDir"], data.loc[january_mask, "Temperature"], color="C0")
+ax2.scatter(data.loc[july_mask, "WindDir"], data.loc[july_mask, "Temperature"], color="C1")
+
+ax1.set_ylabel("Temperature")
+ax1.set_xlabel("Wind direction")
+ax2.set_xlabel("Wind direction")
+
+ax1.set_xticks([0, 90, 180, 270, 360])
+ax2.set_xticks([0, 90, 180, 270, 360])
+ax1.set_xticklabels(["N", "E", "S", "W", "N"])
+ax2.set_xticklabels(["N", "E", "S", "W", "N"])
+
+ax1.set_title("January, 15:00 local time")
+ax2.set_title("July, 15:00 local time")
+
+plt.savefig("casestudy_wind_scatters.png", transparent=True)
+
+
+#
+# STEP 7: Time lags
 #
 
 # These are in decreasing order on the plot
@@ -102,7 +127,7 @@ plt.savefig("casestudy_lags.png", transparent=True)
 
 
 #
-# STEP 7: Averaging
+# STEP 8: Averaging
 #
 
 # Use two more masks, higher k, and average of the three runs
