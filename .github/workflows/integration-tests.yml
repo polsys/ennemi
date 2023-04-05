@@ -38,11 +38,19 @@ jobs:
         run: |
           python -m pytest tests/integration/
 
-      - name: Install pandas
+      - name: Install pandas 1.0
         run: |
           pip install pandas==1.0
 
-      - name: Run integration tests (with pandas)
+      - name: Run integration tests (with pandas 1.0)
+        run: |
+          python -m pytest tests/pandas/
+
+      - name: Install pandas 2.0
+        run: |
+          pip install pandas==2.0
+
+      - name: Run integration tests (with pandas 2.0)
         run: |
           python -m pytest tests/pandas/
 
