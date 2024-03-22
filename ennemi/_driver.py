@@ -219,7 +219,7 @@ def _estimate_conditional_entropy(x: FloatArray, cond: FloatArray, k: int, multi
         return np.asarray(_call_entropy_func(xs, k, discrete) - marginal)
     else:
         nvar = x.shape[1]
-        joint = np.empty(nvar) # type: npt.NDArray[np.float64]
+        joint = np.empty(nvar)
         for i in range(nvar):
             xs = _mask_and_validate_entropy(np.column_stack((x[:,i], cond)), mask, drop_nan, discrete, k)
             joint[i] = _call_entropy_func(xs, k, discrete)
@@ -340,7 +340,7 @@ def estimate_mi(y: ArrayLike, x: ArrayLike,
     else:
         cond_arr = None
         ncond = 1
-    mask_arr = None # type: Optional[npt.NDArray[np.float64]]
+    mask_arr = None
     if mask is not None: mask_arr = np.asarray(mask)
 
     # Broadcast cond_lag to be (#lags, #cond vars) in shape
@@ -602,8 +602,8 @@ def pairwise_mi(data: ArrayLike,
 
     # Convert arrays to consistent type; _lagged_mi assumes cond to be 2D
     data_arr = np.asarray(data)
-    cond_arr = None # type: Optional[npt.NDArray[np.float64]]
-    mask_arr = None # type: Optional[npt.NDArray[np.float64]]
+    cond_arr = None
+    mask_arr = None
     if cond is not None: cond_arr = np.column_stack((np.asarray(cond),))
     if mask is not None: mask_arr = np.asarray(mask)
 
