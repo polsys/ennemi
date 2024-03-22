@@ -14,25 +14,24 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ ubuntu-latest, macos-12, windows-latest ]
-        python-version: [ '3.9', '3.10', '3.11' ]
         # Save a bit of resources by running only some combinations:
-        # Windows 3.9; macOS 3.10; Ubuntu 3.11
-        # Python 3.8 is only used in integration tests
-        # Note that some steps are only run on Ubuntu/3.11 (must update when 3.12 comes)
-        exclude:
-          - os: windows-latest
-            python-version: '3.10'
+        # Windows 3.11; macOS 3.10; Ubuntu 3.12
+        # Additionally, macOS on ARM processor is tested
+        # Code coverage, SonarCloud and test package build are only done once
+        include:
+          - os: ubuntu-latest
+            python-version: '3.12'
+            analysis: true
           - os: windows-latest
             python-version: '3.11'
-          - os: macos-12
-            python-version: '3.9'
-          - os: macos-12
-            python-version: '3.11'
-          - os: ubuntu-latest
-            python-version: '3.9'
-          - os: ubuntu-latest
+            analysis: false
+          - os: macos-latest
             python-version: '3.10'
+            analysis: false
+          - os: macos-14
+            python-version: '3.12'
+            analysis: false
+
 
     steps:
       - name: Check out code
@@ -48,7 +47,7 @@ jobs:
           pip install -e .[dev]
       
       - name: Run unit tests (with coverage)
-        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
+        if: matrix.analysis == true
         # We have to rename the path in coverage.xml since Sonar is run in Docker
         # and has a different view of the file system
         run: |
@@ -57,12 +56,12 @@ jobs:
           sed 's/\/home\/runner\/work\/ennemi\/ennemi/\/github\/workspace/g' coverage.xml > coverage-mod.xml
       
       - name: Run unit tests (no coverage)
-        if: matrix.os != 'ubuntu-latest' || matrix.python-version != '3.11'
+        if: matrix.analysis != true
         run: |
           python -m pytest tests/unit/ --junit-xml=test-results.xml
 
       - name: Try building the package
-        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
+        if: matrix.analysis == true
         run: |
           pip install setuptools wheel
           python setup.py sdist bdist_wheel
@@ -72,7 +71,7 @@ jobs:
           python -m mypy ennemi/ tests/unit tests/integration tests/pandas
       
       - name: Run Sonar code analysis
-        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
+        if: matrix.analysis == true
         uses: sonarsource/sonarcloud-github-action@master
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
