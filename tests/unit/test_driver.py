@@ -937,15 +937,16 @@ class TestEstimateMi(unittest.TestCase):
             estimate_mi(cont, disc2d, discrete_x=True, normalize=True)
 
         # No warning should be emitted if data is continuous...
+        # (Need to disable rescaling since it has its own discreteness check)
         with catch_warnings(record=True) as w:
-            estimate_mi(cont, cont, discrete_x=False, normalize=True)
+            estimate_mi(cont, cont, discrete_x=False, normalize=True, preprocess=False)
 
             matching_warns = [msg for msg in w if "discrete" in str(msg.message)]
             self.assertEqual(len(matching_warns), 0, "should not warn")
         
         # ...or normalization disabled
         with catch_warnings(record=True) as w:
-            estimate_mi(cont, disc2d, discrete_x=True, normalize=False)
+            estimate_mi(cont, disc2d, discrete_x=True, normalize=False, preprocess=False)
 
             matching_warns = [msg for msg in w if "discrete" in str(msg.message)]
             self.assertEqual(len(matching_warns), 0, "should not warn")
@@ -1181,6 +1182,18 @@ class TestEstimateMi(unittest.TestCase):
         self.assertNotAlmostEqual(mi_unscaled.item(), 0.6, delta=0.1)
         self.assertAlmostEqual(mi_scaled.item(), 0.6, delta=0.03)
 
+    def test_preprocess_zero_variance_warns(self) -> None:
+        zeros = np.zeros(10)
+        ones = np.ones(10)
+
+        with self.assertWarnsRegex(UserWarning, "only a single value"):
+            estimate_mi(zeros, ones, preprocess=True)
+        with self.assertWarnsRegex(UserWarning, "only a single value"):
+            estimate_mi(ones, zeros, preprocess=True)
+        with self.assertWarnsRegex(UserWarning, "only a single value"):
+            estimate_mi(ones, ones, cond=zeros, preprocess=True)
+        with self.assertWarnsRegex(UserWarning, "only a single value"):
+            estimate_mi(ones, ones, cond=np.asarray([ones, zeros]).T, preprocess=True)
 
     def test_normalization(self) -> None:
         rng = np.random.default_rng(17)
@@ -1320,21 +1333,22 @@ class TestPairwiseMi(unittest.TestCase):
         data = np.zeros((10, 2))
 
         # Warnings emitted both in scalar and array case
+        # Note: need to disable rescaling since it has its own discreteness check
         with self.assertWarnsRegex(UserWarning, "discrete"):
-            pairwise_mi(data, discrete=True, normalize=True)
+            pairwise_mi(data, discrete=True, normalize=True, preprocess=False)
         with self.assertWarnsRegex(UserWarning, "discrete"):
-            pairwise_mi(data, discrete=[False, True], normalize=True)
+            pairwise_mi(data, discrete=[False, True], normalize=True, preprocess=False)
 
         # No warning should be emitted if data is continuous...
         with catch_warnings(record=True) as w:
-            pairwise_mi(data, discrete=False, normalize=True)
+            pairwise_mi(data, discrete=False, normalize=True, preprocess=False)
 
             matching_warns = [msg for msg in w if "discrete" in str(msg.message)]
             self.assertEqual(len(matching_warns), 0, "should not warn")
         
         # ...or normalization is disabled
         with catch_warnings(record=True) as w:
-            pairwise_mi(data, discrete=True, normalize=False)
+            pairwise_mi(data, discrete=True, normalize=False, preprocess=False)
 
             matching_warns = [msg for msg in w if "discrete" in str(msg.message)]
             self.assertEqual(len(matching_warns), 0, "should not warn")
