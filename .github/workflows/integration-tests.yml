@@ -17,7 +17,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ ubuntu-20.04, windows-2019, macos-11 ]
+        os: [ windows-2019, macos-11 ]
 
     steps:
       - name: Check out code
@@ -31,7 +31,7 @@ jobs:
       - name: Install dependencies with custom versions
         # Note: This must be kept in sync with the minimum versions in setup.py
         run: |
-          pip install numpy==1.23.0 scipy==1.9.0 pytest~=8
+          pip install numpy==1.23.0 scipy==1.9.0 pytest~=8.0
           pip install --no-deps -e .
 
       - name: Run integration tests (without pandas)
