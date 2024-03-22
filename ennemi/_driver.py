@@ -34,6 +34,12 @@ DISCRETE_NORMALIZATION_WARNING = \
     "If you really want to calculate correlation coefficients, you can suppress " +\
     "this warning by setting normalize=False and calling normalize_mi() on the results."
 
+PREPROCESS_CONSTANT_DATA_WARNING = \
+    "A variable not marked as discrete takes only a single value, " +\
+    "or values in a very small numerical range. " +\
+    "If this is intentional, you can suppress this warning by passing preprocess=False. " +\
+    "Note that this disables rescaling on all other variables as well."
+
 def normalize_mi(mi: Union[float, GenArrayLike]) -> GenArrayLike:
     """Normalize mutual information values to the unit interval.
 
@@ -868,17 +874,29 @@ def _rescale_data(xs: FloatArray, ys: FloatArray, zs: Optional[FloatArray],
     rng = np.random.default_rng(2_718281828)
 
     if not discrete_x:
-        # This warns if the standard deviation is zero
-        xs = (xs - xs.mean()) / xs.std()
-        xs += rng.normal(0.0, 1e-10, xs.shape)
+        # Do not try to divide by zero
+        std = xs.std()
+        if np.abs(std) < 1e-20:
+            warn(PREPROCESS_CONSTANT_DATA_WARNING)
+        else:
+            xs = (xs - xs.mean()) / std
+            xs += rng.normal(0.0, 1e-10, xs.shape)
 
     if not discrete_y:
-        ys = (ys - ys.mean()) / ys.std()
-        ys += rng.normal(0.0, 1e-10, ys.shape)
+        std = ys.std()
+        if np.abs(std) < 1e-20:
+            warn(PREPROCESS_CONSTANT_DATA_WARNING)
+        else:
+            ys = (ys - ys.mean()) / std
+            ys += rng.normal(0.0, 1e-10, ys.shape)
     
     # If both X and Y are discrete, we assume the condition to be discrete too
     if zs is not None and not (discrete_x and discrete_y):
-        zs = (zs - zs.mean(axis=0)) / zs.std(axis=0)
-        zs += rng.normal(0.0, 1e-10, zs.shape) # type: ignore # mypy does not realize this is ndarray
+        std = zs.std(axis=0)
+        if np.any(np.abs(std) < 1e-20):
+            warn(PREPROCESS_CONSTANT_DATA_WARNING)
+        else:
+            zs = (zs - zs.mean(axis=0)) / std
+            zs += rng.normal(0.0, 1e-10, zs.shape) # type: ignore # mypy does not realize this is ndarray
 
     return xs, ys, zs
