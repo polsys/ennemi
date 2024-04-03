@@ -303,6 +303,10 @@ def _estimate_conditional_discrete_mi(x: FloatArray, y: FloatArray, cond: FloatA
     # Determine probabilities of the conditioning variable
     cond_vals, cond_inverses, cond_counts = np.unique(cond,
         axis=0, return_inverse=True, return_counts=True)
+    
+    # Starting from NumPy 2.0, cond_inverses is multidimensional, so we need to flatten it
+    # This is a no-op for NumPy 1.x
+    cond_inverses = np.ravel(cond_inverses)
 
     # For each condition, compute the conditional probability (given by basic MI on subset of data)
     cond_probs = np.zeros(len(cond_vals))
