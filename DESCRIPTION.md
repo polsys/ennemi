@@ -16,6 +16,7 @@ with no theoretical background required.
 
 This package depends only on NumPy and SciPy;
 Pandas is suggested for more enjoyable data analysis.
+Recent versions of NumPy 1.x and 2.x are supported.
 Python 3.10+ on the latest macOS, Ubuntu and Windows versions
 is officially supported.
 Older `ennemi` versions have generally identical behavior if you need to run on older Python.
