@@ -38,11 +38,12 @@ jobs:
         run: |
           python -m pytest tests/integration/
 
-      - name: Install pandas 1.0
+      - name: Install pandas 1.x
+        # This too needs to be updated at some cadence (mainly due to NumPy support of pandas)
         run: |
-          pip install pandas==1.0
+          pip install pandas==1.5.0
 
-      - name: Run integration tests (with pandas 1.0)
+      - name: Run integration tests (with pandas 1.x)
         run: |
           python -m pytest tests/pandas/
 
