@@ -1501,9 +1501,9 @@ class TestPairwiseMi(unittest.TestCase):
         data[:50,0] = np.nan
         data[950:,1] = np.nan
 
-        cond = rng.uniform(size=data.shape)
-        cond[100:120,0] = np.nan
-        cond[900:960,0] = np.nan
+        cond = rng.uniform(size=data.shape) # mypy does not realize that cond is an array
+        cond[100:120,0] = np.nan # type: ignore
+        cond[900:960,0] = np.nan # type: ignore
 
         mi = pairwise_mi(data, cond=cond, normalize=True, drop_nan=True)
         self.assertAlmostEqual(mi[0,1], 0.8, delta=0.02)

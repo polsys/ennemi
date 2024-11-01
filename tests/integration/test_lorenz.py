@@ -75,7 +75,7 @@ class TestLorenz(unittest.TestCase):
         argmax = np.argmax(mi)
         self.assertEqual(lags[argmax], 10)
         self.assertAlmostEqual(mi[argmax], 0.5, delta=0.05)
-        self.assertGreaterEqual(np.sum(mi > 0.2), 4)
+        self.assertGreaterEqual(np.sum(mi > 0.2), 4) # type: ignore
 
         # I(Y1; Y3) should have a peak at roughly lag=27
         mi = estimate_mi(data[:,0], data[:,2], lags).flatten()
