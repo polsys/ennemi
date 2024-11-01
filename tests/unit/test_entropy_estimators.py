@@ -388,7 +388,8 @@ class TestEstimateConditionalSemiDiscreteMi(unittest.TestCase):
         y[x > 2.0] = 4
 
         uncond = _estimate_semidiscrete_mi(w, y, k=1)
-        cond = _estimate_conditional_semidiscrete_mi(w, y, z, k=1)
+        # mypy does not understand that z is an array, not float (coming from rng.normal)
+        cond = _estimate_conditional_semidiscrete_mi(w, y, z, k=1) # type: ignore
 
         # The expected MI is the discrete entropy of Y
         p_low = gamma_dist.cdf(0.5, a=1.5)
