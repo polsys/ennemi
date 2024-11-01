@@ -67,16 +67,10 @@ def normalize_mi(mi: Union[float, GenArrayLike]) -> GenArrayLike:
     """
 
     # If the parameter is a pandas type, preserve the columns and indices
-    # In pandas 2.1 applymap was renamed to map,
-    # so use that if possible, and fall back to older function if that fails
-    # (since our support goes all the way to pandas 1.0).
     if "pandas" in sys.modules:
         import pandas
         if isinstance(mi, (pandas.DataFrame, pandas.Series)):
-            if "map" in pandas.DataFrame.__dict__:
-                return mi.map(_normalize)
-            else:
-                return mi.applymap(_normalize)
+            return mi.map(_normalize)
     
     return np.vectorize(_normalize, otypes=[float])(mi)
 

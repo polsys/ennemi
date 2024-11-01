@@ -17,35 +17,26 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ windows-2019, macos-11 ]
+        os: [ windows-2019, macos-12 ]
 
     steps:
       - name: Check out code
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.10
+      - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: '3.11'
 
       - name: Install dependencies with custom versions
         # Note: This must be kept in sync with the minimum versions in setup.py
         run: |
-          pip install numpy==1.23.0 scipy==1.9.0 pytest~=8.0
+          pip install numpy==1.24.0 scipy==1.10.0 pytest~=8.0
           pip install --no-deps -e .
 
       - name: Run integration tests (without pandas)
         run: |
           python -m pytest tests/integration/
-
-      - name: Install pandas 1.x
-        # This too needs to be updated at some cadence (mainly due to NumPy support of pandas)
-        run: |
-          pip install pandas==1.5.0
-
-      - name: Run integration tests (with pandas 1.x)
-        run: |
-          python -m pytest tests/pandas/
 
       - name: Install pandas 2.0
         run: |
