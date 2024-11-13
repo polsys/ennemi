@@ -25,8 +25,31 @@ jobs:
         run: |
           python -m build
 
-      - name: Push to PyPI
-        uses: pypa/gh-action-pypi-publish@master
+      - name: Store the package
+        uses: actions/upload-artifact@v4
         with:
-          user: __token__
-          password: ${{ secrets.PYPI_TOKEN }}
+          name: python-package-distributions
+          path: dist/
+          compression-level: 0
+          if-no-files-found: error
+  
+  publish-pypi:
+    name: Upload built package to PyPI
+    needs:
+      - build
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/ennemi/
+    permissions:
+      id-token: write
+
+    steps:
+      - name: Download the package
+        uses: actions/download-artifact@v4
+        with:
+          name: python-package-distributions
+          path: dist/
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1

@@ -26,6 +26,7 @@ jobs:
           python -m build
 
       - name: Store the package
+        if: false
         uses: actions/upload-artifact@v4
         with:
           name: python-package-distributions
@@ -34,7 +35,8 @@ jobs:
           if-no-files-found: error
   
   publish-test-pypi:
-    name: Upload built package to Test PyPI (only for testing)
+    name: Upload built package to Test PyPI (disabled, only for testing)
+    if: false
     needs:
       - build
     runs-on: ubuntu-latest
