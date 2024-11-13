@@ -19,11 +19,11 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install setuptools wheel
+          pip install build
 
       - name: Build package
         run: |
-          python setup.py sdist bdist_wheel
+          python -m build
 
       - name: Push to PyPI
         uses: pypa/gh-action-pypi-publish@master

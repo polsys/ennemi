@@ -48,6 +48,6 @@ setup(
     python_requires = "~=3.11",
     install_requires = [ "numpy>=1.24", "scipy~=1.10" ],
     extras_require = {
-        "dev": [ "pandas>=2.0", "pytest~=8.0", "mypy~=1.9" ]
+        "dev": [ "build~=1.2", "pandas>=2.0", "pytest~=8.0", "mypy~=1.9" ]
     }
 )
