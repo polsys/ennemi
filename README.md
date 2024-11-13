@@ -30,7 +30,7 @@ You can also follow the development by clicking `Watch releases` on the GitHub p
 
 ## Getting started
 
-This package requires Python 3.8 or higher,
+This package requires Python 3.11 or higher,
 and it is tested to work on the latest versions of Ubuntu, macOS and Windows.
 The only hard dependencies are reasonably recent versions of NumPy and SciPy;
 Pandas is strongly suggested for more enjoyable data analysis.
@@ -63,6 +63,12 @@ To run the check yourself, execute
 python -m mypy ennemi/ tests/unit tests/integration tests/pandas
 ```
 in the repository root (configuration is stored in `mypy.ini` file).
+
+Distribution packages (source package and wheel) are created with the `build` package:
+```sh
+pip install build
+python -m build
+```
 
 Please see also the [contribution guidelines](CONTRIBUTING.md).
 
