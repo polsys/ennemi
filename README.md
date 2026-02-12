@@ -30,9 +30,10 @@ You can also follow the development by clicking `Watch releases` on the GitHub p
 
 ## Getting started
 
-This package requires Python 3.11 or higher,
+This package requires Python 3.12 or higher,
 and it is tested to work on the latest versions of Ubuntu, macOS and Windows.
-The only hard dependencies are reasonably recent versions of NumPy and SciPy;
+The only hard dependencies are reasonably recent versions of NumPy and SciPy
+(following [scientific Python ecosystem guidelines](https://scientific-python.org/specs/spec-0000/));
 Pandas is strongly suggested for more enjoyable data analysis.
 
 This package is available on PyPI:

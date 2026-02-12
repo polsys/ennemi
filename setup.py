@@ -10,7 +10,7 @@ with open(description_file, encoding="utf-8") as f:
 
 setup(
     name = "ennemi",
-    version = "1.5.0",
+    version = "1.6.0",
     description = "Non-linear correlation detection with mutual information",
     long_description = long_description,
     long_description_content_type = "text/markdown",
@@ -25,9 +25,9 @@ setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3.12",
         "Programming Language :: Python :: 3.13",
+        "Programming Language :: Python :: 3.14",
         "Topic :: Scientific/Engineering",
         "Topic :: Scientific/Engineering :: Information Analysis",
         "Topic :: Scientific/Engineering :: Mathematics",
@@ -45,8 +45,8 @@ setup(
 
     packages = [ "ennemi" ],
     package_data = { "ennemi": ["py.typed"] },
-    python_requires = "~=3.11",
-    install_requires = [ "numpy>=1.24", "scipy~=1.10" ],
+    python_requires = "~=3.12",
+    install_requires = [ "numpy~=2.0", "scipy~=1.13" ],
     extras_require = {
         "dev": [ "build~=1.2", "pandas>=2.0", "pytest~=8.0", "mypy~=1.9" ]
     }
