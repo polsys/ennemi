@@ -14,17 +14,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Save a bit of resources by running only some combinations:
-        # Windows 3.11; macOS 3.13; Ubuntu 3.12 (as of this writing, cached 3.13 is on macOS only)
-        # macOS is tested both on ARM and x86-64 processors
+        # Save a bit of resources by running only some combinations
+        # macOS is tested on ARM only since GitHub no longer provides x64 runners on free tier
         include:
           - os: ubuntu-latest
-            python-version: '3.12'
+            python-version: '3.14'
           - os: windows-latest
-            python-version: '3.11'
-          - os: macos-13
-            python-version: '3.13'
-          - os: macos-15
+            python-version: '3.12'
+          - os: macos-26
             python-version: '3.13'
 
 

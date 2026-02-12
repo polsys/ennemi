@@ -17,21 +17,21 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ windows-2019, macos-12 ]
+        os: [ windows-2022, macos-14 ]
 
     steps:
       - name: Check out code
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.11
+      - name: Set up Python 3.12
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.12'
 
       - name: Install dependencies with custom versions
         # Note: This must be kept in sync with the minimum versions in setup.py
         run: |
-          pip install numpy==1.24.0 scipy==1.10.0 pytest~=8.0
+          pip install numpy==2.0.0 scipy==1.13.0 pytest~=8.0
           pip install --no-deps -e .
 
       - name: Run integration tests (without pandas)
