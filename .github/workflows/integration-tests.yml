@@ -38,11 +38,12 @@ jobs:
         run: |
           python -m pytest tests/integration/
 
-      - name: Install pandas 2.0
+      - name: Install pandas 2.x
+        # Pandas 2.2 is the oldest version that supports Python 3.12
         run: |
-          pip install pandas==2.0
+          pip install pandas==2.2
 
-      - name: Run integration tests (with pandas 2.0)
+      - name: Run integration tests (with pandas 2.x)
         run: |
           python -m pytest tests/pandas/
 
