@@ -16,9 +16,12 @@ jobs:
       matrix:
         # Save a bit of resources by running only some combinations
         # macOS is tested on ARM only since GitHub no longer provides x64 runners on free tier
+        # There is additionally a free-threaded run on Ubuntu -- for stable release, test other OSes too
         include:
           - os: ubuntu-latest
             python-version: '3.14'
+          - os: ubuntu-latest
+            python-version: '3.14t'
           - os: windows-latest
             python-version: '3.12'
           - os: macos-26
