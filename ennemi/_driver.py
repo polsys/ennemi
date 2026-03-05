@@ -22,8 +22,10 @@ from ._entropy_estimators import _estimate_single_mi, _estimate_conditional_mi,\
 
 import numpy.typing as npt
 FloatArray = npt.NDArray[np.float64]
+BoolArray = npt.NDArray[np.bool_]
 ArrayLike = npt.ArrayLike
-GenArrayLike = TypeVar("GenArrayLike", Sequence[float], Sequence[Sequence[float]], FloatArray)
+GenArrayLike = TypeVar("GenArrayLike", bound=npt.ArrayLike)
+
 T = TypeVar("T")
 
 DISCRETE_NORMALIZATION_WARNING = \
@@ -40,7 +42,7 @@ PREPROCESS_CONSTANT_DATA_WARNING = \
     "If this is intentional, you can suppress this warning by passing preprocess=False. " +\
     "Note that this disables rescaling on all other variables as well."
 
-def normalize_mi(mi: Union[float, GenArrayLike]) -> GenArrayLike:
+def normalize_mi(mi: GenArrayLike) -> GenArrayLike:
     """Normalize mutual information values to the unit interval.
 
     Equivalent to passing `normalize=True` to the estimation methods.
@@ -81,13 +83,13 @@ def _normalize(mi: float) -> float:
         return np.sqrt(1 - np.exp(-2 * mi))
 
 
-def estimate_entropy(x: ArrayLike,
+def estimate_entropy(x: GenArrayLike,
     *, k: int = 3,
     multidim: bool = False,
     discrete: bool = False,
-    mask: Optional[ArrayLike] = None,
+    mask: Optional[BoolArray] = None,
     cond: Optional[ArrayLike] = None,
-    drop_nan: bool = False) -> FloatArray:
+    drop_nan: bool = False) -> GenArrayLike:
     """Estimate the entropy of one or more continuous random variables.
 
     Returns the estimated entropy in nats. If `x` is two-dimensional, each
@@ -156,10 +158,10 @@ def estimate_entropy(x: ArrayLike,
     if not multidim and "pandas" in sys.modules:
         import pandas
         if isinstance(x, pandas.DataFrame):
-            return pandas.DataFrame(np.atleast_2d(result), columns=x.columns)
+            return pandas.DataFrame(np.atleast_2d(result), columns=x.columns) # type: ignore
         elif isinstance(x, pandas.Series):
-            return pandas.DataFrame(np.atleast_2d(result), columns=[x.name])
-    return result
+            return pandas.DataFrame(np.atleast_2d(result), columns=[x.name]) # type: ignore
+    return result # type: ignore
 
 
 def _estimate_entropy(x: FloatArray, k: int, multidim: bool,
@@ -226,19 +228,19 @@ def _call_entropy_func(xs: FloatArray, k: int, discrete: bool) -> float:
         return _estimate_single_entropy(xs, k)
 
 
-def estimate_mi(y: ArrayLike, x: ArrayLike,
+def estimate_mi(y: ArrayLike, x: GenArrayLike,
                 lag: Union[Sequence[int], ArrayLike, int] = 0,
                 *, k: int = 3,
                 cond: Optional[ArrayLike] = None,
                 cond_lag: Union[Sequence[int], Sequence[Sequence[int]], ArrayLike, int] = 0,
-                mask: Optional[ArrayLike] = None,
+                mask: Optional[BoolArray] = None,
                 discrete_y: bool = False,
                 discrete_x: bool = False,
                 preprocess: bool = True,
                 drop_nan: bool = False,
                 normalize: bool = False,
                 max_threads: Optional[int] = None,
-                callback: Optional[Callable[[int, int], None]] = None) -> FloatArray:
+                callback: Optional[Callable[[int, int], None]] = None) -> GenArrayLike:
     """Estimate the mutual information between y and each x variable.
 
     - Unconditional MI: the default.
@@ -355,21 +357,21 @@ def estimate_mi(y: ArrayLike, x: ArrayLike,
     if "pandas" in sys.modules:
         import pandas
         if isinstance(x, pandas.DataFrame):
-            return pandas.DataFrame(result, index=lag_arr, columns=x.columns)
+            return pandas.DataFrame(result, index=lag_arr, columns=x.columns) # type: ignore
         elif isinstance(x, pandas.Series):
-            return pandas.DataFrame(result, index=lag_arr, columns=[x.name])
-    return result
+            return pandas.DataFrame(result, index=lag_arr, columns=[x.name]) # type: ignore
+    return result # type: ignore
 
-def estimate_corr(y: ArrayLike, x: ArrayLike,
+def estimate_corr(y: ArrayLike, x: GenArrayLike,
                   lag: Union[Sequence[int], ArrayLike, int] = 0,
                   *, k: int = 3,
                   cond: Optional[ArrayLike] = None,
                   cond_lag: Union[Sequence[int], Sequence[Sequence[int]], ArrayLike, int] = 0,
-                  mask: Optional[ArrayLike] = None,
+                  mask: Optional[BoolArray] = None,
                   preprocess: bool = True,
                   drop_nan: bool = False,
                   max_threads: Optional[int] = None,
-                  callback: Optional[Callable[[int, int], None]] = None) -> FloatArray:
+                  callback: Optional[Callable[[int, int], None]] = None) -> GenArrayLike:
     """Estimate MI correlation between continuous variables.
     
     This method is equivalent to `estimate_mi` with `normalize=True`.
@@ -451,7 +453,7 @@ def estimate_corr(y: ArrayLike, x: ArrayLike,
 
 def _estimate_mi(y: FloatArray, x: FloatArray, lag: FloatArray, k: int,
         cond: Optional[FloatArray], cond_lag: FloatArray,
-        mask: Optional[FloatArray], discrete_x: bool, discrete_y: bool,
+        mask: Optional[BoolArray], discrete_x: bool, discrete_y: bool,
         preprocess: bool, drop_nan: bool,
         max_threads: Optional[int],
         callback: Optional[Callable[[int, int], None]]) -> FloatArray:
@@ -489,7 +491,7 @@ def _estimate_mi(y: FloatArray, x: FloatArray, lag: FloatArray, k: int,
             callback(var_index, lag[lag_index])
     
     time_estimate = _get_mi_time_estimate(len(y), cond, k)
-    conc_result = _map_maybe_parallel(_lagged_mi, params, max_threads, time_estimate, wrapped_callback) # type: ignore
+    conc_result = _map_maybe_parallel(_lagged_mi, params, max_threads, time_estimate, wrapped_callback) 
     
     # Collect the results to a 2D array
     result = np.empty((len(lag), nvar))
@@ -499,7 +501,7 @@ def _estimate_mi(y: FloatArray, x: FloatArray, lag: FloatArray, k: int,
 
 
 def _check_parameters(x: FloatArray, y: Optional[FloatArray], k: int,
-        cond: Optional[FloatArray], mask: Optional[FloatArray]) -> None:
+        cond: Optional[FloatArray], mask: Optional[BoolArray]) -> None:
     """Does most of parameter checking, but some is still left to _lagged_mi."""
     _validate_k_type(k)
 
@@ -522,7 +524,7 @@ def _validate_k_type(k: int) -> None:
     if k <= 0:
         raise ValueError("k must be greater than zero")
 
-def _validate_mask(mask: FloatArray, input_len: int) -> None:
+def _validate_mask(mask: BoolArray, input_len: int) -> None:
     if len(mask.shape) > 1:
         raise ValueError("mask must be one-dimensional")
     if len(mask) != input_len:
@@ -537,16 +539,16 @@ def _validate_cond(cond: FloatArray, input_len: int) -> None:
         raise ValueError("x and cond must have same length")
 
 
-def pairwise_mi(data: ArrayLike,
+def pairwise_mi(data: GenArrayLike,
     *, k: int = 3,
     cond: Optional[ArrayLike] = None,
-    mask: Optional[ArrayLike] = None,
-    discrete: ArrayLike = False,
+    mask: Optional[BoolArray] = None,
+    discrete: bool | ArrayLike = False,
     preprocess: bool = True,
     drop_nan: bool = False,
     normalize: bool = False,
     max_threads: Optional[int] = None,
-    callback: Optional[Callable[[int, int], None]] = None) -> FloatArray:
+    callback: Optional[Callable[[int, int], None]] = None) -> GenArrayLike:
     """Estimate the pairwise MI between each variable.
 
     Returns a matrix where the (i,j)'th element is the mutual information
@@ -603,7 +605,7 @@ def pairwise_mi(data: ArrayLike,
 
     # If there is just one variable, return the trivial result
     if data_arr.ndim == 1 or data_arr.shape[1] == 1:
-        return np.full((1,1), np.nan)
+        return np.full((1,1), np.nan) # type: ignore
 
     discrete_arr = np.broadcast_to(discrete, data_arr.shape[1])
     
@@ -620,18 +622,18 @@ def pairwise_mi(data: ArrayLike,
     if "pandas" in sys.modules:
         import pandas
         if isinstance(data, pandas.DataFrame):
-            return pandas.DataFrame(result, index=data.columns, columns=data.columns)
-    return result
+            return pandas.DataFrame(result, index=data.columns, columns=data.columns) # type: ignore
+    return result # type: ignore
 
 
-def pairwise_corr(data: ArrayLike,
+def pairwise_corr(data: GenArrayLike,
     *, k: int = 3,
     cond: Optional[ArrayLike] = None,
-    mask: Optional[ArrayLike] = None,
+    mask: Optional[BoolArray] = None,
     preprocess: bool = True,
     drop_nan: bool = False,
     max_threads: Optional[int] = None,
-    callback: Optional[Callable[[int, int], None]] = None) -> FloatArray:
+    callback: Optional[Callable[[int, int], None]] = None) -> GenArrayLike:
     """Estimate the pairwise MI correlation between each variable.
 
     This method is equivalent to `pairwise_mi` with `normalize=True`.
@@ -678,7 +680,7 @@ def pairwise_corr(data: ArrayLike,
 
 
 def _pairwise_mi(data: FloatArray, k: int, cond: Optional[FloatArray], preprocess: bool,
-    drop_nan: bool, mask: Optional[FloatArray], discrete: FloatArray, max_threads: Optional[int],
+    drop_nan: bool, mask: Optional[BoolArray], discrete: BoolArray, max_threads: Optional[int],
     callback: Optional[Callable[[int, int], None]]) -> FloatArray:
     """Strongly typed pairwise MI. The data array is at least 2D."""
 
@@ -762,8 +764,8 @@ def _map_maybe_parallel(func: Callable[[T], float], params: Sequence[T],
             # as the params list.
             # Type comments because type info for Future comes from typeshed;
             # the class itself is not subscriptable
-            def get_callback(i): # type: (int) -> Callable[[concurrent.futures.Future[float]], None]
-                def done(future): # type: (concurrent.futures.Future[float]) -> None
+            def get_callback(i):
+                def done(future):
                     result[i] = future.result()
                     callback(i)
                 return done
@@ -897,6 +899,6 @@ def _rescale_data(xs: FloatArray, ys: FloatArray, zs: Optional[FloatArray],
             warn(PREPROCESS_CONSTANT_DATA_WARNING)
         else:
             zs = (zs - zs.mean(axis=0)) / std
-            zs += rng.normal(0.0, 1e-10, zs.shape) # type: ignore # mypy does not realize this is ndarray
+            zs += rng.normal(0.0, 1e-10, zs.shape)
 
     return xs, ys, zs

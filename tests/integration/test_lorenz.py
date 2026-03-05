@@ -16,11 +16,8 @@ from ennemi import estimate_mi
 import numpy as np
 import unittest
 
-try:
-    import numpy.typing as npt
-    FloatArray = npt.NDArray[np.float64]
-except:
-    FloatArray = "" # type: ignore
+import numpy.typing as npt
+FloatArray = npt.NDArray[np.float64]
 
 class TestLorenz(unittest.TestCase):
 
@@ -75,7 +72,7 @@ class TestLorenz(unittest.TestCase):
         argmax = np.argmax(mi)
         self.assertEqual(lags[argmax], 10)
         self.assertAlmostEqual(mi[argmax], 0.5, delta=0.05)
-        self.assertGreaterEqual(np.sum(mi > 0.2), 4) # type: ignore
+        self.assertGreaterEqual(np.sum(mi > 0.2), 4) # type: ignore duck
 
         # I(Y1; Y3) should have a peak at roughly lag=27
         mi = estimate_mi(data[:,0], data[:,2], lags).flatten()

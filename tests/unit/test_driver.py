@@ -10,17 +10,13 @@ from warnings import catch_warnings
 import numpy as np
 import os.path
 import pandas as pd
-import random
-from typing import List, Optional, Tuple
+from typing import Tuple
 import unittest
 from ennemi import estimate_entropy, estimate_mi, normalize_mi, pairwise_mi,\
     estimate_corr, pairwise_corr
 
-try:
-    import numpy.typing as npt
-    FloatArray = npt.NDArray[np.float64]
-except:
-    FloatArray = "" # type: ignore
+import numpy.typing as npt
+FloatArray = npt.NDArray[np.float64]
     
 
 X_Y_DIFFERENT_LENGTH_MSG = "x and y must have same length"
@@ -53,7 +49,7 @@ class TestEstimateEntropy(unittest.TestCase):
 
     def test_k_must_be_integer(self) -> None:
         with self.assertRaises(TypeError):
-            estimate_entropy(np.zeros(20), k=2.71828) # type: ignore
+            estimate_entropy(np.zeros(20), k=2.71828) # type: ignore intentional error
 
     def test_x_has_wrong_dimension(self) -> None:
         for dim in [(), (20,2,1)]:
@@ -64,12 +60,12 @@ class TestEstimateEntropy(unittest.TestCase):
 
     def test_mask_is_not_boolean(self) -> None:
         with self.assertRaises(TypeError) as cm:
-            estimate_entropy(np.zeros(5), mask=[1,2,3,4,5])
+            estimate_entropy(np.zeros(5), mask=[1,2,3,4,5]) # type: ignore mask
         self.assertEqual(str(cm.exception), INVALID_MASK_TYPE_MSG)
 
     def test_mask_has_wrong_size(self) -> None:
         with self.assertRaises(ValueError) as cm:
-            estimate_entropy(np.zeros(5), mask=[True, False])
+            estimate_entropy(np.zeros(5), mask=[True, False]) # type: ignore mask
         self.assertEqual(str(cm.exception), INVALID_MASK_LENGTH_MSG)
 
     def test_mask_has_wrong_dimension(self) -> None:
@@ -79,7 +75,7 @@ class TestEstimateEntropy(unittest.TestCase):
 
     def test_mask_leaves_too_few_observations(self) -> None:
         with self.assertRaises(ValueError) as cm:
-            estimate_entropy(np.zeros(5), mask=[False, False, False, True, True])
+            estimate_entropy(np.zeros(5), mask=[False, False, False, True, True]) # type: ignore mask
         self.assertEqual(str(cm.exception), K_TOO_LARGE_MSG)
 
     def test_cond_must_have_same_length_as_x(self) -> None:
@@ -94,9 +90,9 @@ class TestEstimateEntropy(unittest.TestCase):
                     estimate_entropy(np.zeros(20), cond=np.zeros(dim))
                 self.assertEqual(str(cm.exception), COND_WRONG_DIMENSION_MSG)
 
-    def test_single_dimensional_variable_as_list(self) -> None:
+    def test_single_dimensional_variable(self) -> None:
         rng = np.random.default_rng(0)
-        x = [rng.uniform(0, 2) for _ in range(400)]
+        x = np.asarray([rng.uniform(0, 2) for _ in range(400)])
 
         result = estimate_entropy(x)
 
@@ -132,7 +128,7 @@ class TestEstimateEntropy(unittest.TestCase):
             "Exp": rng.exponential(1/2.0, size=500)
         })
 
-        marginal = estimate_entropy(data) # type: pd.DataFrame
+        marginal = estimate_entropy(data)
         multidim = estimate_entropy(data, multidim=True)
 
         # multidim=False results in a DataFrame
@@ -151,7 +147,7 @@ class TestEstimateEntropy(unittest.TestCase):
         rng = np.random.default_rng(2)
         data = pd.Series(rng.normal(0.0, 1.0, size=500), name="N")
 
-        result = estimate_entropy(data) # type: pd.DataFrame
+        result = estimate_entropy(data)
 
         self.assertIsInstance(result, pd.DataFrame)
         self.assertEqual(result.shape, (1,1))
@@ -383,7 +379,7 @@ class TestEstimateMi(unittest.TestCase):
         y = np.zeros(30)
 
         with self.assertRaises(TypeError):
-            estimate_mi(x, y, k=2.71828) # type: ignore
+            estimate_mi(x, y, k=2.71828) # type: ignore intentional error
 
     def test_lag_leaves_too_few_observations(self) -> None:
         x = np.zeros(30)
@@ -497,7 +493,7 @@ class TestEstimateMi(unittest.TestCase):
         y = [5, 6, 7, 8]
 
         with self.assertRaises(ValueError) as cm:
-            estimate_mi(y, x, mask = [ False, True ])
+            estimate_mi(y, x, mask = [ False, True ]) # type: ignore
         self.assertEqual(str(cm.exception), INVALID_MASK_LENGTH_MSG)
 
     def test_mask_with_integer_elements(self) -> None:
@@ -507,7 +503,7 @@ class TestEstimateMi(unittest.TestCase):
         mask = [ 3, 2, 1, 0 ]
 
         with self.assertRaises(TypeError) as cm:
-            estimate_mi(y, x, mask=mask)
+            estimate_mi(y, x, mask=mask) # type: ignore intentional error
         self.assertEqual(str(cm.exception), INVALID_MASK_TYPE_MSG)
 
     def test_mask_with_mixed_element_types(self) -> None:
@@ -517,7 +513,7 @@ class TestEstimateMi(unittest.TestCase):
         mask = [ True, 2, 1, 0 ]
 
         with self.assertRaises(TypeError) as cm:
-            estimate_mi(y, x, mask=mask)
+            estimate_mi(y, x, mask=mask) # type: ignore intentional error
         self.assertEqual(str(cm.exception), INVALID_MASK_TYPE_MSG)
 
     def test_two_covariates_without_lag(self) -> None:
@@ -585,29 +581,6 @@ class TestEstimateMi(unittest.TestCase):
         self.assertAlmostEqual(actual[1,0], 0, delta=0.1)
         self.assertGreaterEqual(actual[2,0], 2.0)
 
-    def test_one_variable_with_lists(self) -> None:
-        # The parameters are plain Python lists
-        rng = random.Random(0)
-        x = [rng.uniform(0, 1) for i in range(100)]
-        y = [rng.uniform(0, 1) for i in range(100)]
-
-        actual = estimate_mi(y, x)
-
-        self.assertAlmostEqual(actual[0,0], 0, delta=0.05)
-
-    def test_two_variables_with_lists(self) -> None:
-        # Plain Python lists, merged into a list of tuples
-        rng = random.Random(1)
-        x1 = [rng.uniform(0, 1) for i in range(201)]
-        x2 = [rng.uniform(0, 1) for i in range(201)]
-        y = [rng.uniform(0, 1) for i in range(201)]
-
-        actual = estimate_mi(y, list(zip(x1, x2)))
-
-        self.assertEqual(actual.shape, (1, 2))
-        self.assertAlmostEqual(actual[0,0], 0, delta=0.05)
-        self.assertAlmostEqual(actual[0,1], 0, delta=0.05)
-
     def test_array_from_file(self) -> None:
         # A realistic use case
         script_path = os.path.dirname(os.path.abspath(__file__))
@@ -641,7 +614,7 @@ class TestEstimateMi(unittest.TestCase):
         data_path = os.path.join(script_path, "example_data.csv")
         data = pd.read_csv(data_path)
 
-        actual = estimate_mi(data["y"], data[["x1", "x2", "x3"]], lag=[0, 1, 3], k=5) # type: pd.DataFrame
+        actual = estimate_mi(data["y"], data[["x1", "x2", "x3"]], lag=[0, 1, 3], k=5)
 
         # The returned object is a Pandas data frame, with row and column names!
         self.assertIsInstance(actual, pd.DataFrame)
@@ -675,7 +648,7 @@ class TestEstimateMi(unittest.TestCase):
                           index=range(2000, 3000))
 
         expected = -0.5 * math.log(1 - 0.8**2)
-        masked = estimate_mi(df["y"], df["x"], mask=df["mask"]) # type: pd.DataFrame
+        masked = estimate_mi(df["y"], df["x"], mask=df["mask"])
         self.assertAlmostEqual(masked.loc[0,"x"], expected, delta=0.03)
 
     def test_mask_without_lag(self) -> None:
@@ -699,12 +672,12 @@ class TestEstimateMi(unittest.TestCase):
         self.assertAlmostEqual(masked, expected, delta=0.03)
 
     def test_mask_as_list(self) -> None:
-        x = list(range(300)) # type: List[float]
+        x = np.arange(300, dtype=np.float64)
         for i in range(0, 300, 2):
             x[i] = math.nan
 
-        y = list(range(300, 0, -1))
-        mask = [ True, False ] * 150
+        y = np.arange(300, 0, -1)
+        mask = np.asarray([ True, False ] * 150)
 
         self.assertGreater(estimate_mi(y, x, lag=1, mask=mask).item(), 3)
 
@@ -792,7 +765,7 @@ class TestEstimateMi(unittest.TestCase):
         data = pd.read_csv(data_path)
 
         actual = estimate_mi(data["y"], data["x1"], lag=-1, k=5,
-                             cond=data["x2"], cond_lag=0) # type: pd.DataFrame
+                             cond=data["x2"], cond_lag=0)
 
         self.assertIsInstance(actual, pd.DataFrame)
         self.assertEqual(actual.shape, (1, 1))
@@ -860,7 +833,7 @@ class TestEstimateMi(unittest.TestCase):
                 y = np.zeros(100)
                 if ynan: y[25] = np.nan
 
-                cond = None # type: Optional[npt.NDArray[np.float64]]
+                cond = None
                 if condnan is not None:
                     cond = np.zeros(100)
                     if condnan: cond[37] = np.nan
@@ -882,16 +855,6 @@ class TestEstimateMi(unittest.TestCase):
         with self.assertRaises(ValueError) as cm2:
             estimate_mi(x, y, discrete_x=True)
         self.assertEqual(str(cm2.exception), NANS_LEFT_MSG)
-
-    def test_cond_and_mask_as_list(self) -> None:
-        x = [1, 2, 3, 4, 5, math.nan]
-        y = [2, 4, 6, 8, 10, 12]
-        cond = [1, 1, 2, 3, 5, 8]
-        mask = [True, True, True, True, True, False]
-
-        # Not checking for the (bogus) result, just that this
-        # type-checks and does not crash
-        estimate_mi(y, x, cond=cond, mask=mask)
 
     def test_drop_nan(self) -> None:
         rng = np.random.default_rng(2020_07_28)
@@ -1210,7 +1173,8 @@ class TestEstimateMi(unittest.TestCase):
         def callback(var_index: int, lag: int) -> None:
             callback_results.append((var_index, lag))
 
-        _ = estimate_mi([1, 2, 3, 4, 5, 6, 7], [2, 3, 4, 5, 6, 7, 8], callback=callback)
+        _ = estimate_mi(np.asarray([1, 2, 3, 4, 5, 6, 7]),
+                        np.asarray([2, 3, 4, 5, 6, 7, 8]), callback=callback)
 
         self.assertEqual(len(callback_results), 1)
         self.assertIn((0, 0), callback_results)
@@ -1260,10 +1224,10 @@ class TestNormalizeMi(unittest.TestCase):
         self.assertAlmostEqual(cor[1,1], -1.0, delta=0.001)
 
     def test_list_is_handled_elementwise(self) -> None:
-        mi = [-1, 0, 1]
+        mi = np.asarray([-1, 0, 1])
         cor = normalize_mi(mi)
 
-        self.assertEqual(cor.shape, (3,)) # type: ignore
+        self.assertEqual(cor.shape, (3,))
         self.assertAlmostEqual(cor[0], -1.0, delta=0.001)
         self.assertAlmostEqual(cor[1], 0.0, delta=0.001)
         self.assertAlmostEqual(cor[2], 0.93, delta=0.03)
@@ -1272,7 +1236,7 @@ class TestNormalizeMi(unittest.TestCase):
         mi = np.asarray([[0.1, 0.5], [0, -1]])
         mi = pd.DataFrame(mi, columns=["A", "B"], index=[14, 52])
 
-        cor = normalize_mi(mi) # type: pd.DataFrame
+        cor = normalize_mi(mi)
         self.assertAlmostEqual(cor.loc[14,"A"], 0.4, delta=0.05)
         self.assertAlmostEqual(cor.loc[14,"B"], 0.8, delta=0.05)
         self.assertAlmostEqual(cor.loc[52,"A"], 0.0, delta=0.001)
@@ -1293,7 +1257,7 @@ class TestPairwiseMi(unittest.TestCase):
         self.assertEqual(str(cm.exception), X_WRONG_DIMENSION_MSG)
 
     def test_k_larger_than_observations(self) -> None:
-        data = np.reshape(np.arange(20), (10,2))
+        data = np.reshape(np.arange(20, dtype=np.float64), (10,2))
         
         # Without mask
         with self.assertRaises(ValueError) as cm:
@@ -1373,7 +1337,7 @@ class TestPairwiseMi(unittest.TestCase):
         expected = -0.5 * math.log(1 - 0.6**2)
 
         data = pd.DataFrame({"X": normal_data[:,0], "Y": normal_data[:,1], "Z": unif_data})
-        result = pairwise_mi(data) # type: pd.DataFrame
+        result = pairwise_mi(data)
 
         self.assertEqual(result.shape, (3,3))
         self.assertIsInstance(result, pd.DataFrame)
@@ -1387,13 +1351,13 @@ class TestPairwiseMi(unittest.TestCase):
             self.assertAlmostEqual(result.loc["Z",i], 0.0, delta=0.03)
 
     def test_only_one_variable_returns_nan(self) -> None:
-        result = pairwise_mi([1, 2, 3, 4])
+        result = pairwise_mi(np.asarray([1, 2, 3, 4]))
         
         self.assertEqual(result.shape, (1,1))
         self.assertTrue(np.isnan(result[0,0]))
 
     def test_only_one_variable_returns_nan_2d_array(self) -> None:
-        result = pairwise_mi([[1], [2], [3], [4]])
+        result = pairwise_mi(np.asarray([[1], [2], [3], [4]]))
 
         self.assertEqual(result.shape, (1,1))
         self.assertTrue(np.isnan(result[0,0]))
@@ -1501,9 +1465,9 @@ class TestPairwiseMi(unittest.TestCase):
         data[:50,0] = np.nan
         data[950:,1] = np.nan
 
-        cond = rng.uniform(size=data.shape) # mypy does not realize that cond is an array
-        cond[100:120,0] = np.nan # type: ignore
-        cond[900:960,0] = np.nan # type: ignore
+        cond = rng.uniform(size=data.shape)
+        cond[100:120,0] = np.nan
+        cond[900:960,0] = np.nan
 
         mi = pairwise_mi(data, cond=cond, normalize=True, drop_nan=True)
         self.assertAlmostEqual(mi[0,1], 0.8, delta=0.02)
@@ -1544,7 +1508,7 @@ class TestPairwiseMi(unittest.TestCase):
         data = self.generate_normal(2022_04_06)
         data[7,0] = np.nan
         data[8,1] = np.nan
-        mask = [True, False] * 500
+        mask = np.asarray([True, False] * 500)
 
         # All parameters of pairwise_mi tweaked
         expected = pairwise_mi(data, cond=np.roll(data[:,0], shift=1), k=7, mask=mask,

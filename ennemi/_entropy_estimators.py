@@ -9,8 +9,8 @@ Use the `estimate_mi` method in the main ennemi module instead.
 
 from __future__ import annotations
 import numpy as np
-from scipy.spatial import cKDTree
-from typing import Union
+from scipy.spatial import KDTree
+from typing import cast, Union
 from warnings import warn
 
 import numpy.typing as npt
@@ -33,7 +33,7 @@ def _estimate_single_entropy(x: FloatArray, k: int = 3) -> float:
         x = x.reshape((x.size,1))
 
     N, ndim = x.shape
-    grid = cKDTree(x, k)
+    grid = KDTree(x, k)
 
     # Search for the k'th neighbor of each point and store the distance
     distances = grid.query(x, k=[k+1], p=np.inf)[0].flatten()
@@ -97,12 +97,12 @@ def _estimate_single_mi(x: FloatArray, y: FloatArray, k: int = 3) -> float:
     # Create the 2D tree for finding the k-th neighbor and marginal 1D trees
     xy = np.column_stack((x, y))
 
-    grid = cKDTree(xy)
-    x_grid = cKDTree(x)
-    y_grid = cKDTree(y)
+    grid = KDTree(xy)
+    x_grid = KDTree(x)
+    y_grid = KDTree(y)
 
     # We have to subtract a small value from the radius
-    # because the algorithm expects strict inequality but cKDTree also allows equality.
+    # because the algorithm expects strict inequality but KDTree also allows equality.
     # This assumes that the radius is of roughly unit magnitude.
     # See https://github.com/polsys/ennemi/issues/76 for justification.
     eps = grid.query(xy, k=[k+1], p=np.inf)[0].flatten()
@@ -110,7 +110,7 @@ def _estimate_single_mi(x: FloatArray, y: FloatArray, k: int = 3) -> float:
     ny = y_grid.query_ball_point(y, eps - 1e-12, p=np.inf, return_length=True)
 
     # Calculate the estimate
-    return _psi(N) + _psi(k) - np.mean(_psi(nx) + _psi(ny))
+    return cast(float, _psi(N) + _psi(k) - np.mean(_psi(nx) + _psi(ny)))
 
 
 def _estimate_conditional_mi(x: FloatArray, y: FloatArray, cond: FloatArray, 
@@ -129,14 +129,14 @@ def _estimate_conditional_mi(x: FloatArray, y: FloatArray, cond: FloatArray,
     # Ensure that cond is 2-dimensional
     cond = np.column_stack((cond,))
 
-    # The cKDTree class offers a lot of vectorization
+    # The KDTree class offers a lot of vectorization
     # First, create N-dimensional trees for variables
     xyz = np.column_stack((x, y, cond))
-    full_grid = cKDTree(xyz)
+    full_grid = KDTree(xyz)
 
-    xz_grid = cKDTree(np.column_stack((x, cond)))
-    yz_grid = cKDTree(np.column_stack((y, cond)))
-    z_grid = cKDTree(cond)
+    xz_grid = KDTree(np.column_stack((x, cond)))
+    yz_grid = KDTree(np.column_stack((y, cond)))
+    z_grid = KDTree(cond)
 
     # Find the distance to the k'th neighbor of each point
     eps = full_grid.query(xyz, k=[k+1], p=np.inf)[0].flatten()
@@ -146,14 +146,14 @@ def _estimate_conditional_mi(x: FloatArray, y: FloatArray, cond: FloatArray,
     yz_proj = np.column_stack((y, cond))
 
     # We have to subtract a small value from the radius
-    # because the algorithm expects strict inequality but cKDTree also allows equality.
+    # because the algorithm expects strict inequality but KDTree also allows equality.
     # This assumes that the radius is of roughly unit magnitude.
     # See https://github.com/polsys/ennemi/issues/76 for justification.
     nxz = xz_grid.query_ball_point(xz_proj, eps - 1e-12, p=np.inf, return_length=True)
     nyz = yz_grid.query_ball_point(yz_proj, eps - 1e-12, p=np.inf, return_length=True)
     nz = z_grid.query_ball_point(cond, eps - 1e-12, p=np.inf, return_length=True)
 
-    return _psi(k) - np.mean(_psi(nxz) + _psi(nyz) - _psi(nz))
+    return cast(float, _psi(k) - np.mean(_psi(nxz) + _psi(nyz) - _psi(nz)))
 
 
 def _estimate_semidiscrete_mi(x: FloatArray, y: FloatArray, k: int = 3) -> float:
@@ -181,8 +181,8 @@ def _estimate_semidiscrete_mi(x: FloatArray, y: FloatArray, k: int = 3) -> float
             " Did you pass y and x in correct order?", UserWarning)
 
     # Create trees for each y value and for the marginal x space
-    grids = [cKDTree(x[y==val]) for val in y_values]
-    x_grid = cKDTree(x)
+    grids = [KDTree(x[y==val]) for val in y_values]
+    x_grid = KDTree(x)
 
     # For each y value:
     # - Find the distance to the k'th neighbor sharing the y value
@@ -219,13 +219,13 @@ def _estimate_conditional_semidiscrete_mi(x: FloatArray, y: FloatArray, cond: Fl
     # First, create N-dimensional trees for variables
     # The full space is partitioned according to y levels
     xz = np.column_stack((x, cond))
-    full_grids = [cKDTree(xz[y==val]) for val in y_values]
+    full_grids = [KDTree(xz[y==val]) for val in y_values]
 
-    xz_grid = cKDTree(xz)
-    z_grid = cKDTree(cond)
+    xz_grid = KDTree(xz)
+    z_grid = KDTree(cond)
 
     # Similarly, the YZ marginal space is partitioned between y levels
-    yz_grids = [cKDTree(cond[y==val]) for val in y_values]
+    yz_grids = [KDTree(cond[y==val]) for val in y_values]
 
     # Find the distance to the k'th neighbor of each point
     # in the y-partitioned spaces, and find the number of neighbors
@@ -244,7 +244,7 @@ def _estimate_conditional_semidiscrete_mi(x: FloatArray, y: FloatArray, cond: Fl
         nyz[subset] = yz_grids[i].query_ball_point(cond[subset], eps - 1e-12, p=np.inf, return_length=True)
         nz[subset] = z_grid.query_ball_point(cond[subset], eps - 1e-12, p=np.inf, return_length=True)
 
-    return _psi(k) - np.mean(_psi(nxz) + _psi(nyz) - _psi(nz))
+    return cast(float, _psi(k) - np.mean(_psi(nxz) + _psi(nyz) - _psi(nz)))
 
 def _verify_not_continuous(values: FloatArray, n: int) -> None:
     if len(values) > n / 4:

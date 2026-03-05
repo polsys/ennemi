@@ -37,7 +37,7 @@ class TestPandasDiscrete(unittest.TestCase):
 
 
     def test_pairwise_mi(self) -> None:
-        mi = pairwise_mi(self.data, discrete=[False, False, True, True]) # type: pd.DataFrame
+        mi = pairwise_mi(self.data, discrete=[False, False, True, True])
 
         self.assertAlmostEqual(mi.loc["Weather", "Wind"], 0.533, delta=0.01)
         self.assertAlmostEqual(mi.loc["Weather", "Temp"], 0.092, delta=0.01)
@@ -46,17 +46,17 @@ class TestPandasDiscrete(unittest.TestCase):
     def test_proportion_of_entropy(self) -> None:
         # Determine the information in the continuous variables
         uncond_continuous = estimate_mi(self.data["Weather"],
-            self.data[["Temp", "Press"]], discrete_y=True) # type: pd.DataFrame
+            self.data[["Temp", "Press"]], discrete_y=True)
         conditional_press = estimate_mi(self.data["Weather"], self.data["Press"],
-            cond=self.data["Temp"], discrete_y=True) # type: pd.DataFrame
+            cond=self.data["Temp"], discrete_y=True)
 
         cont_contribution = uncond_continuous.loc[0, "Temp"] + conditional_press.iloc[0,0]
 
         # Determine the information in wind direction alone
         wind = estimate_mi(self.data["Weather"], self.data["Wind"],
-            discrete_x=True, discrete_y=True) # type: pd.DataFrame
+            discrete_x=True, discrete_y=True)
 
         # Compute the proportions of information (uncertainty coefficient)
-        entropy = estimate_entropy(self.data["Weather"], discrete=True) # type: pd.DataFrame
+        entropy = estimate_entropy(self.data["Weather"], discrete=True)
         self.assertAlmostEqual(cont_contribution / entropy.iloc[0,0], 0.26, delta=0.005)
         self.assertAlmostEqual(wind.iloc[0,0] / entropy.iloc[0,0], 0.59, delta=0.005)

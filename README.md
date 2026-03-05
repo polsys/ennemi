@@ -47,7 +47,7 @@ For documentation, please see https://polsys.github.io/ennemi.
 ## Building
 
 The tests depend on pandas, so you need that installed in addition.
-Additionally, `pytest` and `mypy` are required for building the project.
+Additionally, `pytest` and `ty` are required for building the project.
 All of these are installed by the "extras" syntax of `pip`.
 
 To install the package in development mode, clone this repository and execute
@@ -56,13 +56,13 @@ pip install -e .[dev]
 ```
 in the repository root folder.
 
-All methods, including tests, are type annotated and checked with `mypy`.
+All methods, including tests, are type annotated and checked with `ty`.
 The CI script runs the check automatically on each pushed commit.
 To run the check yourself, execute
 ```sh
-python -m mypy ennemi/ tests/unit tests/integration tests/pandas
+python -m ty check ennemi tests
 ```
-in the repository root (configuration is stored in `mypy.ini` file).
+in the repository root.
 
 Distribution packages (source package and wheel) are created with the `build` package:
 ```sh

@@ -118,7 +118,7 @@ This is because `pandas` is an optional dependency.
 
 ### Type checking
 The package uses [PEP 484](https://www.python.org/dev/peps/pep-0484/)
-type hints in all code, checked by `mypy`.
+type hints in all code.
 This also includes the test code for completeness.
 Failing type check fails the automated build.
 
