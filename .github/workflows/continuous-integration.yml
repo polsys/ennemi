@@ -44,3 +44,7 @@ jobs:
       - name: Run all tests
         run: |
           python -m pytest . --junit-xml=test-results.xml
+          
+      - name: Run type checker
+        run: |
+          python -m ty check ennemi tests

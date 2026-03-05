@@ -30,10 +30,13 @@ jobs:
       - name: Install dependencies with custom versions
         run: |
           pip install -U --pre --only-binary :all: -i https://pypi.anaconda.org/scientific-python-nightly-wheels/simple --extra-index-url https://pypi.org/simple numpy scipy pandas
-          pip install pytest~=8.0
+          pip install pytest~=8.0 ty
           pip install --no-deps -e .
 
       - name: Run unit and integration tests
         run: |
           python -m pytest .
 
+      - name: Run type checker
+        run: |
+          python -m ty check ennemi tests
