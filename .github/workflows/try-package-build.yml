@@ -3,6 +3,8 @@ name: Try building the package
 on:
   push:
     branches: [master]
+  pull_request:
+    branches: [ master ]
 
 jobs:
   build:
@@ -26,7 +28,7 @@ jobs:
           python -m build
 
       - name: Store the package
-        if: false
+        if: true
         uses: actions/upload-artifact@v4
         with:
           name: python-package-distributions
@@ -36,7 +38,7 @@ jobs:
   
   publish-test-pypi:
     name: Upload built package to Test PyPI (disabled, only for testing)
-    if: false
+    if: true
     needs:
       - build
     runs-on: ubuntu-latest
