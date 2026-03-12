@@ -1,3 +1,41 @@
 [build-system]
-requires = ["setuptools", "wheel"]
+requires = ["setuptools >= 82"]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "ennemi"
+version = "1.6.0"
+
+requires-python = ">=3.12"
+dependencies = [ "numpy~=2.0", "scipy~=1.13" ]
+
+description = "Non-linear correlation detection with mutual information"
+readme = "DESCRIPTION.md"
+authors = [{ name="Petri Laarne", email="petri.laarne@helsinki.fi" }]
+license = "MIT"
+license-files = [ "LICENSE.md" ]
+
+keywords = ["information theory", "entropy", "mutual information", "data analysis", "scientific"]
+classifiers = [
+        "Development Status :: 5 - Production/Stable",
+        "Intended Audience :: Science/Research",
+        "Operating System :: OS Independent",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
+        "Programming Language :: Python :: 3.14",
+        "Topic :: Scientific/Engineering",
+        "Topic :: Scientific/Engineering :: Information Analysis",
+        "Topic :: Scientific/Engineering :: Mathematics",
+        "Topic :: Scientific/Engineering :: Physics",
+        "Typing :: Typed"
+    ]
+
+[project.urls]
+Documentation = "https://polsys.github.io/ennemi/"
+Source = "https://github.com/polsys/ennemi/"
+Issues = "https://github.com/polsys/ennemi/issues"
+Zenodo = "https://doi.org/10.5281/zenodo.3834018"
+
+[project.optional-dependencies]
+dev = [ "pandas>=2.2", "pytest~=8.0", "ty~=0.0.21" ]
